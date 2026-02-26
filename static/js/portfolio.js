@@ -1,3 +1,27 @@
+// Tab switching for Upload CSV / Enter Manually
+function switchPortfolioTab(tab) {
+    var csvTab = document.getElementById("tab-csv");
+    var manualTab = document.getElementById("tab-manual");
+    var csvContent = document.getElementById("tab-content-csv");
+    var manualContent = document.getElementById("tab-content-manual");
+    if (!csvTab || !manualTab || !csvContent || !manualContent) return;
+
+    var activeClasses = "border-brand text-brand";
+    var inactiveClasses = "border-transparent text-gray-500 hover:text-gray-700";
+
+    if (tab === "manual") {
+        csvContent.classList.add("hidden");
+        manualContent.classList.remove("hidden");
+        csvTab.className = csvTab.className.replace(activeClasses, inactiveClasses);
+        manualTab.className = manualTab.className.replace(inactiveClasses, activeClasses);
+    } else {
+        manualContent.classList.add("hidden");
+        csvContent.classList.remove("hidden");
+        manualTab.className = manualTab.className.replace(activeClasses, inactiveClasses);
+        csvTab.className = csvTab.className.replace(inactiveClasses, activeClasses);
+    }
+}
+
 // Portfolio CSV upload and analysis handler
 // Security: PII columns (Account Number, Account Name) are stripped
 // client-side BEFORE the file leaves the browser.

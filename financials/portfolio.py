@@ -302,6 +302,216 @@ def parse_portfolio_csv(file_stream) -> list:
 parse_fidelity_csv = parse_portfolio_csv
 
 
+def build_holdings_from_manual(entries: list) -> list:
+    """Convert manual entry dicts into the canonical holdings list format.
+
+    Args:
+        entries: list of dicts with keys: symbol (str), shares (number),
+                 costPerShare (optional number)
+
+    Returns:
+        list of holding dicts matching parse_portfolio_csv() output shape.
+        Duplicate symbols are consolidated (shares summed, cost weighted-avg).
+    """
+    merged = {}
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        symbol = str(entry.get("symbol", "")).strip().upper()
+        if not symbol or not symbol.isalpha() or len(symbol) > 10:
+            continue
+        if symbol in _SKIP_SYMBOLS:
+            continue
+
+        try:
+            shares = float(entry.get("shares", 0))
+        except (TypeError, ValueError):
+            continue
+        if shares <= 0:
+            continue
+
+        cost_per_share = None
+        raw_cost = entry.get("costPerShare")
+        if raw_cost is not None and raw_cost != "":
+            try:
+                cost_per_share = float(raw_cost)
+                if cost_per_share < 0:
+                    cost_per_share = None
+            except (TypeError, ValueError):
+                pass
+
+        cost_basis = round(cost_per_share * shares, 2) if cost_per_share else None
+
+        if symbol in merged:
+            m = merged[symbol]
+            old_shares = m["quantity"]
+            new_shares = old_shares + shares
+            # Weighted-average cost basis per share
+            if cost_per_share and m["costBasisPerShare"]:
+                m["costBasisPerShare"] = round(
+                    (m["costBasisPerShare"] * old_shares + cost_per_share * shares) / new_shares, 2
+                )
+                m["costBasis"] = round(m["costBasisPerShare"] * new_shares, 2)
+            elif cost_per_share:
+                m["costBasisPerShare"] = cost_per_share
+                m["costBasis"] = cost_basis
+            m["quantity"] = new_shares
+        else:
+            merged[symbol] = {
+                "symbol": symbol,
+                "name": "",
+                "quantity": shares,
+                "lastPrice": None,
+                "currentValue": 0,
+                "costBasis": cost_basis,
+                "costBasisPerShare": cost_per_share,
+                "totalGainDollar": None,
+                "totalGainPct": None,
+                "pctOfAccount": 0,
+            }
+
+    return list(merged.values())
+
+
+def _fill_prices_from_enrichment(holdings: list) -> list:
+    """Populate price/value fields using currentPrice from yfinance enrichment.
+
+    Called after enrich_holdings() for manual entry only, where no brokerage
+    price data exists. Computes currentValue, lastPrice, gain/loss fields,
+    and recalculates pctOfAccount.
+    """
+    for h in holdings:
+        price = h.get("currentPrice")
+        qty = h.get("quantity") or 0
+        if price and qty:
+            h["lastPrice"] = price
+            h["currentValue"] = round(price * qty, 2)
+        else:
+            h["lastPrice"] = h.get("lastPrice")
+            h["currentValue"] = h.get("currentValue") or 0
+
+        # Compute gain/loss if cost basis is available
+        cost = h.get("costBasis")
+        val = h["currentValue"]
+        if cost and cost > 0:
+            h["totalGainDollar"] = round(val - cost, 2)
+            h["totalGainPct"] = round((val - cost) / cost * 100, 2)
+        else:
+            h["totalGainDollar"] = None
+            h["totalGainPct"] = None
+
+    # Recalculate pctOfAccount
+    total_value = sum(h.get("currentValue") or 0 for h in holdings)
+    for h in holdings:
+        val = h.get("currentValue") or 0
+        h["pctOfAccount"] = round(val / total_value * 100, 2) if total_value > 0 else 0
+
+    return holdings
+
+
+def build_holdings_from_manual(entries: list) -> list:
+    """Convert manual entry list into canonical holdings format.
+
+    Args:
+        entries: list of dicts with keys: symbol (str), shares (number),
+                 costPerShare (optional number)
+
+    Returns:
+        list of holding dicts matching parse_portfolio_csv() output format.
+    """
+    raw = []
+    for entry in entries:
+        symbol = str(entry.get("symbol", "")).strip().upper()
+        if not symbol or not re.match(r"^[A-Z]{1,10}$", symbol):
+            continue
+        if symbol in _SKIP_SYMBOLS:
+            continue
+
+        shares = entry.get("shares")
+        try:
+            shares = float(shares)
+        except (TypeError, ValueError):
+            continue
+        if shares <= 0:
+            continue
+
+        cost_per_share = entry.get("costPerShare")
+        if cost_per_share is not None:
+            try:
+                cost_per_share = float(cost_per_share)
+                if cost_per_share < 0:
+                    cost_per_share = None
+            except (TypeError, ValueError):
+                cost_per_share = None
+
+        cost_basis = round(cost_per_share * shares, 2) if cost_per_share else None
+
+        raw.append({
+            "symbol": symbol,
+            "name": "",
+            "quantity": shares,
+            "lastPrice": None,
+            "currentValue": 0,
+            "costBasis": cost_basis,
+            "costBasisPerShare": cost_per_share,
+            "totalGainDollar": None,
+            "totalGainPct": None,
+            "pctOfAccount": 0,
+        })
+
+    # Consolidate duplicate symbols (sum shares, weighted-average cost)
+    merged = {}
+    for h in raw:
+        sym = h["symbol"]
+        if sym not in merged:
+            merged[sym] = dict(h)
+        else:
+            m = merged[sym]
+            old_qty = m["quantity"] or 0
+            new_qty = h["quantity"] or 0
+            total_qty = old_qty + new_qty
+            # Weighted-average cost basis per share
+            old_cost = m["costBasis"] or 0
+            new_cost = h["costBasis"] or 0
+            total_cost = old_cost + new_cost
+            m["quantity"] = total_qty
+            m["costBasis"] = total_cost if total_cost > 0 else None
+            m["costBasisPerShare"] = round(total_cost / total_qty, 2) if total_cost > 0 and total_qty > 0 else None
+
+    return list(merged.values())
+
+
+def _fill_prices_from_enrichment(holdings: list) -> list:
+    """Fill price/value fields using currentPrice from yfinance enrichment.
+
+    Called after enrich_holdings() for manual entries only, since manual entry
+    has no price data — unlike CSV uploads where the brokerage provides prices.
+    """
+    for h in holdings:
+        price = h.get("currentPrice")
+        if price and h.get("quantity"):
+            h["lastPrice"] = price
+            h["currentValue"] = round(price * h["quantity"], 2)
+            # Compute gain/loss if cost basis is available
+            cost = h.get("costBasis")
+            if cost:
+                gain = h["currentValue"] - cost
+                h["totalGainDollar"] = round(gain, 2)
+                h["totalGainPct"] = round(gain / cost * 100, 2) if cost > 0 else None
+        else:
+            # Unknown ticker or no price available
+            h["lastPrice"] = None
+            h["currentValue"] = 0
+
+    # Recalculate pctOfAccount across all holdings
+    total_value = sum(h.get("currentValue") or 0 for h in holdings)
+    for h in holdings:
+        val = h.get("currentValue") or 0
+        h["pctOfAccount"] = round(val / total_value * 100, 2) if total_value > 0 else 0
+
+    return holdings
+
+
 _ENRICHMENT_FALLBACK = {
     "sector": "Unknown",
     "sectorKey": "",

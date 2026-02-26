@@ -21,38 +21,51 @@
         </div>
     </div>
 
-    <!-- Upload form -->
-    <form id="portfolio-form" class="mb-8">
-        <div class="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-            <div>
-                <label for="csv-input" class="block text-sm font-medium text-gray-700 mb-1">Brokerage Positions CSV</label>
-                <input type="file" id="csv-input" name="csv" accept=".csv"
-                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-light file:text-brand hover:file:bg-[#c4d8ec] file:cursor-pointer file:transition">
-            </div>
-            <button id="analyze-btn" type="submit"
-                    class="bg-brand text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                Analyze Portfolio
-            </button>
-        </div>
-        <p class="mt-2 text-xs text-gray-400">Your data stays in your browser session and is not stored. Account numbers and sensitive fields are stripped before upload.</p>
-    </form>
-
-    <!-- Supported brokerages -->
-    <div class="mb-4 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-        <span class="font-medium text-gray-600">Supported:</span>
-        <span class="bg-gray-100 px-2 py-0.5 rounded">Fidelity</span>
-        <span class="bg-gray-100 px-2 py-0.5 rounded">Schwab</span>
-        <span class="bg-gray-100 px-2 py-0.5 rounded">Vanguard</span>
-        <span class="bg-gray-100 px-2 py-0.5 rounded">E*Trade</span>
-        <span class="bg-gray-100 px-2 py-0.5 rounded">TD Ameritrade</span>
-        <span class="bg-gray-100 px-2 py-0.5 rounded">Robinhood</span>
-        <span class="bg-gray-100 px-2 py-0.5 rounded">Merrill Edge</span>
-        <span class="bg-gray-100 px-2 py-0.5 rounded">Interactive Brokers</span>
-        <span class="text-gray-400">& more</span>
+    <!-- Tab bar -->
+    <div class="flex border-b border-gray-200 mb-6">
+        <button id="tab-csv" onclick="switchPortfolioTab('csv')"
+                class="px-5 py-2.5 text-sm font-medium border-b-2 border-brand text-brand -mb-px transition">
+            Upload CSV
+        </button>
+        <button id="tab-manual" onclick="switchPortfolioTab('manual')"
+                class="px-5 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 -mb-px transition">
+            Enter Manually
+        </button>
     </div>
 
-    <!-- How to export tutorial (collapsible) -->
-    <details class="mb-8 bg-white border border-gray-200 rounded-lg shadow-sm">
+    <!-- CSV Upload tab content -->
+    <div id="tab-content-csv">
+        <form id="portfolio-form" class="mb-8">
+            <div class="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+                <div>
+                    <label for="csv-input" class="block text-sm font-medium text-gray-700 mb-1">Brokerage Positions CSV</label>
+                    <input type="file" id="csv-input" name="csv" accept=".csv"
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-light file:text-brand hover:file:bg-[#c4d8ec] file:cursor-pointer file:transition">
+                </div>
+                <button id="analyze-btn" type="submit"
+                        class="bg-brand text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Analyze Portfolio
+                </button>
+            </div>
+            <p class="mt-2 text-xs text-gray-400">Your data stays in your browser session and is not stored. Account numbers and sensitive fields are stripped before upload.</p>
+        </form>
+
+        <!-- Supported brokerages -->
+        <div class="mb-4 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+            <span class="font-medium text-gray-600">Supported:</span>
+            <span class="bg-gray-100 px-2 py-0.5 rounded">Fidelity</span>
+            <span class="bg-gray-100 px-2 py-0.5 rounded">Schwab</span>
+            <span class="bg-gray-100 px-2 py-0.5 rounded">Vanguard</span>
+            <span class="bg-gray-100 px-2 py-0.5 rounded">E*Trade</span>
+            <span class="bg-gray-100 px-2 py-0.5 rounded">TD Ameritrade</span>
+            <span class="bg-gray-100 px-2 py-0.5 rounded">Robinhood</span>
+            <span class="bg-gray-100 px-2 py-0.5 rounded">Merrill Edge</span>
+            <span class="bg-gray-100 px-2 py-0.5 rounded">Interactive Brokers</span>
+            <span class="text-gray-400">& more</span>
+        </div>
+
+        <!-- How to export tutorial (collapsible) -->
+        <details class="mb-8 bg-white border border-gray-200 rounded-lg shadow-sm">
         <summary class="cursor-pointer px-5 py-3 text-sm font-semibold text-brand hover:bg-brand-light/30 transition rounded-lg select-none flex items-center gap-2">
             <svg class="w-5 h-5 text-brand shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -111,6 +124,57 @@
             </div>
         </div>
     </details>
+    </div><!-- end tab-content-csv -->
+
+    <!-- Manual Entry tab content -->
+    <div id="tab-content-manual" class="hidden">
+        <div class="mb-6">
+            <p class="text-sm text-gray-600 mb-4">Enter your holdings below. Current prices will be fetched automatically.</p>
+
+            <!-- Input row -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-end gap-3 mb-4">
+                <div>
+                    <label for="manual-symbol" class="block text-xs font-medium text-gray-600 mb-1">Symbol</label>
+                    <input type="text" id="manual-symbol" placeholder="AAPL" maxlength="10"
+                           class="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm uppercase focus:ring-1 focus:ring-brand focus:border-brand outline-none">
+                </div>
+                <div>
+                    <label for="manual-shares" class="block text-xs font-medium text-gray-600 mb-1">Shares</label>
+                    <input type="number" id="manual-shares" placeholder="100" min="0.0001" step="any"
+                           class="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-brand focus:border-brand outline-none">
+                </div>
+                <div>
+                    <label for="manual-cost" class="block text-xs font-medium text-gray-600 mb-1">Cost/Share <span class="text-gray-400">(optional)</span></label>
+                    <input type="number" id="manual-cost" placeholder="150.00" min="0" step="any"
+                           class="w-32 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-brand focus:border-brand outline-none">
+                </div>
+                <button type="button" onclick="addHolding()"
+                        class="bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-dark transition">
+                    Add
+                </button>
+            </div>
+
+            <!-- Validation message -->
+            <p id="manual-error" class="text-red-500 text-xs mb-3 hidden"></p>
+
+            <!-- Preview table -->
+            <div id="manual-holdings-table" class="hidden mb-4"></div>
+
+            <!-- Analyze button -->
+            <div id="manual-analyze-row" class="hidden flex items-center gap-4">
+                <button type="button" id="manual-analyze-btn" onclick="analyzeManual()"
+                        class="bg-brand text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    Analyze Portfolio
+                </button>
+                <button type="button" onclick="clearAllHoldings()"
+                        class="text-sm text-gray-400 hover:text-red-500 transition">
+                    Clear all
+                </button>
+            </div>
+
+            <p class="mt-3 text-xs text-gray-400">No files are uploaded. Only ticker symbols and share counts are sent for analysis.</p>
+        </div>
+    </div><!-- end tab-content-manual -->
 
     <!-- Results container -->
     <div id="portfolio-content"></div>
@@ -120,4 +184,5 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/portfolio_widgets.js') }}"></script>
 <script src="{{ url_for('static', filename='js/portfolio.js') }}"></script>
+<script src="{{ url_for('static', filename='js/portfolio_manual.js') }}"></script>
 {% endblock %}
