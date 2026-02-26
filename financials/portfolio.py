@@ -1,4 +1,9 @@
-"""Fidelity CSV portfolio parser and analysis engine."""
+"""Multi-broker CSV portfolio parser and analysis engine.
+
+Supports CSV exports from Fidelity, Schwab, Vanguard, E*Trade,
+TD Ameritrade, Robinhood, Interactive Brokers, Merrill Edge, and
+other brokers with standard column naming.
+"""
 
 import io
 import math
@@ -24,42 +29,156 @@ def _sanitize_for_json(obj):
     return obj
 
 
-# Symbols to skip (cash, money market, pending activity)
-_SKIP_SYMBOLS = {"FCASH", "PENDING ACTIVITY"}
+# Symbols to skip (cash, money market, pending activity, sweep accounts)
+_SKIP_SYMBOLS = {
+    "FCASH", "PENDING ACTIVITY", "CASH", "CASH & CASH INVESTMENTS",
+    "SPAXX", "SWVXX", "VMFXX", "FDRXX",  # common money market funds
+    "ACCOUNT TOTAL", "TOTAL",
+}
 _SKIP_PATTERN = re.compile(r"\*")
 
 
 def _clean_money(val):
-    """Strip $, +, %, commas from a value and convert to float."""
+    """Strip $, +, %, commas, parens (negative) from a value and convert to float."""
     if pd.isna(val) or val is None:
         return None
     s = str(val).strip()
-    if s in ("", "--", "n/a", "N/A"):
+    if s in ("", "--", "n/a", "N/A", "—", "-"):
         return None
+    # Handle parenthetical negatives: ($1,234.56) -> -1234.56
+    negative = False
+    if s.startswith("(") and s.endswith(")"):
+        s = s[1:-1]
+        negative = True
     s = s.replace("$", "").replace("%", "").replace(",", "").replace("+", "")
     try:
-        return float(s)
+        result = float(s)
+        return -result if negative else result
     except ValueError:
         return None
 
 
-# Only these columns are needed.  PII (Account Number, Account Name) is
-# stripped client-side in portfolio.js before upload.  This server-side
-# allowlist is a defense-in-depth layer in case the JS stripping is bypassed.
-# Includes both known Fidelity naming variants for cost basis columns.
-_KEEP_COLUMNS = {
+# ---------------------------------------------------------------------------
+# Column name normalization
+# ---------------------------------------------------------------------------
+# Maps various brokerage column names to canonical names used internally.
+# Keys are lowercased for case-insensitive matching.
+_COLUMN_ALIASES = {
+    # Symbol
+    "symbol":           "Symbol",
+    "ticker":           "Symbol",
+    "ticker symbol":    "Symbol",
+
+    # Description / Name
+    "description":          "Description",
+    "name":                 "Description",
+    "security name":        "Description",
+    "security description": "Description",
+    "investment name":      "Description",
+    "security":             "Description",
+    "holding":              "Description",
+
+    # Quantity / Shares
+    "quantity":   "Quantity",
+    "shares":     "Quantity",
+    "qty":        "Quantity",
+    "share count": "Quantity",
+
+    # Last Price
+    "last price":           "Last Price",
+    "price":                "Last Price",
+    "share price":          "Last Price",
+    "close price":          "Last Price",
+    "closing price":        "Last Price",
+    "last":                 "Last Price",
+    "market price":         "Last Price",
+    "current price":        "Last Price",
+
+    # Current Value / Market Value
+    "current value":   "Current Value",
+    "market value":    "Current Value",
+    "total value":     "Current Value",
+    "value":           "Current Value",
+    "mkt value":       "Current Value",
+    "account value":   "Current Value",
+    "equity":          "Current Value",
+
+    # Cost Basis (total)
+    "cost basis total":   "Cost Basis Total",
+    "cost basis":         "Cost Basis Total",
+    "total cost":         "Cost Basis Total",
+    "total cost basis":   "Cost Basis Total",
+    "cost":               "Cost Basis Total",
+    "book value":         "Cost Basis Total",
+    "purchase value":     "Cost Basis Total",
+
+    # Cost Basis Per Share
+    "average cost basis":    "Average Cost Basis",
+    "cost basis per share":  "Average Cost Basis",
+    "avg cost":              "Average Cost Basis",
+    "average cost":          "Average Cost Basis",
+    "avg cost/share":        "Average Cost Basis",
+    "avg price":             "Average Cost Basis",
+    "unit cost":             "Average Cost Basis",
+
+    # Gain/Loss Dollar
+    "total gain/loss dollar": "Total Gain/Loss Dollar",
+    "gain/loss dollar":       "Total Gain/Loss Dollar",
+    "gain/loss $":            "Total Gain/Loss Dollar",
+    "gain loss $":            "Total Gain/Loss Dollar",
+    "unrealized gain/loss":   "Total Gain/Loss Dollar",
+    "unrealized p&l":         "Total Gain/Loss Dollar",
+    "gain/loss":              "Total Gain/Loss Dollar",
+    "p&l":                    "Total Gain/Loss Dollar",
+    "total gain/loss":        "Total Gain/Loss Dollar",
+
+    # Gain/Loss Percent
+    "total gain/loss percent": "Total Gain/Loss Percent",
+    "gain/loss percent":       "Total Gain/Loss Percent",
+    "gain/loss %":             "Total Gain/Loss Percent",
+    "gain loss %":             "Total Gain/Loss Percent",
+    "unrealized gain/loss %":  "Total Gain/Loss Percent",
+    "% gain/loss":             "Total Gain/Loss Percent",
+
+    # Percent of Account
+    "percent of account": "Percent Of Account",
+    "% of account":       "Percent Of Account",
+    "% of portfolio":     "Percent Of Account",
+    "weight":             "Percent Of Account",
+    "portfolio %":        "Percent Of Account",
+    "allocation":         "Percent Of Account",
+    "allocation %":       "Percent Of Account",
+}
+
+# Canonical column names we actually use
+_CANONICAL_COLUMNS = {
     "Symbol", "Description", "Quantity", "Last Price", "Current Value",
     "Cost Basis Total", "Average Cost Basis",
-    "Cost Basis", "Cost Basis Per Share",
     "Total Gain/Loss Dollar", "Total Gain/Loss Percent", "Percent Of Account",
 }
 
 
-def parse_fidelity_csv(file_stream) -> list:
-    """Parse a Fidelity positions CSV export into a list of holding dicts.
+def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Rename brokerage-specific column names to canonical names."""
+    rename_map = {}
+    for col in df.columns:
+        lower = col.strip().lower()
+        canonical = _COLUMN_ALIASES.get(lower)
+        if canonical and canonical not in rename_map.values():
+            rename_map[col] = canonical
+    if rename_map:
+        df = df.rename(columns=rename_map)
+    return df
+
+
+def parse_portfolio_csv(file_stream) -> list:
+    """Parse a brokerage positions CSV export into a list of holding dicts.
+
+    Supports CSV exports from Fidelity, Schwab, Vanguard, E*Trade,
+    TD Ameritrade, Robinhood, Interactive Brokers, Merrill Edge, and others.
 
     Security: PII columns are stripped client-side before upload (portfolio.js).
-    As defense-in-depth, the server also drops any columns not in _KEEP_COLUMNS.
+    As defense-in-depth, the server also drops any columns not recognized.
 
     Args:
         file_stream: file-like object (from request.files or open())
@@ -73,51 +192,65 @@ def parse_fidelity_csv(file_stream) -> list:
     if isinstance(content, bytes):
         content = content.decode("utf-8-sig")
 
-    # Fidelity appends a legal disclaimer after a blank line — strip it
-    # so pandas doesn't choke on non-CSV text.  Also strip trailing commas
-    # from each line — Fidelity rows end with "Cash," which creates an extra
-    # empty column that shifts pandas column alignment.
+    # Many brokers append disclaimers/totals after a blank line — strip
+    # everything after the first blank line.  Also strip trailing commas
+    # (Fidelity rows sometimes end with extra commas).
     clean_lines = []
     for line in content.splitlines():
-        if line.strip() == "":
-            break
+        stripped = line.strip()
+        if stripped == "":
+            # Allow blank lines at the very top (some exports start with them)
+            if clean_lines:
+                break
+            continue
         clean_lines.append(line.rstrip(","))
     content = "\n".join(clean_lines)
 
     df = pd.read_csv(io.StringIO(content))
 
-    # Normalize column names (strip whitespace)
+    # Normalize column names (strip whitespace, then map aliases)
     df.columns = df.columns.str.strip()
+    df = _normalize_columns(df)
 
-    # Drop sensitive / unused columns immediately (Account Number, Account Name, etc.)
-    cols_to_drop = [c for c in df.columns if c not in _KEEP_COLUMNS]
+    # Drop sensitive / unused columns (Account Number, Account Name, etc.)
+    cols_to_drop = [c for c in df.columns if c not in _CANONICAL_COLUMNS]
     df.drop(columns=cols_to_drop, inplace=True, errors="ignore")
 
     holdings = []
     for _, row in df.iterrows():
         symbol = str(row.get("Symbol", "")).strip().upper()
 
-        # Skip empty, cash, money market, pending
+        # Clean common symbol artifacts from various brokers
+        symbol = symbol.replace("*", "").replace("+", "").strip()
+
+        # Skip empty, cash, money market, pending, totals
         if not symbol or symbol in _SKIP_SYMBOLS:
             continue
         if _SKIP_PATTERN.search(symbol):
             continue
         if symbol.startswith("PENDING"):
             continue
+        # Skip summary/total rows that some brokers include
+        if any(kw in symbol for kw in ("TOTAL", "CASH & CASH")):
+            continue
 
         name = str(row.get("Description", "")).strip()
         quantity = _clean_money(row.get("Quantity"))
         last_price = _clean_money(row.get("Last Price"))
         current_value = _clean_money(row.get("Current Value"))
-        # Fidelity uses "Cost Basis Total" / "Average Cost Basis" but older
-        # exports or other brokers may use "Cost Basis" / "Cost Basis Per Share"
-        cost_basis = _clean_money(
-            row.get("Cost Basis Total") or row.get("Cost Basis"))
-        cost_basis_per_share = _clean_money(
-            row.get("Average Cost Basis") or row.get("Cost Basis Per Share"))
+        cost_basis = _clean_money(row.get("Cost Basis Total"))
+        cost_basis_per_share = _clean_money(row.get("Average Cost Basis"))
         total_gain_dollar = _clean_money(row.get("Total Gain/Loss Dollar"))
         total_gain_pct = _clean_money(row.get("Total Gain/Loss Percent"))
         pct_of_account = _clean_money(row.get("Percent Of Account"))
+
+        # If market value is missing but we have price and quantity, compute it
+        if current_value is None and last_price is not None and quantity is not None:
+            current_value = round(last_price * quantity, 2)
+
+        # If cost basis is missing but we have per-share cost and quantity, compute it
+        if cost_basis is None and cost_basis_per_share is not None and quantity is not None:
+            cost_basis = round(cost_basis_per_share * quantity, 2)
 
         # Must have at least a symbol and some value
         if current_value is None and quantity is None:
@@ -163,6 +296,10 @@ def parse_fidelity_csv(file_stream) -> list:
         h["costBasisPerShare"] = round(cost / qty, 2) if cost and qty else None
 
     return holdings
+
+
+# Keep backward-compatible alias
+parse_fidelity_csv = parse_portfolio_csv
 
 
 _ENRICHMENT_FALLBACK = {
