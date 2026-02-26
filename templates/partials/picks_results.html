@@ -1,0 +1,122 @@
+{# Analyst picks table — server-rendered HTML fragment #}
+
+{% macro money(val) %}{% if val is none or val != val %}N/A{% elif val >= 1000000000000 %}${{ '%.2f' | format(val / 1000000000000) }}T{% elif val >= 1000000000 %}${{ '%.2f' | format(val / 1000000000) }}B{% elif val >= 1000000 %}${{ '%.2f' | format(val / 1000000) }}M{% else %}${{ '{:,.0f}'.format(val) }}{% endif %}{% endmacro %}
+
+{% macro rec_badge(key) %}
+    {% set k = key | lower %}
+    {% if k in ('buy', 'strong_buy') %}
+        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800">{{ key | upper | replace('_', ' ') }}</span>
+    {% elif k == 'hold' %}
+        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-800">HOLD</span>
+    {% elif k in ('sell', 'underperform', 'strong_sell') %}
+        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-800">{{ key | upper | replace('_', ' ') }}</span>
+    {% else %}
+        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-600">{{ key | upper }}</span>
+    {% endif %}
+{% endmacro %}
+
+{% macro target_range(low, high) %}
+    {% if low and high %}
+        <div class="text-xs text-gray-400 mt-0.5">Low: ${{ '%.2f' | format(low) }} / High: ${{ '%.2f' | format(high) }}</div>
+    {% endif %}
+{% endmacro %}
+
+{% macro low_coverage_badge(is_low) %}
+    {% if is_low %}
+        <span class="inline-block ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-orange-100 text-orange-700 cursor-help" title="Fewer than 3 analysts cover this stock — consensus may be unreliable">Low Coverage</span>
+    {% endif %}
+{% endmacro %}
+
+{% macro discrepancy_icon(has_discrepancy) %}
+    {% if has_discrepancy %}
+        <span class="inline-block ml-1 cursor-help" title="Yahoo Finance and Finnhub analyst ratings disagree on this stock">
+            <svg class="w-4 h-4 text-amber-500 inline" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+        </span>
+    {% endif %}
+{% endmacro %}
+
+<h2 class="text-lg font-semibold text-brand mb-3">{{ industry_label }} &mdash; {{ picks | length }} companies with analyst coverage</h2>
+
+{# --- Hot Picks: top 3 stocks with strong coverage and positive upside --- #}
+{% set ns = namespace(hot=[]) %}
+{% for p in picks | sort(attribute='upsidePct', reverse=true) %}
+    {% if p.nAnalysts >= 5 and p.upsidePct > 0 and not p.lowCoverage and ns.hot | length < 3 %}
+        {% set ns.hot = ns.hot + [p] %}
+    {% endif %}
+{% endfor %}
+
+{% if ns.hot %}
+<div class="mb-5">
+    <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-2">Hot Picks</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {% for h in ns.hot %}
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 border-l-4 border-l-[#1F4E79] p-4 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between mb-2">
+                <a href="/dashboard/{{ h.symbol }}" class="text-sm font-semibold text-gray-800 hover:text-[#1F4E79] leading-tight">{{ h.name[:35] }}</a>
+                <span class="ml-2 shrink-0 inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-brand-light text-brand">{{ h.symbol }}</span>
+            </div>
+            <div class="text-2xl font-bold text-green-600 mb-2">+{{ '%.1f' | format(h.upsidePct) }}%</div>
+            <div class="flex items-center gap-3 text-xs text-gray-500 mb-2">
+                <span>Price: <span class="font-medium text-gray-700">${{ '%.2f' | format(h.currentPrice) }}</span></span>
+                <span>Target: <span class="font-medium text-gray-700">${{ '%.2f' | format(h.targetPrice) }}</span></span>
+            </div>
+            <div class="flex items-center gap-2">
+                {{ rec_badge(h.recKey) }}
+                <span class="text-xs text-gray-400">{{ h.nAnalysts }} analysts</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="bg-brand-light text-brand font-bold text-xs uppercase">
+                <th class="px-3 py-2 text-left">Company</th>
+                <th class="px-3 py-2 text-center">Ticker</th>
+                <th class="px-3 py-2 text-center">Market Cap</th>
+                <th class="px-3 py-2 text-right">Price</th>
+                <th class="px-3 py-2 text-right">Analyst Target</th>
+                <th class="px-3 py-2 text-center">Implied Upside</th>
+                <th class="px-3 py-2 text-center">Rating</th>
+                <th class="px-3 py-2 text-center"># Analysts</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in picks %}
+            <tr class="{{ 'bg-gray-50' if loop.index is odd else '' }} hover:bg-brand-light/30 transition-colors">
+                <td class="px-3 py-2 text-left">
+                    <a href="/dashboard/{{ p.symbol }}" class="text-brand hover:underline font-medium">{{ p.name[:40] }}</a>
+                </td>
+                <td class="px-3 py-2 text-center">
+                    <a href="/dashboard/{{ p.symbol }}" class="text-brand font-bold hover:underline">{{ p.symbol }}</a>
+                </td>
+                <td class="px-3 py-2 text-center">{{ money(p.marketCap) }}</td>
+                <td class="px-3 py-2 text-right">${{ '%.2f' | format(p.currentPrice) }}</td>
+                <td class="px-3 py-2 text-right">
+                    ${{ '%.2f' | format(p.targetPrice) }}
+                    {{ target_range(p.targetLow, p.targetHigh) }}
+                </td>
+                <td class="px-3 py-2 text-center font-bold {{ 'text-green-700' if p.upsidePct >= 0 else 'text-red-600' }}">
+                    {{ '+' if p.upsidePct >= 0 }}{{ '%.1f' | format(p.upsidePct) }}%
+                </td>
+                <td class="px-3 py-2 text-center">
+                    {{ rec_badge(p.recKey) }}{{ discrepancy_icon(p.recDiscrepancy) }}
+                </td>
+                <td class="px-3 py-2 text-center text-gray-500">
+                    {{ p.nAnalysts }}{{ low_coverage_badge(p.lowCoverage) }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<p class="text-xs text-gray-400 italic px-4 py-2">
+    Sorted by implied upside (highest first). All data from Yahoo Finance analyst consensus.
+    {% if has_finnhub %} Cross-referenced with <a href="https://finnhub.io" target="_blank" class="underline">Finnhub</a>.{% endif %}
+    Not investment advice.
+</p>

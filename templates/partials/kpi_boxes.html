@@ -1,0 +1,8 @@
+<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+    {% for kpi in kpis %}
+    <div class="{{ kpi.color }} text-white rounded-lg p-4 text-center shadow">
+        <p class="text-xs font-bold uppercase tracking-wide opacity-90">{{ kpi.label }}</p>
+        <p class="text-2xl font-bold mt-1">{{ kpi.value }}</p>
+    </div>
+    {% endfor %}
+</div>

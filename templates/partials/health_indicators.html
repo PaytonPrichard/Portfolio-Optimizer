@@ -1,0 +1,26 @@
+<div class="bg-white rounded-lg shadow mb-6 overflow-hidden">
+    <div class="bg-brand text-white px-5 py-3">
+        <h2 class="font-bold text-sm uppercase tracking-wide">Financial Health Indicators</h2>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 p-4">
+        {% for ind in health.indicators %}
+        <div class="{{ ind.color }} text-white rounded-lg p-3 text-center shadow relative">
+            <p class="text-xs font-bold uppercase tracking-wide opacity-90">{{ ind.label }}</p>
+            <p class="text-xl font-bold mt-1">{{ ind.value }}</p>
+            {% if ind.signal %}
+            <span class="inline-block mt-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full
+                {% if ind.signal == 'Good' %}bg-white/25
+                {% elif ind.signal == 'Caution' %}bg-white/30
+                {% else %}bg-white/20{% endif %}">
+                {{ ind.signal }}
+            </span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% if health.ownership %}
+    <div class="bg-brand-light px-5 py-2 text-sm text-brand italic">
+        {{ health.ownership | join(' &nbsp;|&nbsp; ') }}
+    </div>
+    {% endif %}
+</div>

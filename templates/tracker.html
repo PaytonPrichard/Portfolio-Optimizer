@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Tracker - Portfolio Optimizer{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-brand mb-2">Stock Tracker</h1>
+    <p class="text-gray-500 mb-6">Track your watchlist with price alerts. Data stored locally in your browser.</p>
+
+    <!-- Add ticker -->
+    <div class="bg-white rounded-lg shadow p-5 mb-6">
+        <form id="add-form" class="flex flex-col sm:flex-row gap-3">
+            <input type="text" id="add-ticker" placeholder="Enter ticker (e.g. AAPL)"
+                   class="flex-1 px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-brand"
+                   maxlength="10" required>
+            <div class="flex gap-2">
+                <input type="number" id="alert-above" placeholder="Alert above $" step="0.01" min="0"
+                       class="w-36 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-brand text-sm">
+                <input type="number" id="alert-below" placeholder="Alert below $" step="0.01" min="0"
+                       class="w-36 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-brand text-sm">
+            </div>
+            <button type="submit" id="add-btn" class="bg-brand text-white px-6 py-2 rounded font-semibold hover:bg-brand-dark transition disabled:opacity-50">
+                Add
+            </button>
+        </form>
+        <p id="add-error" class="text-red-600 text-sm mt-2 hidden"></p>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-4">
+            <button id="refresh-btn" class="bg-brand text-white px-4 py-2 rounded text-sm font-semibold hover:bg-brand-dark transition">
+                Refresh All
+            </button>
+            <label class="flex items-center gap-2 text-sm text-gray-600">
+                <input type="checkbox" id="auto-refresh" class="rounded">
+                Auto-refresh (60s)
+            </label>
+        </div>
+        <span id="last-updated" class="text-xs text-gray-400"></span>
+    </div>
+
+    <!-- Refresh error -->
+    <p id="refresh-error" class="text-red-600 text-sm mb-3 hidden"></p>
+
+    <!-- Watchlist table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full text-sm" id="watchlist-table">
+            <thead>
+                <tr class="bg-brand text-white text-xs uppercase">
+                    <th class="px-4 py-3 text-left">Ticker</th>
+                    <th class="px-4 py-3 text-left">Company</th>
+                    <th class="px-4 py-3 text-right">Price</th>
+                    <th class="px-4 py-3 text-right">Change</th>
+                    <th class="px-4 py-3 text-center">Alerts</th>
+                    <th class="px-4 py-3 text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="watchlist-body">
+                <!-- Populated by JS -->
+            </tbody>
+        </table>
+        <p id="empty-msg" class="text-gray-400 italic text-center py-8 hidden">
+            No stocks in your watchlist. Add a ticker above to get started.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/tracker.js') }}"></script>
+{% endblock %}

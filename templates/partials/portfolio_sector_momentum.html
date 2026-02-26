@@ -1,0 +1,60 @@
+{# Widget 1: Sector Momentum Heatmap — loaded async #}
+
+{% macro momentum_cell(val) %}
+    {% if val is none %}
+        <td class="px-3 py-2 text-center text-gray-300">--</td>
+    {% elif val > 2 %}
+        <td class="px-3 py-2 text-center font-bold text-white bg-green-600 rounded">+{{ '%.1f' | format(val) }}%</td>
+    {% elif val > 0 %}
+        <td class="px-3 py-2 text-center font-medium text-green-700 bg-green-50">+{{ '%.1f' | format(val) }}%</td>
+    {% elif val > -2 %}
+        <td class="px-3 py-2 text-center font-medium text-red-600 bg-red-50">{{ '%.1f' | format(val) }}%</td>
+    {% else %}
+        <td class="px-3 py-2 text-center font-bold text-white bg-red-600 rounded">{{ '%.1f' | format(val) }}%</td>
+    {% endif %}
+{% endmacro %}
+
+<div class="mb-8">
+    <h2 class="text-lg font-semibold text-brand mb-1">Sector Momentum</h2>
+    <p class="text-xs text-gray-400 mb-3">1-week, 1-month, and 3-month returns for sector ETFs. Your portfolio weight shown for context.</p>
+
+    {% if sectors %}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-brand-light text-brand font-bold text-xs uppercase">
+                        <th class="px-3 py-2 text-left">Sector</th>
+                        <th class="px-3 py-2 text-center">ETF</th>
+                        <th class="px-3 py-2 text-center">1 Week</th>
+                        <th class="px-3 py-2 text-center">1 Month</th>
+                        <th class="px-3 py-2 text-center">3 Month</th>
+                        <th class="px-3 py-2 text-right">Your Weight</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in sectors %}
+                    <tr class="{{ 'bg-gray-50' if loop.index is odd else '' }} {{ 'opacity-40' if s.portfolioWeight == 0 else '' }} hover:opacity-100 transition-opacity">
+                        <td class="px-3 py-2 font-medium text-gray-800">{{ s.sector }}</td>
+                        <td class="px-3 py-2 text-center text-gray-500 text-xs">{{ s.etf }}</td>
+                        {{ momentum_cell(s.w1) }}
+                        {{ momentum_cell(s.m1) }}
+                        {{ momentum_cell(s.m3) }}
+                        <td class="px-3 py-2 text-right {{ 'font-bold text-brand' if s.portfolioWeight > 0 else 'text-gray-300' }}">
+                            {% if s.portfolioWeight > 0 %}
+                                {{ '%.1f' | format(s.portfolioWeight) }}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p class="text-xs text-gray-400 italic mt-1">Sectors with 0% portfolio weight are dimmed. Data from sector ETFs, cached 30 min.</p>
+    {% else %}
+    <p class="text-gray-400 text-sm italic">No sector momentum data available.</p>
+    {% endif %}
+</div>

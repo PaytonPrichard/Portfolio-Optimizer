@@ -1,0 +1,49 @@
+<div class="bg-white rounded-lg shadow mb-6 overflow-hidden">
+    <div class="bg-brand text-white px-5 py-3">
+        <h2 class="font-bold text-sm uppercase tracking-wide">Quarterly Revenue Trend</h2>
+    </div>
+    {% if revenue_trend %}
+    <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="bg-brand-light text-brand font-bold">
+                <th class="px-5 py-2 text-left">Quarter</th>
+                <th class="px-5 py-2 text-right">Revenue (USD)</th>
+                <th class="px-5 py-2 text-center">QoQ Change</th>
+                <th class="px-5 py-2 text-center">Trend</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in revenue_trend %}
+            <tr class="{{ 'bg-gray-50' if loop.index is odd else '' }}">
+                <td class="px-5 py-2 font-semibold">{{ row.quarter }}</td>
+                <td class="px-5 py-2 text-right">{{ row.revenue_fmt }}</td>
+                <td class="px-5 py-2 text-center">
+                    {% if row.qoq is not none %}
+                        <span class="{{ 'text-green-700' if row.qoq >= 0 else 'text-red-600' }} font-bold">
+                            {{ '%+.1f'|format(row.qoq) }}%
+                        </span>
+                    {% else %}
+                        <span class="text-gray-400">Baseline</span>
+                    {% endif %}
+                </td>
+                <td class="px-5 py-2 text-center text-lg">
+                    {% if row.qoq is not none %}
+                        {% if row.qoq >= 0 %}
+                            <span class="text-green-700 font-bold">&#9650;</span>
+                        {% else %}
+                            <span class="text-red-600 font-bold">&#9660;</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-gray-400">--</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="px-5 py-4 text-gray-500 italic">No revenue data available.</p>
+    {% endif %}
+</div>

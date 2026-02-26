@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Portfolio Analysis - Portfolio Optimizer{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <h1 class="text-3xl font-bold text-brand mb-2">Portfolio Analysis</h1>
+    <p class="text-gray-600 mb-6">Upload your Fidelity positions CSV to get sector allocation, concentration risk analysis, diversification gaps, and opportunity suggestions.</p>
+
+    <!-- Disclaimer -->
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8 rounded-r">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <p class="ml-3 text-sm text-yellow-700">
+                <strong>Disclaimer:</strong> Your CSV is processed in-memory and never stored. Analysis uses Yahoo Finance data. Sector/industry classifications and analyst targets are not guarantees. Always do your own research before investing.
+            </p>
+        </div>
+    </div>
+
+    <!-- Upload form -->
+    <form id="portfolio-form" class="mb-8">
+        <div class="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+            <div>
+                <label for="csv-input" class="block text-sm font-medium text-gray-700 mb-1">Fidelity Positions CSV</label>
+                <input type="file" id="csv-input" name="csv" accept=".csv"
+                       class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-light file:text-brand hover:file:bg-[#c4d8ec] file:cursor-pointer file:transition">
+            </div>
+            <button id="analyze-btn" type="submit"
+                    class="bg-brand text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                Analyze Portfolio
+            </button>
+        </div>
+        <p class="mt-2 text-xs text-gray-400">Your data stays in your browser session and is not stored. Account numbers are stripped before upload.</p>
+    </form>
+
+    <!-- How to export tutorial (collapsible) -->
+    <details class="mb-8 bg-white border border-gray-200 rounded-lg shadow-sm">
+        <summary class="cursor-pointer px-5 py-3 text-sm font-semibold text-brand hover:bg-brand-light/30 transition rounded-lg select-none flex items-center gap-2">
+            <svg class="w-5 h-5 text-brand shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            How to download your positions CSV from Fidelity
+        </summary>
+        <div class="px-5 pb-5 pt-2 text-sm text-gray-600 space-y-3 border-t border-gray-100">
+            <ol class="list-decimal list-inside space-y-2">
+                <li>Log in to <strong>Fidelity.com</strong> and go to <strong>Accounts &amp; Trade</strong> &rarr; <strong>Portfolio</strong>.</li>
+                <li>Make sure you're viewing the <strong>Positions</strong> tab (this is the default view).</li>
+                <li>If you have multiple accounts, select the specific account you want to analyze, or choose <strong>All Accounts</strong>.</li>
+                <li>Click the <strong>download icon</strong> (small arrow pointing down) near the top-right of the positions table.</li>
+                <li>Select <strong>Download</strong> to save the CSV file to your computer.</li>
+                <li>Upload the downloaded <code class="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono">.csv</code> file using the form above.</li>
+            </ol>
+            <div class="bg-blue-50 border border-blue-100 rounded p-3 mt-3">
+                <p class="text-xs text-blue-700">
+                    <strong>Privacy note:</strong> The CSV from Fidelity includes your account number. Our tool automatically strips account numbers and other sensitive fields in your browser <em>before</em> anything is sent to the server. Only ticker symbols, share counts, and dollar values are transmitted for analysis.
+                </p>
+            </div>
+        </div>
+    </details>
+
+    <!-- Results container -->
+    <div id="portfolio-content"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/portfolio_widgets.js') }}"></script>
+<script src="{{ url_for('static', filename='js/portfolio.js') }}"></script>
+{% endblock %}

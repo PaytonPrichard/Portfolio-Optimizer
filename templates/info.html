@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Info &amp; Glossary - Portfolio Optimizer{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-brand mb-6">Information &amp; Glossary</h1>
+
+    <!-- How to Use -->
+    <section class="bg-white rounded-lg shadow mb-6 overflow-hidden">
+        <div class="bg-brand text-white px-5 py-3">
+            <h2 class="font-bold text-sm uppercase tracking-wide">How to Use</h2>
+        </div>
+        <div class="px-5 py-4 space-y-3 text-gray-700 text-sm leading-relaxed">
+            <p><strong>Search:</strong> From the home page, type a company name (e.g. "Apple") or stock ticker (e.g. "AAPL") and click Analyze. If multiple matches are found, select the correct one.</p>
+            <p><strong>Dashboard:</strong> View a full financial breakdown including KPIs, revenue trends, analyst targets, AI-generated outlook, financial health indicators, news, and peer comparison.</p>
+            <p><strong>Excel Download:</strong> Click "Download Excel Report" at the bottom of any dashboard to get a styled spreadsheet with all sections.</p>
+            <p><strong>Stock Tracker:</strong> Add tickers to your personal watchlist, set price alerts, and refresh quotes. Your watchlist is stored in your browser (localStorage) and persists across sessions.</p>
+        </div>
+    </section>
+
+    <!-- Understanding Portfolio Analysis -->
+    <section class="bg-white rounded-lg shadow mb-6 overflow-hidden">
+        <div class="bg-brand text-white px-5 py-3">
+            <h2 class="font-bold text-sm uppercase tracking-wide">Understanding Portfolio Analysis</h2>
+        </div>
+        <div class="px-5 py-4 space-y-3 text-gray-700 text-sm leading-relaxed">
+            <p><strong>Upload:</strong> Export your positions CSV from Fidelity (Accounts &amp; Trade &rarr; Portfolio &rarr; Download icon). Account numbers and sensitive fields are automatically stripped in your browser before upload.</p>
+            <p><strong>Sector Allocation:</strong> Shows your portfolio broken down by sector. ETFs and mutual funds are analyzed using look-through analysis, distributing their value across underlying sectors.</p>
+            <p><strong>Concentration Alerts:</strong> Any single holding exceeding 15% of your portfolio is flagged as a potential concentration risk.</p>
+            <p><strong>Diversification Gaps:</strong> Industries tracked by our analyst picks database that have zero direct exposure in your portfolio, with top analyst-rated picks for each gap.</p>
+            <p><strong>Analyst Consensus Overview:</strong> Aggregates Buy/Hold/Sell ratings and implied upside across all your covered holdings. Sortable by symbol, upside, rating, and more.</p>
+            <p><strong>Insight Widgets:</strong> After the initial analysis loads, additional widgets load in the background &mdash; sector momentum heatmap, news digest for your top holdings, AI-generated portfolio commentary, and peer valuation comparisons.</p>
+        </div>
+    </section>
+
+    <!-- Understanding the Dashboard -->
+    <section class="bg-white rounded-lg shadow mb-6 overflow-hidden">
+        <div class="bg-brand text-white px-5 py-3">
+            <h2 class="font-bold text-sm uppercase tracking-wide">Understanding the Dashboard</h2>
+        </div>
+        <div class="px-5 py-4 space-y-3 text-gray-700 text-sm leading-relaxed">
+            <p><strong>KPI Boxes:</strong> Five key metrics at a glance — market cap, current stock price, trailing P/E ratio, gross margin, and 1-year price change.</p>
+            <p><strong>Revenue Trend:</strong> The last four quarters of revenue in chronological order, with quarter-over-quarter percentage changes. Green indicates growth; red indicates decline.</p>
+            <p><strong>Analyst Targets:</strong> Wall Street consensus price targets (low, mean, high) plus the analyst recommendation and implied upside/downside from the current price.</p>
+            <p><strong>Outlook:</strong> AI-generated commentary summarizing the company's financial health, price outlook, risks, recent news impact, and industry context. Falls back to rule-based analysis if the AI service is unavailable.</p>
+            <p><strong>Health Indicators:</strong> Key financial ratios — debt-to-equity, return on equity, current ratio, quick ratio, and short interest as a percentage of float.</p>
+            <p><strong>News:</strong> Recent headlines related to the company with AI-generated summaries.</p>
+            <p><strong>Peer Comparison:</strong> Industry peers ranked by market cap, showing key metrics for side-by-side comparison. Loads asynchronously as it takes 15-20 seconds to gather data.</p>
+        </div>
+    </section>
+
+    <!-- Financial Glossary -->
+    <section class="bg-white rounded-lg shadow mb-6 overflow-hidden">
+        <div class="bg-brand text-white px-5 py-3">
+            <h2 class="font-bold text-sm uppercase tracking-wide">Financial Glossary</h2>
+        </div>
+        <div class="px-5 py-4">
+            <dl class="space-y-4 text-sm">
+                <div>
+                    <dt class="font-bold text-brand">P/E Ratio (Price-to-Earnings)</dt>
+                    <dd class="text-gray-600 ml-4">Stock price divided by earnings per share. A high P/E may indicate high growth expectations; a low P/E may suggest undervaluation or slower growth.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-brand">Market Cap (Market Capitalization)</dt>
+                    <dd class="text-gray-600 ml-4">Total market value of a company's outstanding shares. Calculated as share price times total shares outstanding.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-brand">Gross Margin</dt>
+                    <dd class="text-gray-600 ml-4">Revenue minus cost of goods sold, divided by revenue. Shows how efficiently a company produces its goods or services.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-brand">ROE (Return on Equity)</dt>
+                    <dd class="text-gray-600 ml-4">Net income divided by shareholders' equity. Measures how effectively the company uses equity to generate profit.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-brand">Debt-to-Equity Ratio</dt>
+                    <dd class="text-gray-600 ml-4">Total debt divided by shareholders' equity. Indicates the proportion of financing from debt vs. equity. Higher ratios mean more leverage.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-brand">Current Ratio</dt>
+                    <dd class="text-gray-600 ml-4">Current assets divided by current liabilities. Measures ability to pay short-term obligations. Above 1.0 is generally healthy.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-brand">Quick Ratio</dt>
+                    <dd class="text-gray-600 ml-4">Like the current ratio but excludes inventory. A stricter test of short-term liquidity.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-brand">Short Float (%)</dt>
+                    <dd class="text-gray-600 ml-4">Percentage of available shares being sold short. High short interest may indicate bearish sentiment or potential for a short squeeze.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-brand">QoQ (Quarter-over-Quarter)</dt>
+                    <dd class="text-gray-600 ml-4">Percentage change from one fiscal quarter to the next. Used to track short-term growth or decline.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-brand">TTM (Trailing Twelve Months)</dt>
+                    <dd class="text-gray-600 ml-4">Data from the most recent 12-month period. Provides a current annual snapshot without waiting for fiscal year-end.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-brand">EPS (Earnings Per Share)</dt>
+                    <dd class="text-gray-600 ml-4">Net income divided by outstanding shares. Shows how much profit is attributable to each share of stock.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-brand">Beta</dt>
+                    <dd class="text-gray-600 ml-4">Measure of a stock's volatility relative to the overall market. Beta &gt; 1 means more volatile than the market; &lt; 1 means less volatile.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-brand">Dividend Yield</dt>
+                    <dd class="text-gray-600 ml-4">Annual dividend per share divided by the stock price. Shows the return from dividends alone.</dd>
+                </div>
+                <div>
+                    <dt class="font-bold text-brand">52-Week Range</dt>
+                    <dd class="text-gray-600 ml-4">The lowest and highest prices at which a stock has traded during the past 52 weeks (one year).</dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+
+    <!-- About AI Commentary -->
+    <section class="bg-white rounded-lg shadow mb-6 overflow-hidden">
+        <div class="bg-brand text-white px-5 py-3">
+            <h2 class="font-bold text-sm uppercase tracking-wide">About AI Commentary</h2>
+        </div>
+        <div class="px-5 py-4 text-gray-700 text-sm leading-relaxed space-y-2">
+            <p>The Outlook section on each dashboard is generated by <strong>Claude</strong> (Anthropic's AI assistant). It analyzes the financial data and recent news to provide a concise 5-sentence assessment covering company health, price outlook, risks, recent developments, and industry context.</p>
+            <p>If the AI service is unavailable, a rule-based fallback generates the commentary using the same financial data.</p>
+            <p class="text-red-700 font-semibold">This is not investment advice. AI-generated commentary is for informational purposes only. Always consult a qualified financial advisor before making investment decisions.</p>
+        </div>
+    </section>
+
+    <!-- Data Sources -->
+    <section class="bg-white rounded-lg shadow mb-6 overflow-hidden">
+        <div class="bg-brand text-white px-5 py-3">
+            <h2 class="font-bold text-sm uppercase tracking-wide">Data Sources</h2>
+        </div>
+        <div class="px-5 py-4 text-gray-700 text-sm leading-relaxed space-y-2">
+            <p><strong>Yahoo Finance</strong> — All financial data, stock prices, analyst estimates, and news headlines are sourced from Yahoo Finance via the yfinance library.</p>
+            <p><strong>Data may be delayed up to 15 minutes.</strong> Real-time quotes are not guaranteed. Prices shown are indicative and may differ from live exchange prices.</p>
+            <p><strong>Claude AI (Anthropic)</strong> — AI commentary and news summaries are generated using Claude Haiku.</p>
+        </div>
+    </section>
+</div>
+{% endblock %}

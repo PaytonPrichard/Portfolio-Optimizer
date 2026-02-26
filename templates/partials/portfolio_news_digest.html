@@ -1,0 +1,29 @@
+{# Widget 3: Holdings News Digest — loaded async #}
+
+<div class="mb-8">
+    <h2 class="text-lg font-semibold text-brand mb-1">Holdings News Digest</h2>
+    <p class="text-xs text-gray-400 mb-3">Recent headlines for your top holdings.</p>
+
+    {% if news %}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 divide-y divide-gray-100">
+        {% for item in news %}
+        <div class="px-4 py-3 flex items-start gap-3 hover:bg-brand-light/20 transition-colors">
+            <a href="/dashboard/{{ item.symbol }}"
+               class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-brand-light text-brand hover:bg-brand hover:text-white transition shrink-0 mt-0.5">
+                {{ item.symbol }}
+            </a>
+            <div class="min-w-0 flex-1">
+                <p class="text-sm text-gray-800 leading-snug">{{ item.title }}</p>
+                <p class="text-xs text-gray-400 mt-0.5">
+                    {% if item.publisher %}{{ item.publisher }}{% endif %}
+                    {% if item.date %} &middot; {{ item.date }}{% endif %}
+                </p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <p class="text-xs text-gray-400 italic mt-1">Headlines from Yahoo Finance. Click ticker to view full dashboard.</p>
+    {% else %}
+    <p class="text-gray-400 text-sm italic">No recent news found for your holdings.</p>
+    {% endif %}
+</div>

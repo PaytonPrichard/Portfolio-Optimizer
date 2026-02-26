@@ -1,0 +1,16 @@
+<div class="bg-white rounded-lg shadow mb-6 overflow-hidden" id="peers-section">
+    <div class="bg-brand text-white px-5 py-3">
+        <h2 class="font-bold text-sm uppercase tracking-wide">Industry Peer Comparison</h2>
+    </div>
+    <div id="peers-content" data-ticker="{{ symbol }}">
+        <!-- Loading skeleton -->
+        <div class="p-5 space-y-3 animate-pulse" id="peers-skeleton">
+            <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div class="h-4 bg-gray-200 rounded w-full"></div>
+            <div class="h-4 bg-gray-200 rounded w-5/6"></div>
+            <div class="h-4 bg-gray-200 rounded w-full"></div>
+            <div class="h-4 bg-gray-200 rounded w-2/3"></div>
+            <p class="text-sm text-gray-400 italic pt-2">Loading peer data (this may take 15-20 seconds)...</p>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Portfolio Optimizer - Company Financial Analysis{% endblock %}
+
+{% block content %}
+<!-- Loading overlay -->
+<div id="loading-overlay" class="fixed inset-0 bg-white/80 z-50 flex flex-col items-center justify-center hidden" role="status" aria-live="polite">
+    <div class="animate-spin rounded-full h-12 w-12 border-4 border-brand border-t-transparent mb-4"></div>
+    <p class="text-brand font-semibold text-lg" id="loading-text">Searching...</p>
+    <p class="text-gray-400 text-sm mt-1">Fetching financial data from Yahoo Finance</p>
+</div>
+
+<div class="flex flex-col items-center justify-center min-h-[70vh] px-4">
+    <h1 class="text-4xl font-bold text-brand mb-2">Portfolio Optimizer</h1>
+    <p class="text-gray-500 mb-8 text-center">Search by company name or stock ticker to get a full financial dashboard</p>
+
+    <form action="/search" method="GET" class="w-full max-w-xl" id="search-form">
+        <div class="flex shadow-lg rounded-lg overflow-hidden">
+            <input
+                type="text"
+                name="q"
+                value="{{ query or '' }}"
+                placeholder="Enter company name or ticker (e.g. Apple or AAPL)"
+                class="flex-1 px-6 py-4 text-lg border-0 focus:outline-none focus:ring-2 focus:ring-brand"
+                autofocus
+                required
+            >
+            <button type="submit" class="bg-brand text-white px-8 py-4 font-semibold hover:bg-brand-dark transition">
+                Analyze
+            </button>
+        </div>
+    </form>
+
+    {% if no_results %}
+    <div class="w-full max-w-xl mt-6">
+        <div class="bg-red-50 border border-red-200 rounded-lg px-5 py-4">
+            <p class="text-red-700">No results found for "<strong>{{ query }}</strong>". Try a company name (e.g. "Apple") or stock ticker (e.g. "AAPL").</p>
+        </div>
+    </div>
+    {% elif candidates %}
+    <div class="w-full max-w-xl mt-6">
+        <p class="text-gray-600 mb-3">Multiple matches found for "<strong>{{ query }}</strong>". Select one:</p>
+        <div class="bg-white rounded-lg shadow divide-y">
+            {% for c in candidates %}
+            <a href="/dashboard/{{ c.symbol }}" class="flex items-center justify-between px-5 py-3 hover:bg-brand-light transition dashboard-link">
+                <div>
+                    <span class="font-semibold text-brand">{{ c.symbol }}</span>
+                    <span class="text-gray-600 ml-2">{{ c.name }}</span>
+                </div>
+                <span class="text-sm text-gray-400">{{ c.exchange }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    var overlay = document.getElementById('loading-overlay');
+    var loadingText = document.getElementById('loading-text');
+
+    // Show overlay on search submit
+    document.getElementById('search-form').addEventListener('submit', function() {
+        loadingText.textContent = 'Searching...';
+        overlay.classList.remove('hidden');
+    });
+
+    // Show overlay on candidate click (dashboard load takes 5-8s)
+    document.querySelectorAll('.dashboard-link').forEach(function(link) {
+        link.addEventListener('click', function() {
+            var ticker = this.querySelector('.text-brand').textContent;
+            loadingText.textContent = 'Loading ' + ticker + ' dashboard...';
+            overlay.classList.remove('hidden');
+        });
+    });
+})();
+</script>
+{% endblock %}

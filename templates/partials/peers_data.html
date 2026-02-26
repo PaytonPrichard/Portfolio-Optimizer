@@ -1,0 +1,44 @@
+{% set fmt_money = [] %}
+{# Peer comparison table — server-rendered HTML fragment #}
+
+{% macro pct(val) %}{% if val is not none and val == val %}{{ '%.1f' | format(val * 100) }}%{% else %}N/A{% endif %}{% endmacro %}
+{% macro pe(val) %}{% if val is not none and val == val %}{{ '%.1f' | format(val) }}x{% else %}N/A{% endif %}{% endmacro %}
+{% macro money(val) %}{% if val is none or val != val %}N/A{% elif val >= 1000000000000 %}${{ '%.2f' | format(val / 1000000000000) }}T{% elif val >= 1000000000 %}${{ '%.2f' | format(val / 1000000000) }}B{% elif val >= 1000000 %}${{ '%.2f' | format(val / 1000000) }}M{% else %}${{ '{:,.0f}'.format(val) }}{% endif %}{% endmacro %}
+
+<div class="overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead>
+            <tr class="bg-brand-light text-brand font-bold text-xs uppercase">
+                <th class="px-3 py-2 text-left">Company</th>
+                <th class="px-3 py-2 text-center">Ticker</th>
+                <th class="px-3 py-2 text-center">Market Cap</th>
+                <th class="px-3 py-2 text-center">P/E Trail</th>
+                <th class="px-3 py-2 text-center">P/E Fwd</th>
+                <th class="px-3 py-2 text-center">Gross Margin</th>
+                <th class="px-3 py-2 text-center">Net Margin</th>
+                <th class="px-3 py-2 text-center">Rev Growth</th>
+                <th class="px-3 py-2 text-center">52-Wk Chg</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in peers | sort(attribute='marketCap', reverse=true) %}
+            <tr class="{{ 'bg-brand-light font-semibold' if p.is_target else ('bg-gray-50' if loop.index is odd else '') }}">
+                <td class="px-3 py-2 text-left {{ 'text-brand font-bold' if p.is_target }}">{{ p.name[:35] }}</td>
+                <td class="px-3 py-2 text-center {{ 'text-brand font-bold' if p.is_target }}">
+                    <a href="/dashboard/{{ p.symbol }}" class="hover:underline">{{ p.symbol }}</a>
+                </td>
+                <td class="px-3 py-2 text-center">{{ money(p.marketCap) }}</td>
+                <td class="px-3 py-2 text-center">{{ pe(p.trailingPE) }}</td>
+                <td class="px-3 py-2 text-center">{{ pe(p.forwardPE) }}</td>
+                <td class="px-3 py-2 text-center">{{ pct(p.grossMargins) }}</td>
+                <td class="px-3 py-2 text-center">{{ pct(p.profitMargins) }}</td>
+                <td class="px-3 py-2 text-center">{{ pct(p.revenueGrowth) }}</td>
+                <td class="px-3 py-2 text-center">{{ pct(p.fiftyTwoWeekChange) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<p class="text-xs text-gray-400 italic px-4 py-2">
+    Target company highlighted. All data from Yahoo Finance. {{ peers | length }} companies in this industry.
+</p>

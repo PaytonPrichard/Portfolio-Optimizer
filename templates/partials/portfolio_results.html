@@ -1,0 +1,321 @@
+{# Portfolio analysis results — server-rendered HTML fragment #}
+
+{% macro money(val) %}{% if val is none or val != val %}N/A{% elif val >= 1000000000000 %}${{ '%.2f' | format(val / 1000000000000) }}T{% elif val >= 1000000000 %}${{ '%.2f' | format(val / 1000000000) }}B{% elif val >= 1000000 %}${{ '%.1f' | format(val / 1000000) }}M{% elif val >= 1000 %}${{ '{:,.0f}'.format(val) }}{% else %}${{ '%.2f' | format(val) }}{% endif %}{% endmacro %}
+
+{% macro rec_badge(key) %}
+    {% set k = key | lower %}
+    {% if k in ('buy', 'strong_buy') %}
+        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800">{{ key | upper | replace('_', ' ') }}</span>
+    {% elif k == 'hold' %}
+        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-800">HOLD</span>
+    {% elif k in ('sell', 'underperform', 'strong_sell') %}
+        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-800">{{ key | upper | replace('_', ' ') }}</span>
+    {% else %}
+        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-600">{{ key | upper }}</span>
+    {% endif %}
+{% endmacro %}
+
+{# ── Portfolio Summary Cards ── #}
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+        <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Value</div>
+        <div class="text-2xl font-bold text-brand">{{ money(totalValue) }}</div>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+        <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Total Gain/Loss</div>
+        <div class="text-2xl font-bold {{ 'text-green-700' if totalGain >= 0 else 'text-red-600' }}">
+            {{ '+' if totalGain >= 0 }}{{ money(totalGain) }}
+            <span class="text-sm font-medium ml-1">({{ '+' if totalGainPct >= 0 }}{{ '%.1f' | format(totalGainPct) }}%)</span>
+        </div>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+        <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Holdings</div>
+        <div class="text-2xl font-bold text-brand">{{ holdings | length }}</div>
+        <div class="text-xs text-gray-400 mt-1">across {{ bySector | length }} sectors</div>
+    </div>
+</div>
+
+{# ── Concentration Alerts ── #}
+{% if concentration %}
+<div class="mb-8">
+    <h2 class="text-lg font-semibold text-brand mb-3">Concentration Alerts</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {% for c in concentration %}
+        <div class="bg-yellow-50 border border-yellow-200 border-l-4 border-l-yellow-400 rounded-r-lg p-4">
+            <div class="flex items-center gap-2 mb-1">
+                <svg class="w-5 h-5 text-yellow-500 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <a href="/dashboard/{{ c.symbol }}" class="font-bold text-gray-800 hover:text-brand">{{ c.symbol }}</a>
+                <span class="text-sm text-gray-500">{{ c.name[:30] }}</span>
+            </div>
+            <div class="text-lg font-bold text-yellow-700">{{ '%.1f' | format(c.pct) }}% of portfolio</div>
+            <div class="text-xs text-gray-500">{{ money(c.currentValue) }} &mdash; Consider rebalancing if >15%</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{# ── Sector Allocation ── #}
+<div class="mb-8">
+    <h2 class="text-lg font-semibold text-brand mb-3">Sector Allocation</h2>
+    <p class="text-xs text-gray-400 mb-2">ETFs and mutual funds are broken down into their underlying sector weightings (look-through analysis).</p>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-brand-light text-brand font-bold text-xs uppercase">
+                    <th class="px-4 py-2 text-left">Sector</th>
+                    <th class="px-4 py-2 text-right">Value</th>
+                    <th class="px-4 py-2 text-center">% of Portfolio</th>
+                    <th class="px-4 py-2 text-center hidden sm:table-cell">Holdings</th>
+                    <th class="px-4 py-2 text-left hidden md:table-cell" style="min-width:200px">Allocation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in bySector %}
+                <tr class="{{ 'bg-gray-50' if loop.index is odd else '' }} hover:bg-brand-light/30 transition-colors">
+                    <td class="px-4 py-2 font-medium text-gray-800">{{ s.sector }}</td>
+                    <td class="px-4 py-2 text-right">{{ money(s.value) }}</td>
+                    <td class="px-4 py-2 text-center font-bold {{ 'text-red-600' if s.pct > 30 else 'text-gray-700' }}">{{ '%.1f' | format(s.pct) }}%</td>
+                    <td class="px-4 py-2 text-center text-gray-500 hidden sm:table-cell">{{ s.count }}</td>
+                    <td class="px-4 py-2 hidden md:table-cell">
+                        <div class="w-full bg-gray-100 rounded-full h-3">
+                            <div class="h-3 rounded-full {{ 'bg-red-400' if s.pct > 30 else 'bg-brand' }}" style="width: {{ [s.pct, 100] | min }}%"></div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# ── Industry Breakdown ── #}
+<div class="mb-8">
+    <h2 class="text-lg font-semibold text-brand mb-3">Industry Breakdown</h2>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-brand-light text-brand font-bold text-xs uppercase">
+                        <th class="px-4 py-2 text-left">Industry</th>
+                        <th class="px-4 py-2 text-left hidden sm:table-cell">Sector</th>
+                        <th class="px-4 py-2 text-right">Value</th>
+                        <th class="px-4 py-2 text-center">%</th>
+                        <th class="px-4 py-2 text-center">Holdings</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in byIndustry %}
+                    <tr class="{{ 'bg-gray-50' if loop.index is odd else '' }} hover:bg-brand-light/30 transition-colors">
+                        <td class="px-4 py-2 font-medium">
+                            {% if i.industryKey in industryLabels %}
+                                <a href="/picks" class="text-brand hover:underline" title="View analyst picks for this industry">{{ i.industry }}</a>
+                            {% else %}
+                                <span class="text-gray-800">{{ i.industry }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-2 text-gray-500 hidden sm:table-cell">{{ i.sector }}</td>
+                        <td class="px-4 py-2 text-right">{{ money(i.value) }}</td>
+                        <td class="px-4 py-2 text-center font-bold text-gray-700">{{ '%.1f' | format(i.pct) }}%</td>
+                        <td class="px-4 py-2 text-center text-gray-500">{{ i.count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{# ── Diversification Gaps & Opportunities ── #}
+{% if gaps %}
+<div class="mb-8">
+    <h2 class="text-lg font-semibold text-brand mb-3">Diversification Gaps</h2>
+    <p class="text-sm text-gray-500 mb-3">Industries tracked by our analyst picks that you have zero exposure to.</p>
+
+    {% if opportunities %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for opp in opportunities %}
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 border-l-4 border-l-[#1F4E79] p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="font-semibold text-gray-800 text-sm">{{ opp.industryLabel }}</h3>
+                <a href="/picks" class="text-xs text-brand hover:underline">View all picks</a>
+            </div>
+            {% for p in opp.picks %}
+            <div class="flex items-center justify-between py-1.5 {{ 'border-t border-gray-100' if not loop.first }}">
+                <div>
+                    <a href="/dashboard/{{ p.symbol }}" class="text-sm font-medium text-brand hover:underline">{{ p.symbol }}</a>
+                    <span class="text-xs text-gray-400 ml-1">{{ p.name[:25] }}</span>
+                </div>
+                <div class="text-right">
+                    <span class="text-sm font-bold text-green-600">+{{ '%.1f' | format(p.upsidePct) }}%</span>
+                    <div class="text-xs text-gray-400">{{ p.nAnalysts }} analysts</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    {# Show remaining gaps not fetched (beyond the 12 cap) #}
+    {% set shown_keys = opportunities | map(attribute='industryKey') | list %}
+    {% set remaining = [] %}
+    {% for g in gaps if g not in shown_keys %}
+        {% if remaining.append(g) %}{% endif %}
+    {% endfor %}
+    {% if remaining %}
+    <div class="bg-gray-50 rounded-lg p-3 mt-3">
+        <p class="text-xs text-gray-500">Also missing:
+            {% for g in remaining %}
+                <span class="inline-block bg-gray-200 text-gray-700 rounded px-2 py-0.5 text-xs font-medium mr-0.5 mb-0.5">{{ industryLabels.get(g, g) }}</span>
+            {% endfor %}
+            <a href="/picks" class="text-brand hover:underline ml-1">Browse all on Picks page</a>
+        </p>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="bg-gray-50 rounded-lg p-4">
+        <p class="text-sm text-gray-500">Missing industries:
+            {% for g in gaps %}
+                <span class="inline-block bg-gray-200 text-gray-700 rounded px-2 py-0.5 text-xs font-medium mr-1 mb-1">{{ industryLabels.get(g, g) }}</span>
+            {% endfor %}
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{# ── Holdings Table ── #}
+<div class="mb-8">
+    <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold text-brand">All Holdings</h2>
+        <div class="flex items-center gap-2">
+            <label for="holdings-sort" class="text-xs text-gray-500">Sort by</label>
+            <select id="holdings-sort" data-sortable-table="holdings-table"
+                    class="text-xs border border-gray-300 rounded-md px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand">
+                <option value="symbol:asc" selected>Symbol (A-Z)</option>
+                <option value="symbol:desc">Symbol (Z-A)</option>
+                <option value="value:desc">Value (High-Low)</option>
+                <option value="value:asc">Value (Low-High)</option>
+                <option value="gainPct:desc">Gain % (High-Low)</option>
+                <option value="gainPct:asc">Gain % (Low-High)</option>
+                <option value="gain:desc">Gain/Loss (High-Low)</option>
+                <option value="gain:asc">Gain/Loss (Low-High)</option>
+                <option value="price:desc">Price (High-Low)</option>
+                <option value="sector:asc">Sector (A-Z)</option>
+            </select>
+        </div>
+    </div>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table id="holdings-table" class="w-full text-sm">
+                <thead>
+                    <tr class="bg-brand-light text-brand font-bold text-xs uppercase">
+                        <th class="px-3 py-2 text-left">Symbol</th>
+                        <th class="px-3 py-2 text-left">Name</th>
+                        <th class="px-3 py-2 text-right">Shares</th>
+                        <th class="px-3 py-2 text-right">Price</th>
+                        <th class="px-3 py-2 text-right">Value</th>
+                        <th class="px-3 py-2 text-right">Cost Basis</th>
+                        <th class="px-3 py-2 text-right">Gain/Loss</th>
+                        <th class="px-3 py-2 text-center">Gain %</th>
+                        <th class="px-3 py-2 text-left hidden lg:table-cell">Sector</th>
+                        <th class="px-3 py-2 text-left hidden xl:table-cell">Industry</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in holdings | sort(attribute='symbol') %}
+                    <tr data-sort-symbol="{{ h.symbol }}"
+                        data-sort-value="{{ h.currentValue or 0 }}"
+                        data-sort-gain="{{ h.totalGainDollar or 0 }}"
+                        data-sort-gainpct="{{ h.totalGainPct if h.totalGainPct is not none else -9999 }}"
+                        data-sort-price="{{ h.lastPrice or 0 }}"
+                        data-sort-sector="{{ h.get('sector', 'ZZZ') }}"
+                        class="hover:bg-brand-light/30 transition-colors">
+                        <td class="px-3 py-2">
+                            <a href="/dashboard/{{ h.symbol }}" class="text-brand font-bold hover:underline">{{ h.symbol }}</a>
+                        </td>
+                        <td class="px-3 py-2 text-gray-700 max-w-[200px] truncate" title="{{ h.name }}">{{ h.name[:40] }}</td>
+                        <td class="px-3 py-2 text-right text-gray-600">
+                            {% if h.quantity is not none %}{{ '{:,.2f}'.format(h.quantity) if h.quantity != h.quantity | int else '{:,.0f}'.format(h.quantity | int) }}{% else %}--{% endif %}
+                        </td>
+                        <td class="px-3 py-2 text-right">
+                            {% if h.lastPrice is not none %}${{ '%.2f' | format(h.lastPrice) }}{% else %}--{% endif %}
+                        </td>
+                        <td class="px-3 py-2 text-right font-medium">{{ money(h.currentValue) }}</td>
+                        <td class="px-3 py-2 text-right text-gray-500">
+                            {% if h.costBasis is not none %}{{ money(h.costBasis) }}{% else %}--{% endif %}
+                        </td>
+                        <td class="px-3 py-2 text-right font-medium {{ 'text-green-700' if (h.totalGainDollar or 0) >= 0 else 'text-red-600' }}">
+                            {% if h.totalGainDollar is not none %}{{ '+' if h.totalGainDollar >= 0 }}${{ '{:,.2f}'.format(h.totalGainDollar) }}{% else %}--{% endif %}
+                        </td>
+                        <td class="px-3 py-2 text-center font-bold {{ 'text-green-700' if (h.totalGainPct or 0) >= 0 else 'text-red-600' }}">
+                            {% if h.totalGainPct is not none %}{{ '+' if h.totalGainPct >= 0 }}{{ '%.1f' | format(h.totalGainPct) }}%{% else %}--{% endif %}
+                        </td>
+                        <td class="px-3 py-2 text-gray-500 text-xs hidden lg:table-cell">
+                            {% if h.get('isFund') and h.get('sectorWeights') %}
+                                <span class="cursor-help text-brand" title="{% for s, w in h.sectorWeights.items() %}{{ s }}: {{ '%.0f' | format(w * 100) }}%{{ ', ' if not loop.last }}{% endfor %}">Fund/ETF</span>
+                            {% else %}
+                                {{ h.get('sector', '--') }}
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-2 text-gray-500 text-xs hidden xl:table-cell">
+                            {% if h.get('isFund') %}
+                                <span class="text-gray-400 italic">See sector view</span>
+                            {% else %}
+                                {{ h.get('industry', '--') }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p class="text-xs text-gray-400 italic px-4 py-2">
+        Sector and industry data from Yahoo Finance. Not investment advice.
+    </p>
+</div>
+
+{# ── Widget 2: Analyst Consensus Overview (inline) ── #}
+{% if analystOverview and analystOverview.totalCovered > 0 %}
+    {% include "partials/portfolio_analyst_overview.html" %}
+{% endif %}
+
+{# ── Async Widget Skeletons ── #}
+{% macro widget_skeleton(title) %}
+<div class="animate-pulse">
+    <div class="h-5 bg-gray-200 rounded w-48 mb-3"></div>
+    <div class="bg-white rounded-lg border border-gray-200 p-4 space-y-3">
+        <div class="h-3 bg-gray-100 rounded w-full"></div>
+        <div class="h-3 bg-gray-100 rounded w-5/6"></div>
+        <div class="h-3 bg-gray-100 rounded w-4/6"></div>
+        <div class="h-3 bg-gray-100 rounded w-3/6"></div>
+    </div>
+</div>
+{% endmacro %}
+
+{# Widget 1: Sector Momentum (async) #}
+<div id="widget-sector-momentum" class="mb-8">
+    {{ widget_skeleton("Sector Momentum") }}
+</div>
+
+{# Widget 4: AI Commentary (async) #}
+<div id="widget-ai-commentary" class="mb-8">
+    {{ widget_skeleton("Portfolio Commentary") }}
+</div>
+
+{# Widget 3: News Digest (async) #}
+<div id="widget-news-digest" class="mb-8">
+    {{ widget_skeleton("Holdings News Digest") }}
+</div>
+
+{# Widget 5: Peer Valuation (async, loaded last) #}
+<div id="widget-peer-valuation" class="mb-8">
+    {{ widget_skeleton("Peer Valuation Check") }}
+</div>
+
+{# Widget metadata for async JS loaders #}
+<script id="portfolio-widget-meta" type="application/json">
+    {{ widgetMeta | tojson }}
+</script>

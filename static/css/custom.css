@@ -1,0 +1,18 @@
+/* Minimal Tailwind overrides */
+
+/* Smooth loading for async sections */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+#peers-content table,
+#picks-content table,
+#portfolio-content table {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Subtle shadow on nav */
+nav {
+    box-shadow: 0 2px 8px rgba(31, 78, 121, 0.15);
+}

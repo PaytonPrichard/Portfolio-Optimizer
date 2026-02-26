@@ -1,0 +1,103 @@
+<div class="bg-white rounded-lg shadow mb-6 overflow-hidden">
+    <div class="bg-brand text-white px-5 py-3 flex items-center justify-between">
+        <h2 class="font-bold text-sm uppercase tracking-wide">1-Year Price History</h2>
+        {% if current_price %}
+        <span class="text-lg font-bold">${{ '%.2f' | format(current_price) }}</span>
+        {% endif %}
+    </div>
+    <div class="p-4" style="height: 320px;">
+        <canvas id="priceChart"></canvas>
+    </div>
+</div>
+
+<script>
+(function() {
+    var rawData = {{ price_history_json | safe }};
+    if (!rawData || !rawData.length) return;
+
+    // Sample down for performance if > 200 points
+    var data = rawData;
+    if (data.length > 200) {
+        var step = Math.ceil(data.length / 200);
+        var sampled = [];
+        for (var i = 0; i < data.length; i += step) sampled.push(data[i]);
+        if (sampled[sampled.length - 1] !== data[data.length - 1]) sampled.push(data[data.length - 1]);
+        data = sampled;
+    }
+
+    var labels = data.map(function(d) { return d.date; });
+    var prices = data.map(function(d) { return d.close; });
+
+    var startPrice = prices[0];
+    var endPrice = prices[prices.length - 1];
+    var isUp = endPrice >= startPrice;
+
+    var ctx = document.getElementById('priceChart').getContext('2d');
+
+    // Gradient fill
+    var gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    if (isUp) {
+        gradient.addColorStop(0, 'rgba(34, 197, 94, 0.25)');
+        gradient.addColorStop(1, 'rgba(34, 197, 94, 0.02)');
+    } else {
+        gradient.addColorStop(0, 'rgba(239, 68, 68, 0.25)');
+        gradient.addColorStop(1, 'rgba(239, 68, 68, 0.02)');
+    }
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: prices,
+                borderColor: isUp ? '#16a34a' : '#dc2626',
+                backgroundColor: gradient,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.1,
+                pointRadius: 0,
+                pointHitRadius: 8,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: 'index',
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1F4E79',
+                    titleFont: { size: 12 },
+                    bodyFont: { size: 13, weight: 'bold' },
+                    callbacks: {
+                        label: function(ctx) {
+                            return '$' + ctx.parsed.y.toFixed(2);
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        maxTicksLimit: 8,
+                        font: { size: 11 },
+                        color: '#6b7280',
+                    },
+                    grid: { display: false },
+                },
+                y: {
+                    ticks: {
+                        font: { size: 11 },
+                        color: '#6b7280',
+                        callback: function(val) { return '$' + val.toFixed(0); }
+                    },
+                    grid: { color: '#f3f4f6' },
+                }
+            }
+        }
+    });
+})();
+</script>
