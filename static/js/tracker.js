@@ -414,6 +414,100 @@
         });
     };
 
+    // ── Keyboard Navigation ─────────────────────────────────────────
+    var highlightIdx = -1;
+
+    function getVisibleRows() {
+        var tbody = document.getElementById("watchlist-body");
+        if (!tbody) return [];
+        return Array.prototype.slice.call(tbody.querySelectorAll("tr"));
+    }
+
+    function clearHighlight() {
+        getVisibleRows().forEach(function(r) {
+            r.classList.remove("ring-2", "ring-brand", "ring-inset");
+        });
+        highlightIdx = -1;
+    }
+
+    function setHighlight(idx) {
+        var rows = getVisibleRows();
+        if (!rows.length) return;
+        clearHighlight();
+        if (idx < 0) idx = 0;
+        if (idx >= rows.length) idx = rows.length - 1;
+        highlightIdx = idx;
+        rows[idx].classList.add("ring-2", "ring-brand", "ring-inset");
+        rows[idx].scrollIntoView({block: "nearest"});
+    }
+
+    // Make watchlist table focusable
+    var wlTable = document.getElementById("watchlist-table");
+    if (wlTable) {
+        wlTable.setAttribute("tabindex", "0");
+
+        wlTable.addEventListener("focus", function() {
+            if (highlightIdx < 0 && getVisibleRows().length > 0) {
+                setHighlight(0);
+            }
+        });
+
+        wlTable.addEventListener("keydown", function(e) {
+            var rows = getVisibleRows();
+            if (!rows.length) return;
+
+            var key = e.key;
+            if (key === "ArrowDown" || key === "j") {
+                e.preventDefault();
+                setHighlight(highlightIdx + 1);
+            } else if (key === "ArrowUp" || key === "k") {
+                e.preventDefault();
+                setHighlight(highlightIdx - 1);
+            } else if (key === "d" || key === "Delete") {
+                e.preventDefault();
+                if (highlightIdx >= 0 && highlightIdx < rows.length) {
+                    var removeBtn = rows[highlightIdx].querySelector("[data-remove]");
+                    if (removeBtn) {
+                        var ticker = removeBtn.dataset.remove;
+                        if (confirm("Remove " + ticker + " from watchlist?")) {
+                            removeTicker(ticker);
+                            // Re-highlight after render
+                            var newRows = getVisibleRows();
+                            if (newRows.length > 0) {
+                                setHighlight(Math.min(highlightIdx, newRows.length - 1));
+                            } else {
+                                highlightIdx = -1;
+                            }
+                        }
+                    }
+                }
+            } else if (key === "e") {
+                e.preventDefault();
+                if (highlightIdx >= 0 && highlightIdx < rows.length) {
+                    var editBtn = rows[highlightIdx].querySelector("[data-edit]");
+                    if (editBtn) {
+                        editAlerts(editBtn.dataset.edit);
+                        setHighlight(highlightIdx);
+                    }
+                }
+            } else if (key === "r") {
+                e.preventDefault();
+                refreshAll();
+            } else if (key === "Escape") {
+                e.preventDefault();
+                clearHighlight();
+                wlTable.blur();
+            }
+        });
+    }
+
+    // Reset highlight on re-render
+    var _origRender = renderWatchlist;
+    renderWatchlist = function() {
+        _origRender();
+        highlightIdx = -1;
+    };
+
     // Initial render
     renderWatchlist();
 })();

@@ -35,6 +35,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 initAddToTracker();
                 initPicksSorting();
                 initPicksFilters();
+                initComparison();
             })
             .catch(function () {
                 container.innerHTML =
@@ -163,6 +164,140 @@ document.addEventListener("DOMContentLoaded", function () {
                 rows[i].classList.add("bg-gray-50");
                 rows[i].classList.add("dark:bg-gray-700/30");
             }
+        }
+    }
+
+    // ── Picks Comparison Mode ────────────────────────────────────────
+    function initComparison() {
+        var compareBtn = document.getElementById("picks-compare-btn");
+        var countEl = document.getElementById("compare-count");
+        var panel = document.getElementById("picks-comparison-panel");
+        var closeBtn = document.getElementById("close-comparison");
+        var contentEl = document.getElementById("comparison-content");
+        if (!compareBtn || !panel) return;
+
+        function getChecked() {
+            return Array.prototype.slice.call(
+                document.querySelectorAll(".picks-compare-cb:checked")
+            );
+        }
+
+        function updateBtn() {
+            var checked = getChecked();
+            var n = checked.length;
+            if (countEl) countEl.textContent = n;
+            if (n >= 2 && n <= 4) {
+                compareBtn.classList.remove("hidden");
+            } else {
+                compareBtn.classList.add("hidden");
+            }
+        }
+
+        // Limit to 4 selections
+        document.addEventListener("change", function(e) {
+            if (!e.target.classList.contains("picks-compare-cb")) return;
+            var checked = getChecked();
+            if (checked.length > 4) {
+                e.target.checked = false;
+                return;
+            }
+            updateBtn();
+        });
+
+        function fmtMoney(val) {
+            val = parseFloat(val);
+            if (isNaN(val)) return "N/A";
+            if (val >= 1e12) return "$" + (val/1e12).toFixed(2) + "T";
+            if (val >= 1e9) return "$" + (val/1e9).toFixed(2) + "B";
+            if (val >= 1e6) return "$" + (val/1e6).toFixed(1) + "M";
+            return "$" + val.toLocaleString();
+        }
+
+        function recBadgeHTML(key) {
+            if (!key) return '';
+            var k = key.toLowerCase();
+            var cls, label = key.toUpperCase().replace(/_/g, ' ');
+            if (k === 'buy' || k === 'strong_buy')
+                cls = 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300';
+            else if (k === 'hold')
+                cls = 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300';
+            else
+                cls = 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300';
+            return '<span class="inline-block px-2 py-0.5 rounded text-xs font-bold ' + cls + '">' + label + '</span>';
+        }
+
+        function renderComparison() {
+            var items = getChecked().map(function(cb) {
+                return {
+                    symbol: cb.dataset.symbol,
+                    name: cb.dataset.name,
+                    price: parseFloat(cb.dataset.price),
+                    target: parseFloat(cb.dataset.target),
+                    upside: parseFloat(cb.dataset.upside),
+                    rating: cb.dataset.rating,
+                    analysts: parseInt(cb.dataset.analysts),
+                    mcap: parseFloat(cb.dataset.mcap),
+                };
+            });
+            if (items.length < 2) return;
+
+            // Find best in each metric
+            var bestUpside = Math.max.apply(null, items.map(function(i){return i.upside;}));
+            var bestAnalysts = Math.max.apply(null, items.map(function(i){return i.analysts;}));
+            var bestMcap = Math.max.apply(null, items.map(function(i){return i.mcap;}));
+
+            var cols = items.length;
+            var html = '<div class="grid gap-4" style="grid-template-columns: repeat(' + cols + ', minmax(0, 1fr))">';
+            items.forEach(function(item) {
+                html += '<div class="text-center">';
+                html += '<a href="/dashboard/' + item.symbol + '" class="text-brand dark:text-blue-300 font-bold hover:underline">' + item.symbol + '</a>';
+                html += '<div class="text-xs text-gray-500 dark:text-gray-400 truncate">' + item.name + '</div>';
+                html += '</div>';
+            });
+            html += '</div>';
+
+            // Metrics rows
+            var metrics = [
+                {label: "Price", key: "price", fmt: function(v){return "$"+v.toFixed(2);}, best: null},
+                {label: "Target", key: "target", fmt: function(v){return "$"+v.toFixed(2);}, best: null},
+                {label: "Upside", key: "upside", fmt: function(v){return (v>=0?"+":"")+v.toFixed(1)+"%";}, best: bestUpside},
+                {label: "Rating", key: "rating", fmt: function(v){return recBadgeHTML(v);}, best: null, isHtml: true},
+                {label: "Analysts", key: "analysts", fmt: function(v){return v;}, best: bestAnalysts},
+                {label: "Market Cap", key: "mcap", fmt: function(v){return fmtMoney(v);}, best: bestMcap},
+            ];
+
+            html += '<div class="mt-3 space-y-0">';
+            metrics.forEach(function(m, mi) {
+                var bg = mi % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/30' : '';
+                html += '<div class="grid gap-4 py-2 px-2 rounded ' + bg + '" style="grid-template-columns: repeat(' + cols + ', minmax(0, 1fr))">';
+                items.forEach(function(item) {
+                    var val = item[m.key];
+                    var isBest = m.best !== null && val === m.best;
+                    var highlight = isBest ? 'bg-green-50 dark:bg-green-900/20 rounded px-1' : '';
+                    html += '<div class="text-center ' + highlight + '">';
+                    html += '<div class="text-[10px] text-gray-400 dark:text-gray-500 uppercase">' + m.label + '</div>';
+                    html += '<div class="text-sm font-medium text-gray-800 dark:text-gray-200">' + m.fmt(val) + '</div>';
+                    html += '</div>';
+                });
+                html += '</div>';
+            });
+            html += '</div>';
+
+            contentEl.innerHTML = html;
+            panel.classList.remove("hidden");
+            panel.scrollIntoView({behavior: "smooth", block: "nearest"});
+        }
+
+        compareBtn.addEventListener("click", renderComparison);
+
+        if (closeBtn) {
+            closeBtn.addEventListener("click", function() {
+                panel.classList.add("hidden");
+                document.querySelectorAll(".picks-compare-cb:checked").forEach(function(cb) {
+                    cb.checked = false;
+                });
+                updateBtn();
+            });
         }
     }
 });

@@ -101,6 +101,9 @@
     <table id="picks-table" class="w-full text-sm">
         <thead>
             <tr class="bg-brand-light dark:bg-brand/20 text-brand dark:text-blue-300 font-bold text-xs uppercase">
+                <th class="px-2 py-2 text-center w-8">
+                    <span class="sr-only">Compare</span>
+                </th>
                 <th class="px-3 py-2 text-left">Company</th>
                 <th class="px-3 py-2 text-center">Ticker</th>
                 <th class="px-3 py-2 text-center">Market Cap</th>
@@ -123,6 +126,16 @@
                 data-sort-rating="{{ rating_map.get(p.recKey | lower, 3) }}"
                 {% if p.lowCoverage %}data-low-coverage="1"{% endif %}
                 data-rec-key="{{ p.recKey | lower }}">
+                <td class="px-2 py-2 text-center">
+                    <input type="checkbox" class="picks-compare-cb rounded" data-symbol="{{ p.symbol }}"
+                           data-name="{{ p.name[:35] }}"
+                           data-price="{{ p.currentPrice }}"
+                           data-target="{{ p.targetPrice }}"
+                           data-upside="{{ p.upsidePct }}"
+                           data-rating="{{ p.recKey }}"
+                           data-analysts="{{ p.nAnalysts }}"
+                           data-mcap="{{ p.marketCap or 0 }}">
+                </td>
                 <td class="px-3 py-2 text-left">
                     <a href="/dashboard/{{ p.symbol }}" class="text-brand dark:text-blue-300 hover:underline font-medium">{{ p.name[:40] }}</a>
                 </td>
@@ -154,6 +167,22 @@
         </tbody>
     </table>
 </div>
+{# Comparison panel (hidden by default) #}
+<div id="picks-comparison-panel" class="hidden mb-4 mt-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="font-semibold text-brand dark:text-blue-300">Side-by-Side Comparison</h3>
+            <button id="close-comparison" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-sm font-medium">Close</button>
+        </div>
+        <div id="comparison-content"></div>
+    </div>
+</div>
+
+{# Floating compare button #}
+<button id="picks-compare-btn" class="hidden fixed bottom-6 right-6 z-40 bg-brand hover:bg-brand-dark text-white font-semibold px-5 py-3 rounded-full shadow-lg transition-all">
+    Compare (<span id="compare-count">0</span>)
+</button>
+
 <p class="text-xs text-gray-400 dark:text-gray-500 italic px-4 py-2">
     Sorted by implied upside (highest first). All data from Yahoo Finance analyst consensus.
     {% if has_finnhub %} Cross-referenced with <a href="https://finnhub.io" target="_blank" class="underline">Finnhub</a>.{% endif %}

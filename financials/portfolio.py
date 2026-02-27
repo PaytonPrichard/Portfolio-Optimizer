@@ -18,6 +18,13 @@ from .data import fetch_industry_picks, ALLOWED_INDUSTRIES, INDUSTRY_LABELS
 from .portfolio_widgets import compute_analyst_overview
 
 
+# Analyst recommendation to numeric score for composite ranking
+_RATING_SCORES = {
+    "strong_buy": 5, "buy": 4, "hold": 3,
+    "sell": 2, "underperform": 2, "strong_sell": 1,
+}
+
+
 def _sanitize_for_json(obj):
     """Recursively replace NaN/Inf floats with None so tojson produces valid JSON."""
     if isinstance(obj, float):
@@ -426,6 +433,13 @@ _ENRICHMENT_FALLBACK = {
     "recommendationKey": "N/A",
     "sectorWeights": None,
     "isFund": False,
+    "dividendYield": None,
+    "fiveYearAvgDividendYield": None,
+    "exDividendDate": None,
+    "fiftyTwoWeekHigh": None,
+    "fiftyTwoWeekLow": None,
+    "beta": None,
+    "trailingPE": None,
 }
 
 # yfinance funds_data uses snake_case sector keys; map to title case for display
@@ -472,6 +486,13 @@ def _enrich_one(symbol: str) -> dict:
             "recommendationKey": info.get("recommendationKey") or "N/A",
             "sectorWeights": None,
             "isFund": False,
+            "dividendYield": info.get("dividendYield"),
+            "fiveYearAvgDividendYield": info.get("fiveYearAvgDividendYield"),
+            "exDividendDate": info.get("exDividendDate"),
+            "fiftyTwoWeekHigh": info.get("fiftyTwoWeekHigh"),
+            "fiftyTwoWeekLow": info.get("fiftyTwoWeekLow"),
+            "beta": info.get("beta"),
+            "trailingPE": info.get("trailingPE"),
         }
 
         # If no sector, this is likely an ETF or mutual fund — try fund data
@@ -524,6 +545,42 @@ def enrich_holdings(holdings: list) -> list:
         h.update(results.get(h["symbol"], _ENRICHMENT_FALLBACK))
 
     return holdings
+
+
+def _compute_health_score(holdings, by_sector, concentration, analyst_overview):
+    """Compute a 0-100 portfolio health score from four components."""
+    # Diversification (0-25): sector count and evenness
+    n_sectors = len([s for s in by_sector if s["sector"] != "Unknown"])
+    div_score = min(n_sectors / 8 * 25, 25)
+
+    # Concentration (0-25): deduct for concentrated positions
+    conc_penalty = len(concentration) * 8
+    conc_score = max(25 - conc_penalty, 0)
+
+    # Analyst sentiment (0-25): buy ratio and upside
+    total_covered = analyst_overview.get("totalCovered", 0)
+    buys = analyst_overview.get("buys", 0)
+    buy_ratio = buys / total_covered if total_covered > 0 else 0.5
+    weighted_upside = analyst_overview.get("weightedUpside", 0)
+    sentiment_score = min(buy_ratio * 15 + min(weighted_upside, 20) / 20 * 10, 25)
+
+    # Cost health (0-25): portfolio gain/loss ratio
+    total_val = sum(h.get("currentValue") or 0 for h in holdings)
+    total_cost = sum(h.get("costBasis") or 0 for h in holdings if h.get("costBasis"))
+    if total_cost > 0:
+        gain_ratio = (total_val - total_cost) / total_cost
+        cost_score = min(max((gain_ratio + 0.2) / 0.6 * 25, 0), 25)
+    else:
+        cost_score = 12.5  # no cost data = neutral
+
+    total = round(div_score + conc_score + sentiment_score + cost_score)
+    return {
+        "total": min(total, 100),
+        "diversification": round(div_score),
+        "concentration": round(conc_score),
+        "sentiment": round(sentiment_score),
+        "costHealth": round(cost_score),
+    }
 
 
 def analyze_portfolio(holdings: list) -> dict:
@@ -624,21 +681,29 @@ def analyze_portfolio(holdings: list) -> dict:
 
     def _fetch_gap_opportunity(ind_key):
         picks = fetch_industry_picks(ind_key)
-        hot = []
-        for p in sorted(picks, key=lambda x: x.get("upsidePct", 0), reverse=True):
+        # Filter to qualifying picks: sufficient coverage, positive upside
+        qualified = []
+        for p in picks:
             if (p.get("nAnalysts", 0) >= 5
                     and p.get("upsidePct", 0) > 0
                     and not p.get("lowCoverage", False)):
-                hot.append(p)
-            if len(hot) >= 3:
-                break
-        if hot:
-            return {
-                "industryKey": ind_key,
-                "industryLabel": INDUSTRY_LABELS.get(ind_key, ind_key),
-                "picks": hot,
-            }
-        return None
+                # Add composite score: 60% analyst rating + 40% upside
+                rating_num = _RATING_SCORES.get(
+                    (p.get("recKey") or "").lower(), 3)
+                norm_rating = (rating_num - 1) / 4.0
+                norm_upside = min(p.get("upsidePct", 0), 100) / 100.0
+                p["score"] = round(0.6 * norm_rating + 0.4 * norm_upside, 3)
+                qualified.append(p)
+        if not qualified:
+            return None
+        # Default sort by composite score descending
+        qualified.sort(key=lambda x: x.get("score", 0), reverse=True)
+        return {
+            "industryKey": ind_key,
+            "industryLabel": INDUSTRY_LABELS.get(ind_key, ind_key),
+            "picks": qualified[:3],
+            "allPicks": qualified[:6],
+        }
 
     opportunities = []
     fetch_gaps = gap_industries[:_MAX_GAP_FETCHES]
@@ -655,6 +720,63 @@ def analyze_portfolio(holdings: list) -> dict:
 
     # Widget 2: Analyst Consensus Overview (inline, no extra API calls)
     analyst_overview = compute_analyst_overview(holdings)
+
+    # Tax-loss harvesting candidates
+    tax_loss_candidates = []
+    for h in holdings:
+        cost = h.get("costBasis")
+        val = h.get("currentValue") or 0
+        if cost and cost > 0 and val < cost:
+            loss = val - cost
+            loss_pct = loss / cost * 100
+            if loss <= -100 and loss_pct <= -5:
+                low52 = h.get("fiftyTwoWeekLow")
+                price = h.get("lastPrice") or h.get("currentPrice")
+                near_low = (low52 and price and low52 > 0 and
+                            (price - low52) / low52 <= 0.10)
+                tax_loss_candidates.append({
+                    "symbol": h["symbol"],
+                    "name": h.get("name", ""),
+                    "currentValue": val,
+                    "costBasis": cost,
+                    "unrealizedLoss": round(loss, 2),
+                    "lossPct": round(loss_pct, 1),
+                    "estTaxSavings": round(abs(loss) * 0.24, 2),
+                    "nearFiftyTwoWeekLow": bool(near_low),
+                })
+    tax_loss_candidates.sort(key=lambda x: x["unrealizedLoss"])
+
+    # Portfolio Health Score
+    health_score = _compute_health_score(holdings, by_sector, concentration, analyst_overview)
+
+    # Dividend Income Projector
+    dividend_holdings = []
+    total_annual_dividends = 0
+    for h in holdings:
+        dy = h.get("dividendYield")
+        val = h.get("currentValue") or 0
+        if dy and dy > 0 and val > 0:
+            annual = round(val * dy, 2)
+            total_annual_dividends += annual
+            dividend_holdings.append({
+                "symbol": h["symbol"],
+                "name": h.get("name", ""),
+                "currentValue": val,
+                "dividendYield": round(dy * 100, 2),
+                "annualIncome": annual,
+                "monthlyIncome": round(annual / 12, 2),
+            })
+    dividend_holdings.sort(key=lambda x: x["annualIncome"], reverse=True)
+    weighted_yield = (total_annual_dividends / total_value * 100) if total_value > 0 else 0
+
+    dividends = {
+        "totalAnnual": round(total_annual_dividends, 2),
+        "totalMonthly": round(total_annual_dividends / 12, 2),
+        "weightedYield": round(weighted_yield, 2),
+        "holdings": dividend_holdings,
+        "payingCount": len(dividend_holdings),
+        "totalCount": len([h for h in holdings if not h.get("isFund")]),
+    }
 
     # Sector weights dict for widget metadata (sector name -> portfolio %)
     portfolio_sectors = {s["sector"]: s["pct"] for s in by_sector}
@@ -673,6 +795,16 @@ def analyze_portfolio(holdings: list) -> dict:
             "industryKey": h.get("industryKey", ""),
             "industry": h.get("industry", ""),
             "sectorWeights": h.get("sectorWeights"),
+            "dividendYield": h.get("dividendYield"),
+            "fiftyTwoWeekHigh": h.get("fiftyTwoWeekHigh"),
+            "fiftyTwoWeekLow": h.get("fiftyTwoWeekLow"),
+            "beta": h.get("beta"),
+            "trailingPE": h.get("trailingPE"),
+            "targetMeanPrice": h.get("targetMeanPrice"),
+            "recommendationKey": h.get("recommendationKey"),
+            "nAnalysts": h.get("nAnalysts"),
+            "currentPrice": h.get("currentPrice"),
+            "lastPrice": h.get("lastPrice"),
         })
 
     widget_meta = _sanitize_for_json({
@@ -697,4 +829,7 @@ def analyze_portfolio(holdings: list) -> dict:
         "industryLabels": INDUSTRY_LABELS,
         "analystOverview": analyst_overview,
         "widgetMeta": widget_meta,
+        "taxLossCandidates": tax_loss_candidates,
+        "healthScore": health_score,
+        "dividends": dividends,
     }

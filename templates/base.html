@@ -32,6 +32,7 @@
     </script>
 </head>
 <body class="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col transition-colors">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-brand focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg">Skip to content</a>
     <!-- Navigation -->
     <nav class="bg-brand text-white shadow-lg dark:shadow-gray-900/50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -119,7 +120,7 @@
     </script>
 
     <!-- Main content -->
-    <main class="flex-1">
+    <main id="main-content" class="flex-1">
         {% block content %}{% endblock %}
     </main>
 

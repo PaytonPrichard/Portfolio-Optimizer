@@ -207,6 +207,8 @@ def _prepare_dashboard_data(symbol: str) -> dict:
         "news": news,
         "price_history_json": price_history_json,
         "current_price": current_price,
+        "fiftyTwoWeekHigh": info.get("fiftyTwoWeekHigh"),
+        "fiftyTwoWeekLow": info.get("fiftyTwoWeekLow"),
     }
 
 
