@@ -52,9 +52,12 @@
                         ("/tracker", "Tracker", ["/tracker"]),
                         ("/info", "Info", ["/info"]),
                     ] %}
+                    {% set nav_keys = ['1', '2', '3', '4', '5'] %}
                     {% for href, label, paths in nav_items %}
                         {% set is_active = request.path in paths or (href == "/" and request.path.startswith("/dashboard")) %}
-                        <a href="{{ href }}" class="{{ 'text-white border-b-2 border-white font-semibold' if is_active else 'text-gray-300 hover:text-white' }} transition pb-0.5">{{ label }}</a>
+                        <a href="{{ href }}" class="{{ 'text-white border-b-2 border-white font-semibold' if is_active else 'text-gray-300 hover:text-white' }} transition pb-0.5" title="{{ label }} ({{ nav_keys[loop.index0] }})">
+                            <span class="hidden lg:inline-block text-[10px] font-mono opacity-50 mr-0.5 align-top">{{ nav_keys[loop.index0] }}</span>{{ label }}
+                        </a>
                     {% endfor %}
                     <!-- Dark mode toggle (desktop) -->
                     <button id="theme-toggle" class="p-2 rounded-lg hover:bg-brand-dark transition" aria-label="Toggle dark mode" title="Toggle dark mode">
@@ -130,6 +133,102 @@
             Data from Yahoo Finance (may be delayed 15 min). AI commentary powered by Claude. Not investment advice.
         </div>
     </footer>
+
+    {# ── Global Keyboard Shortcuts ── #}
+    <script>
+    (function() {
+        var shortcuts = {
+            '1': '/portfolio',
+            '2': '/picks',
+            '3': '/',
+            '4': '/tracker',
+            '5': '/info',
+        };
+
+        // Help overlay
+        var overlay = document.createElement('div');
+        overlay.id = 'kb-help-overlay';
+        overlay.className = 'hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50';
+        overlay.innerHTML =
+            '<div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 max-w-sm w-full mx-4">' +
+                '<div class="flex items-center justify-between mb-4">' +
+                    '<h3 class="font-bold text-gray-800 dark:text-gray-200">Keyboard Shortcuts</h3>' +
+                    '<button id="kb-help-close" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">' +
+                        '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' +
+                    '</button>' +
+                '</div>' +
+                '<div class="space-y-1 text-sm">' +
+                    '<p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Navigation</p>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Portfolio</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">1</kbd></div>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Picks</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">2</kbd></div>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Search</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">3</kbd></div>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Tracker</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">4</kbd></div>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Info</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">5</kbd></div>' +
+                    '<div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>' +
+                    '<p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Global</p>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Toggle dark mode</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">D</kbd></div>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Show this help</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">?</kbd></div>' +
+                    '<div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>' +
+                    '<p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Tracker Page</p>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Navigate rows</span><span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">j</kbd> <kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">k</kbd></span></div>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Delete ticker</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">d</kbd></div>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Edit alerts</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">e</kbd></div>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Refresh all</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">r</kbd></div>' +
+                '</div>' +
+            '</div>';
+        document.body.appendChild(overlay);
+
+        function showHelp() { overlay.classList.remove('hidden'); }
+        function hideHelp() { overlay.classList.add('hidden'); }
+
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) hideHelp();
+        });
+        document.getElementById('kb-help-close').addEventListener('click', hideHelp);
+
+        document.addEventListener('keydown', function(e) {
+            // Ignore when typing in inputs
+            var tag = (e.target.tagName || '').toLowerCase();
+            if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.isContentEditable) return;
+            // Ignore if modifier keys are held (Ctrl, Alt, Meta) — let browser shortcuts work
+            if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+            var key = e.key;
+
+            // Help overlay toggle
+            if (key === '?') {
+                e.preventDefault();
+                overlay.classList.contains('hidden') ? showHelp() : hideHelp();
+                return;
+            }
+
+            // Close help on Escape
+            if (key === 'Escape' && !overlay.classList.contains('hidden')) {
+                e.preventDefault();
+                hideHelp();
+                return;
+            }
+
+            // Skip nav shortcuts if a component has focus (e.g. tracker table)
+            var focused = document.activeElement;
+            if (focused && focused.getAttribute('tabindex') !== null && focused.id !== 'html-root' && focused.tagName !== 'BODY') return;
+
+            // Dark mode toggle
+            if (key === 'D') {
+                e.preventDefault();
+                toggleTheme();
+                return;
+            }
+
+            // Page navigation
+            var dest = shortcuts[key];
+            if (dest) {
+                e.preventDefault();
+                window.location.href = dest;
+            }
+        });
+    })();
+    </script>
 
     {% block scripts %}{% endblock %}
 </body>
