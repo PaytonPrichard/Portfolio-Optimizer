@@ -99,7 +99,7 @@ function stripSensitiveColumns(csvText) {
     // Find header row (some CSVs have blank lines or metadata rows at top)
     var headerIdx = -1;
     var headers;
-    for (var i = 0; i < Math.min(lines.length, 10); i++) {
+    for (var i = 0; i < Math.min(lines.length, 30); i++) {
         var parsed = parseCSVLine(lines[i]);
         // Look for a row that has a symbol-like column and a value-like column
         var hasSymbol = false;
@@ -143,14 +143,20 @@ function stripSensitiveColumns(csvText) {
     if (keepIndices.length === 0) return null;
 
     // Rebuild CSV with only safe columns.
-    // Stop at first empty line — many brokers append disclaimers after a blank line.
+    // Tolerate single blank lines within data (multi-account CSVs),
+    // but stop after 2+ consecutive blank lines (disclaimers section).
     var output = [keepNames.join(",")];
     var dataStarted = false;
+    var consecutiveBlanks = 0;
     for (var r = headerIdx + 1; r < lines.length; r++) {
         if (!lines[r].trim()) {
-            if (dataStarted) break;
+            if (dataStarted) {
+                consecutiveBlanks++;
+                if (consecutiveBlanks >= 2) break;
+            }
             continue;
         }
+        consecutiveBlanks = 0;
         dataStarted = true;
         var fields = parseCSVLine(lines[r]);
         var row = [];

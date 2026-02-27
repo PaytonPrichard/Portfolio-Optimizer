@@ -190,19 +190,28 @@ def parse_portfolio_csv(file_stream) -> list:
     """
     content = file_stream.read()
     if isinstance(content, bytes):
-        content = content.decode("utf-8-sig")
+        # Try UTF-8 first (handles BOM via utf-8-sig), fall back to cp1252
+        try:
+            content = content.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            content = content.decode("cp1252", errors="replace")
 
-    # Many brokers append disclaimers/totals after a blank line — strip
-    # everything after the first blank line.  Also strip trailing commas
-    # (Fidelity rows sometimes end with extra commas).
+    # Many brokers append disclaimers/totals after blank lines — strip
+    # trailing disclaimer sections while preserving data rows.
+    # Strategy: collect all non-blank lines, but stop after 2+ consecutive
+    # blank lines (signaling end of data / start of disclaimers).
+    # Single blank lines within data are tolerated (multi-account CSVs).
     clean_lines = []
+    consecutive_blanks = 0
     for line in content.splitlines():
         stripped = line.strip()
         if stripped == "":
-            # Allow blank lines at the very top (some exports start with them)
             if clean_lines:
-                break
+                consecutive_blanks += 1
+                if consecutive_blanks >= 2:
+                    break  # Two consecutive blanks = end of data
             continue
+        consecutive_blanks = 0
         clean_lines.append(line.rstrip(","))
     content = "\n".join(clean_lines)
 
@@ -499,12 +508,16 @@ def enrich_holdings(holdings: list) -> list:
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         futures = {pool.submit(_enrich_one, sym): sym for sym in symbols}
-        for future in as_completed(futures):
+        for future in as_completed(futures, timeout=45):
             sym = futures[future]
             try:
-                results[sym] = future.result()
+                results[sym] = future.result(timeout=15)
             except Exception:
                 results[sym] = dict(_ENRICHMENT_FALLBACK)
+    # Fill in any symbols that didn't complete in time
+    for sym in symbols:
+        if sym not in results:
+            results[sym] = dict(_ENRICHMENT_FALLBACK)
 
     # Apply results to holdings
     for h in holdings:
@@ -631,9 +644,9 @@ def analyze_portfolio(holdings: list) -> dict:
     fetch_gaps = gap_industries[:_MAX_GAP_FETCHES]
     with ThreadPoolExecutor(max_workers=6) as pool:
         futures = {pool.submit(_fetch_gap_opportunity, k): k for k in fetch_gaps}
-        for future in as_completed(futures):
+        for future in as_completed(futures, timeout=30):
             try:
-                result = future.result()
+                result = future.result(timeout=10)
                 if result:
                     opportunities.append(result)
             except Exception:

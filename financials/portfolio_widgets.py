@@ -127,9 +127,9 @@ def fetch_sector_momentum(portfolio_sectors: dict = None) -> list:
         with ThreadPoolExecutor(max_workers=6) as pool:
             futures = {pool.submit(_fetch_etf_returns, etf): etf
                        for etf in SECTOR_ETFS}
-            for future in as_completed(futures):
+            for future in as_completed(futures, timeout=30):
                 try:
-                    r = future.result()
+                    r = future.result(timeout=10)
                     if r:
                         results.append(r)
                 except Exception:
@@ -246,10 +246,10 @@ def fetch_holdings_news(holdings: list, max_stocks: int = 8,
     with ThreadPoolExecutor(max_workers=4) as pool:
         futures = {pool.submit(fetch_recent_news, sym, max_per_stock): sym
                    for sym in top_symbols}
-        for future in as_completed(futures):
+        for future in as_completed(futures, timeout=20):
             sym = futures[future]
             try:
-                items = future.result() or []
+                items = future.result(timeout=10) or []
                 for item in items[:max_per_stock]:
                     item["symbol"] = sym
                     all_news.append(item)
@@ -626,10 +626,10 @@ def fetch_portfolio_performance(holdings: list, period: str = "1mo") -> dict:
     with ThreadPoolExecutor(max_workers=6) as pool:
         futures = {pool.submit(_fetch_ticker_history, h["symbol"], period): h["symbol"]
                    for h in valid}
-        for future in as_completed(futures):
+        for future in as_completed(futures, timeout=30):
             sym = futures[future]
             try:
-                result = future.result()
+                result = future.result(timeout=10)
                 if result:
                     history_map[sym] = result
             except Exception:
@@ -764,10 +764,10 @@ def compute_correlation_matrix(holdings: list, max_holdings: int = 8) -> dict:
     with ThreadPoolExecutor(max_workers=6) as pool:
         futures = {pool.submit(_fetch_ticker_history, h["symbol"], "3mo"): h["symbol"]
                    for h in targets}
-        for future in as_completed(futures):
+        for future in as_completed(futures, timeout=30):
             sym = futures[future]
             try:
-                result = future.result()
+                result = future.result(timeout=10)
                 if result and len(result["closes"]) >= 5:
                     history_map[sym] = result
             except Exception:
@@ -860,12 +860,16 @@ def fetch_ethical_analysis(holdings: list) -> dict:
     with ThreadPoolExecutor(max_workers=6) as pool:
         futures = {pool.submit(_fetch_esg_data, h["symbol"]): h["symbol"]
                    for h in stocks}
-        for future in as_completed(futures):
+        for future in as_completed(futures, timeout=30):
             sym = futures[future]
             try:
-                esg_map[sym] = future.result()
+                esg_map[sym] = future.result(timeout=10)
             except Exception:
                 esg_map[sym] = {}
+    # Fill any that didn't complete
+    for h in stocks:
+        if h["symbol"] not in esg_map:
+            esg_map[h["symbol"]] = {}
 
     # Build per-holding ESG list and compute weighted portfolio scores
     holdings_esg = []
