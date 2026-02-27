@@ -9,7 +9,7 @@ home_bp = Blueprint("home", __name__)
 
 @home_bp.route("/")
 def index():
-    return render_template("home.html")
+    return redirect(url_for("tracker.tracker"))
 
 
 @home_bp.route("/search")

@@ -1,22 +1,22 @@
-<div class="bg-white rounded-lg shadow mb-6 overflow-hidden">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 overflow-hidden">
     <div class="bg-brand text-white px-5 py-3">
         <h2 class="font-bold text-sm uppercase tracking-wide">Analyst Price Targets (Wall Street Consensus)</h2>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-0">
         <div class="bg-[#5C6BC0] text-white p-4 text-center">
-            <p class="text-xs font-bold uppercase opacity-90">Low Target</p>
+            <p class="text-xs font-bold uppercase opacity-90 cursor-help" title="The most bearish analyst's 12-month price target. Represents the downside risk scenario.">Low Target</p>
             <p class="text-2xl font-bold mt-1">{{ analyst.low }}</p>
         </div>
         <div class="bg-[#1F6AA5] text-white p-4 text-center">
-            <p class="text-xs font-bold uppercase opacity-90">Consensus Target</p>
+            <p class="text-xs font-bold uppercase opacity-90 cursor-help" title="Average of all analyst 12-month price targets. Most commonly used benchmark for expected fair value.">Consensus Target</p>
             <p class="text-2xl font-bold mt-1">{{ analyst.mean }}</p>
         </div>
         <div class="bg-[#2E7D32] text-white p-4 text-center">
-            <p class="text-xs font-bold uppercase opacity-90">High Target</p>
+            <p class="text-xs font-bold uppercase opacity-90 cursor-help" title="The most bullish analyst's 12-month price target. Represents the upside potential scenario.">High Target</p>
             <p class="text-2xl font-bold mt-1">{{ analyst.high }}</p>
         </div>
     </div>
-    <div class="bg-brand-light px-5 py-2 text-sm text-brand italic">
+    <div class="bg-brand-light dark:bg-brand/20 px-5 py-2 text-sm text-brand dark:text-blue-300 italic">
         Recommendation: {{ analyst.rec }} | {{ analyst.n_analysts }} analysts | {{ analyst.upside }}
     </div>
 </div>

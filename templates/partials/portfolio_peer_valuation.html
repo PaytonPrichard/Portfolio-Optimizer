@@ -5,28 +5,28 @@
 {% macro fmt_cap(val) %}{% if val is none %}--{% elif val >= 1000000000000 %}${{ '%.1f' | format(val / 1000000000000) }}T{% elif val >= 1000000000 %}${{ '%.1f' | format(val / 1000000000) }}B{% elif val >= 1000000 %}${{ '%.0f' | format(val / 1000000) }}M{% else %}${{ '{:,.0f}'.format(val) }}{% endif %}{% endmacro %}
 
 <div class="mb-8">
-    <h2 class="text-lg font-semibold text-brand mb-1">Peer Valuation Check</h2>
-    <p class="text-xs text-gray-400 mb-3">Your top holdings compared to industry peers on P/E, margins, and growth.</p>
+    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-1">Peer Valuation Check</h2>
+    <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Your top holdings compared to industry peers on P/E, margins, and growth.</p>
 
     {% if comparisons %}
     <div class="space-y-4">
         {% for comp in comparisons %}
-        <details class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden group" {{ 'open' if loop.first else '' }}>
-            <summary class="cursor-pointer px-4 py-3 flex items-center justify-between hover:bg-brand-light/20 transition select-none">
+        <details class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden group" {{ 'open' if loop.first else '' }}>
+            <summary class="cursor-pointer px-4 py-3 flex items-center justify-between hover:bg-brand-light/20 dark:hover:bg-brand/10 transition select-none">
                 <div class="flex items-center gap-3">
-                    <a href="/dashboard/{{ comp.symbol }}" class="text-brand font-bold hover:underline">{{ comp.symbol }}</a>
-                    <span class="text-sm text-gray-500">{{ comp.name[:30] }}</span>
-                    <span class="text-xs text-gray-400">&middot; {{ comp.industry }}</span>
+                    <a href="/dashboard/{{ comp.symbol }}" class="text-brand dark:text-blue-300 font-bold hover:underline">{{ comp.symbol }}</a>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">{{ comp.name[:30] }}</span>
+                    <span class="text-xs text-gray-400 dark:text-gray-500">&middot; {{ comp.industry }}</span>
                 </div>
-                <svg class="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                 </svg>
             </summary>
-            <div class="border-t border-gray-100">
+            <div class="border-t border-gray-100 dark:border-gray-700">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead>
-                            <tr class="bg-gray-50 text-gray-600 text-xs uppercase">
+                            <tr class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs uppercase">
                                 <th class="px-3 py-2 text-left">Company</th>
                                 <th class="px-3 py-2 text-right">Mkt Cap</th>
                                 <th class="px-3 py-2 text-right">P/E</th>
@@ -39,47 +39,47 @@
                         <tbody>
                             {# Show target holding first, highlighted #}
                             {% if comp.target %}
-                            <tr class="bg-brand-light/40 font-medium">
+                            <tr class="bg-brand-light/40 dark:bg-brand/20 font-medium">
                                 <td class="px-3 py-2">
-                                    <span class="text-brand font-bold">{{ comp.target.symbol }}</span>
-                                    <span class="text-xs text-brand ml-1">(You)</span>
+                                    <span class="text-brand dark:text-blue-300 font-bold">{{ comp.target.symbol }}</span>
+                                    <span class="text-xs text-brand dark:text-blue-400 ml-1">(You)</span>
                                 </td>
-                                <td class="px-3 py-2 text-right">{{ fmt_cap(comp.target.marketCap) }}</td>
-                                <td class="px-3 py-2 text-right">{{ fmt_pe(comp.target.trailingPE) }}</td>
-                                <td class="px-3 py-2 text-right">{{ fmt_pe(comp.target.forwardPE) }}</td>
-                                <td class="px-3 py-2 text-right">{{ fmt_pct(comp.target.grossMargins) }}</td>
-                                <td class="px-3 py-2 text-right">{{ fmt_pct(comp.target.profitMargins) }}</td>
-                                <td class="px-3 py-2 text-right">{{ fmt_pct(comp.target.revenueGrowth) }}</td>
+                                <td class="px-3 py-2 text-right dark:text-gray-300">{{ fmt_cap(comp.target.marketCap) }}</td>
+                                <td class="px-3 py-2 text-right dark:text-gray-300">{{ fmt_pe(comp.target.trailingPE) }}</td>
+                                <td class="px-3 py-2 text-right dark:text-gray-300">{{ fmt_pe(comp.target.forwardPE) }}</td>
+                                <td class="px-3 py-2 text-right dark:text-gray-300">{{ fmt_pct(comp.target.grossMargins) }}</td>
+                                <td class="px-3 py-2 text-right dark:text-gray-300">{{ fmt_pct(comp.target.profitMargins) }}</td>
+                                <td class="px-3 py-2 text-right dark:text-gray-300">{{ fmt_pct(comp.target.revenueGrowth) }}</td>
                             </tr>
                             {% endif %}
                             {# Peer rows #}
                             {% for p in comp.peers %}
-                            <tr class="{{ 'bg-gray-50' if loop.index is even else '' }} hover:bg-brand-light/10 transition-colors">
+                            <tr class="{{ 'bg-gray-50 dark:bg-gray-700/30' if loop.index is even else '' }} hover:bg-brand-light/10 dark:hover:bg-brand/5 transition-colors">
                                 <td class="px-3 py-2">
-                                    <a href="/dashboard/{{ p.symbol }}" class="text-gray-700 hover:text-brand hover:underline">{{ p.symbol }}</a>
-                                    <span class="text-xs text-gray-400 ml-1 hidden sm:inline">{{ p.name[:20] }}</span>
+                                    <a href="/dashboard/{{ p.symbol }}" class="text-gray-700 dark:text-gray-300 hover:text-brand dark:hover:text-blue-300 hover:underline">{{ p.symbol }}</a>
+                                    <span class="text-xs text-gray-400 dark:text-gray-500 ml-1 hidden sm:inline">{{ p.name[:20] }}</span>
                                 </td>
-                                <td class="px-3 py-2 text-right text-gray-600">{{ fmt_cap(p.marketCap) }}</td>
-                                <td class="px-3 py-2 text-right text-gray-600">{{ fmt_pe(p.trailingPE) }}</td>
-                                <td class="px-3 py-2 text-right text-gray-600">{{ fmt_pe(p.forwardPE) }}</td>
-                                <td class="px-3 py-2 text-right text-gray-600">{{ fmt_pct(p.grossMargins) }}</td>
-                                <td class="px-3 py-2 text-right text-gray-600">{{ fmt_pct(p.profitMargins) }}</td>
-                                <td class="px-3 py-2 text-right text-gray-600">{{ fmt_pct(p.revenueGrowth) }}</td>
+                                <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ fmt_cap(p.marketCap) }}</td>
+                                <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ fmt_pe(p.trailingPE) }}</td>
+                                <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ fmt_pe(p.forwardPE) }}</td>
+                                <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ fmt_pct(p.grossMargins) }}</td>
+                                <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ fmt_pct(p.profitMargins) }}</td>
+                                <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ fmt_pct(p.revenueGrowth) }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
                 {# Verdict row #}
-                <div class="px-4 py-3 bg-gray-50 border-t border-gray-100">
-                    <p class="text-sm text-gray-700"><strong>Verdict:</strong> {{ comp.verdict }}</p>
+                <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700">
+                    <p class="text-sm text-gray-700 dark:text-gray-300"><strong>Verdict:</strong> {{ comp.verdict }}</p>
                 </div>
             </div>
         </details>
         {% endfor %}
     </div>
-    <p class="text-xs text-gray-400 italic mt-2">Peer data from Yahoo Finance. Metrics may not be directly comparable across all business models.</p>
+    <p class="text-xs text-gray-400 dark:text-gray-500 italic mt-2">Peer data from Yahoo Finance. Metrics may not be directly comparable across all business models.</p>
     {% else %}
-    <p class="text-gray-400 text-sm italic">No peer comparison data available for your holdings.</p>
+    <p class="text-gray-400 dark:text-gray-500 text-sm italic">No peer comparison data available for your holdings.</p>
     {% endif %}
 </div>

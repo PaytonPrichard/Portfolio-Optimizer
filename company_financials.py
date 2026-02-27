@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Portfolio Optimizer — CLI financial analyzer
+MarketMosaic — CLI financial analyzer
 Usage:
     python company_financials.py AAPL
     python company_financials.py          # will prompt for ticker

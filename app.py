@@ -1,4 +1,4 @@
-"""Flask entry point for Portfolio Optimizer web app."""
+"""Flask entry point for MarketMosaic web app."""
 
 import math
 import os

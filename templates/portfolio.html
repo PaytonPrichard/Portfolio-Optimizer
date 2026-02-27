@@ -1,34 +1,34 @@
 {% extends "base.html" %}
-{% block title %}Portfolio Analysis - Portfolio Optimizer{% endblock %}
+{% block title %}Portfolio Analysis - MarketMosaic{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
-    <h1 class="text-3xl font-bold text-brand mb-2">Portfolio Analysis</h1>
-    <p class="text-gray-600 mb-6">Upload your brokerage positions CSV to get sector allocation, concentration risk analysis, diversification gaps, and opportunity suggestions.</p>
+    <h1 class="text-3xl font-bold text-brand dark:text-blue-300 mb-2">Portfolio Analysis</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-6">Upload your brokerage positions CSV to get sector allocation, concentration risk analysis, diversification gaps, and opportunity suggestions.</p>
 
     <!-- Disclaimer -->
-    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8 rounded-r">
+    <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-600 p-4 mb-8 rounded-r">
         <div class="flex">
             <div class="flex-shrink-0">
                 <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                 </svg>
             </div>
-            <p class="ml-3 text-sm text-yellow-700">
+            <p class="ml-3 text-sm text-yellow-700 dark:text-yellow-400">
                 <strong>Disclaimer:</strong> Your CSV is processed in-memory and never stored. Analysis uses Yahoo Finance data. Sector/industry classifications and analyst targets are not guarantees. Always do your own research before investing.
             </p>
         </div>
     </div>
 
     <!-- Tab bar -->
-    <div class="flex border-b border-gray-200 mb-6">
+    <div class="flex border-b border-gray-200 dark:border-gray-700 mb-6">
         <button id="tab-csv" onclick="switchPortfolioTab('csv')"
-                class="px-5 py-2.5 text-sm font-medium border-b-2 border-brand text-brand -mb-px transition">
+                class="px-5 py-2.5 text-sm font-medium border-b-2 border-brand text-brand dark:text-blue-300 dark:border-blue-400 -mb-px transition">
             Upload CSV
         </button>
         <button id="tab-manual" onclick="switchPortfolioTab('manual')"
-                class="px-5 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 -mb-px transition">
+                class="px-5 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 -mb-px transition">
             Enter Manually
         </button>
     </div>
@@ -38,47 +38,47 @@
         <form id="portfolio-form" class="mb-8">
             <div class="flex flex-col sm:flex-row items-start sm:items-end gap-4">
                 <div>
-                    <label for="csv-input" class="block text-sm font-medium text-gray-700 mb-1">Brokerage Positions CSV</label>
+                    <label for="csv-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Brokerage Positions CSV</label>
                     <input type="file" id="csv-input" name="csv" accept=".csv"
-                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-light file:text-brand hover:file:bg-[#c4d8ec] file:cursor-pointer file:transition">
+                           class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-light file:text-brand dark:file:bg-brand/30 dark:file:text-blue-300 hover:file:bg-[#c4d8ec] dark:hover:file:bg-brand/40 file:cursor-pointer file:transition">
                 </div>
                 <button id="analyze-btn" type="submit"
                         class="bg-brand text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                     Analyze Portfolio
                 </button>
             </div>
-            <p class="mt-2 text-xs text-gray-400">Your data stays in your browser session and is not stored. Account numbers and sensitive fields are stripped before upload.</p>
+            <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">Your data stays in your browser session and is not stored. Account numbers and sensitive fields are stripped before upload.</p>
         </form>
 
         <!-- Supported brokerages -->
-        <div class="mb-4 flex flex-wrap items-center gap-2 text-xs text-gray-500">
-            <span class="font-medium text-gray-600">Supported:</span>
-            <span class="bg-gray-100 px-2 py-0.5 rounded">Fidelity</span>
-            <span class="bg-gray-100 px-2 py-0.5 rounded">Schwab</span>
-            <span class="bg-gray-100 px-2 py-0.5 rounded">Vanguard</span>
-            <span class="bg-gray-100 px-2 py-0.5 rounded">E*Trade</span>
-            <span class="bg-gray-100 px-2 py-0.5 rounded">TD Ameritrade</span>
-            <span class="bg-gray-100 px-2 py-0.5 rounded">Robinhood</span>
-            <span class="bg-gray-100 px-2 py-0.5 rounded">Merrill Edge</span>
-            <span class="bg-gray-100 px-2 py-0.5 rounded">Interactive Brokers</span>
-            <span class="text-gray-400">& more</span>
+        <div class="mb-4 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <span class="font-medium text-gray-600 dark:text-gray-300">Supported:</span>
+            <span class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">Fidelity</span>
+            <span class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">Schwab</span>
+            <span class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">Vanguard</span>
+            <span class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">E*Trade</span>
+            <span class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">TD Ameritrade</span>
+            <span class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">Robinhood</span>
+            <span class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">Merrill Edge</span>
+            <span class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">Interactive Brokers</span>
+            <span class="text-gray-400 dark:text-gray-500">& more</span>
         </div>
 
         <!-- How to export tutorial (collapsible) -->
-        <details class="mb-8 bg-white border border-gray-200 rounded-lg shadow-sm">
-        <summary class="cursor-pointer px-5 py-3 text-sm font-semibold text-brand hover:bg-brand-light/30 transition rounded-lg select-none flex items-center gap-2">
-            <svg class="w-5 h-5 text-brand shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <details class="mb-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+        <summary class="cursor-pointer px-5 py-3 text-sm font-semibold text-brand dark:text-blue-300 hover:bg-brand-light/30 dark:hover:bg-brand/10 transition rounded-lg select-none flex items-center gap-2">
+            <svg class="w-5 h-5 text-brand dark:text-blue-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             How to download your positions CSV
         </summary>
-        <div class="px-5 pb-5 pt-2 text-sm text-gray-600 space-y-4 border-t border-gray-100">
+        <div class="px-5 pb-5 pt-2 text-sm text-gray-600 dark:text-gray-400 space-y-4 border-t border-gray-100 dark:border-gray-700">
             <p>Most brokerages let you download your positions as a CSV file. Here are instructions for popular platforms:</p>
 
             <div class="space-y-3">
-                <details class="border border-gray-100 rounded p-3">
-                    <summary class="cursor-pointer font-semibold text-brand text-sm">Fidelity</summary>
-                    <ol class="list-decimal list-inside mt-2 space-y-1 text-gray-600">
+                <details class="border border-gray-100 dark:border-gray-700 rounded p-3">
+                    <summary class="cursor-pointer font-semibold text-brand dark:text-blue-300 text-sm">Fidelity</summary>
+                    <ol class="list-decimal list-inside mt-2 space-y-1 text-gray-600 dark:text-gray-400">
                         <li>Log in and go to <strong>Accounts &amp; Trade</strong> &rarr; <strong>Portfolio</strong>.</li>
                         <li>Select the account(s) you want to analyze, or choose <strong>All Accounts</strong>.</li>
                         <li>Click the <strong>download icon</strong> (arrow pointing down) near the top-right of the positions table.</li>
@@ -86,39 +86,39 @@
                     </ol>
                 </details>
 
-                <details class="border border-gray-100 rounded p-3">
-                    <summary class="cursor-pointer font-semibold text-brand text-sm">Charles Schwab</summary>
-                    <ol class="list-decimal list-inside mt-2 space-y-1 text-gray-600">
+                <details class="border border-gray-100 dark:border-gray-700 rounded p-3">
+                    <summary class="cursor-pointer font-semibold text-brand dark:text-blue-300 text-sm">Charles Schwab</summary>
+                    <ol class="list-decimal list-inside mt-2 space-y-1 text-gray-600 dark:text-gray-400">
                         <li>Log in and go to <strong>Accounts</strong> &rarr; <strong>Positions</strong>.</li>
                         <li>Click the <strong>Export</strong> link near the top of the positions table.</li>
                         <li>Choose <strong>CSV</strong> format and download.</li>
                     </ol>
                 </details>
 
-                <details class="border border-gray-100 rounded p-3">
-                    <summary class="cursor-pointer font-semibold text-brand text-sm">Vanguard</summary>
-                    <ol class="list-decimal list-inside mt-2 space-y-1 text-gray-600">
+                <details class="border border-gray-100 dark:border-gray-700 rounded p-3">
+                    <summary class="cursor-pointer font-semibold text-brand dark:text-blue-300 text-sm">Vanguard</summary>
+                    <ol class="list-decimal list-inside mt-2 space-y-1 text-gray-600 dark:text-gray-400">
                         <li>Log in and go to <strong>My Accounts</strong> &rarr; <strong>Holdings</strong>.</li>
                         <li>Click <strong>Download</strong> (or the spreadsheet icon) to export as CSV.</li>
                     </ol>
                 </details>
 
-                <details class="border border-gray-100 rounded p-3">
-                    <summary class="cursor-pointer font-semibold text-brand text-sm">E*Trade</summary>
-                    <ol class="list-decimal list-inside mt-2 space-y-1 text-gray-600">
+                <details class="border border-gray-100 dark:border-gray-700 rounded p-3">
+                    <summary class="cursor-pointer font-semibold text-brand dark:text-blue-300 text-sm">E*Trade</summary>
+                    <ol class="list-decimal list-inside mt-2 space-y-1 text-gray-600 dark:text-gray-400">
                         <li>Log in and go to <strong>Accounts</strong> &rarr; <strong>Portfolio</strong>.</li>
                         <li>Click the <strong>Download</strong> button to save your positions as CSV.</li>
                     </ol>
                 </details>
 
-                <details class="border border-gray-100 rounded p-3">
-                    <summary class="cursor-pointer font-semibold text-brand text-sm">Other Brokerages</summary>
-                    <p class="mt-2 text-gray-600">Look for a <strong>Download</strong>, <strong>Export</strong>, or <strong>spreadsheet icon</strong> on your portfolio/positions page. Export as CSV. The file should contain at minimum a <strong>Symbol</strong> column and either <strong>Market Value</strong> or <strong>Shares + Price</strong> columns.</p>
+                <details class="border border-gray-100 dark:border-gray-700 rounded p-3">
+                    <summary class="cursor-pointer font-semibold text-brand dark:text-blue-300 text-sm">Other Brokerages</summary>
+                    <p class="mt-2 text-gray-600 dark:text-gray-400">Look for a <strong>Download</strong>, <strong>Export</strong>, or <strong>spreadsheet icon</strong> on your portfolio/positions page. Export as CSV. The file should contain at minimum a <strong>Symbol</strong> column and either <strong>Market Value</strong> or <strong>Shares + Price</strong> columns.</p>
                 </details>
             </div>
 
-            <div class="bg-blue-50 border border-blue-100 rounded p-3 mt-3">
-                <p class="text-xs text-blue-700">
+            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded p-3 mt-3">
+                <p class="text-xs text-blue-700 dark:text-blue-400">
                     <strong>Privacy note:</strong> Many brokerage CSVs include account numbers and other sensitive data. Our tool automatically strips all sensitive fields in your browser <em>before</em> anything is sent to the server. Only ticker symbols, share counts, and dollar values are transmitted for analysis.
                 </p>
             </div>
@@ -129,24 +129,24 @@
     <!-- Manual Entry tab content -->
     <div id="tab-content-manual" class="hidden">
         <div class="mb-6">
-            <p class="text-sm text-gray-600 mb-4">Enter your holdings below. Current prices will be fetched automatically.</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Enter your holdings below. Current prices will be fetched automatically.</p>
 
             <!-- Input row -->
             <div class="flex flex-col sm:flex-row items-start sm:items-end gap-3 mb-4">
                 <div>
-                    <label for="manual-symbol" class="block text-xs font-medium text-gray-600 mb-1">Symbol</label>
+                    <label for="manual-symbol" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Symbol</label>
                     <input type="text" id="manual-symbol" placeholder="AAPL" maxlength="10"
-                           class="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm uppercase focus:ring-1 focus:ring-brand focus:border-brand outline-none">
+                           class="w-28 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm uppercase focus:ring-1 focus:ring-brand focus:border-brand outline-none bg-white dark:bg-gray-800 dark:text-gray-200">
                 </div>
                 <div>
-                    <label for="manual-shares" class="block text-xs font-medium text-gray-600 mb-1">Shares</label>
+                    <label for="manual-shares" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Shares</label>
                     <input type="number" id="manual-shares" placeholder="100" min="0.0001" step="any"
-                           class="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-brand focus:border-brand outline-none">
+                           class="w-28 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-1 focus:ring-brand focus:border-brand outline-none bg-white dark:bg-gray-800 dark:text-gray-200">
                 </div>
                 <div>
-                    <label for="manual-cost" class="block text-xs font-medium text-gray-600 mb-1">Cost/Share <span class="text-gray-400">(optional)</span></label>
+                    <label for="manual-cost" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Cost/Share <span class="text-gray-400 dark:text-gray-500">(optional)</span></label>
                     <input type="number" id="manual-cost" placeholder="150.00" min="0" step="any"
-                           class="w-32 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-brand focus:border-brand outline-none">
+                           class="w-32 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-1 focus:ring-brand focus:border-brand outline-none bg-white dark:bg-gray-800 dark:text-gray-200">
                 </div>
                 <button type="button" onclick="addHolding()"
                         class="bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-dark transition">
@@ -155,7 +155,7 @@
             </div>
 
             <!-- Validation message -->
-            <p id="manual-error" class="text-red-500 text-xs mb-3 hidden"></p>
+            <p id="manual-error" class="text-red-500 dark:text-red-400 text-xs mb-3 hidden"></p>
 
             <!-- Preview table -->
             <div id="manual-holdings-table" class="hidden mb-4"></div>
@@ -167,12 +167,12 @@
                     Analyze Portfolio
                 </button>
                 <button type="button" onclick="clearAllHoldings()"
-                        class="text-sm text-gray-400 hover:text-red-500 transition">
+                        class="text-sm text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition">
                     Clear all
                 </button>
             </div>
 
-            <p class="mt-3 text-xs text-gray-400">No files are uploaded. Only ticker symbols and share counts are sent for analysis.</p>
+            <p class="mt-3 text-xs text-gray-400 dark:text-gray-500">No files are uploaded. Only ticker symbols and share counts are sent for analysis.</p>
         </div>
     </div><!-- end tab-content-manual -->
 

@@ -3,46 +3,46 @@
 {% macro rec_badge(key) %}
     {% set k = key | lower %}
     {% if k in ('buy', 'strong_buy') %}
-        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800">{{ key | upper | replace('_', ' ') }}</span>
+        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300">{{ key | upper | replace('_', ' ') }}</span>
     {% elif k == 'hold' %}
-        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 text-yellow-800">HOLD</span>
+        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300">HOLD</span>
     {% elif k in ('sell', 'underperform', 'strong_sell') %}
-        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-800">{{ key | upper | replace('_', ' ') }}</span>
+        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300">{{ key | upper | replace('_', ' ') }}</span>
     {% else %}
-        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-gray-100 text-gray-600">{{ key | upper }}</span>
+        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">{{ key | upper }}</span>
     {% endif %}
 {% endmacro %}
 
 <div class="mb-8">
-    <h2 class="text-lg font-semibold text-brand mb-3">Analyst Consensus Overview</h2>
+    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-3">Analyst Consensus Overview</h2>
 
     {# Summary cards #}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-        <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-            <div class="text-2xl font-bold text-green-600">{{ analystOverview.buys }}</div>
-            <div class="text-xs font-semibold text-gray-500 uppercase">Buy</div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ analystOverview.buys }}</div>
+            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Buy</div>
         </div>
-        <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-            <div class="text-2xl font-bold text-yellow-600">{{ analystOverview.holds }}</div>
-            <div class="text-xs font-semibold text-gray-500 uppercase">Hold</div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ analystOverview.holds }}</div>
+            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Hold</div>
         </div>
-        <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-            <div class="text-2xl font-bold text-red-600">{{ analystOverview.sells }}</div>
-            <div class="text-xs font-semibold text-gray-500 uppercase">Sell</div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <div class="text-2xl font-bold text-red-600 dark:text-red-400">{{ analystOverview.sells }}</div>
+            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Sell</div>
         </div>
-        <div class="bg-white rounded-lg border border-gray-200 p-4 text-center">
-            <div class="text-2xl font-bold text-brand">
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <div class="text-2xl font-bold text-brand dark:text-blue-300">
                 {% if analystOverview.weightedUpside is not none %}
                     {{ '+' if analystOverview.weightedUpside >= 0 }}{{ '%.1f' | format(analystOverview.weightedUpside) }}%
                 {% else %}
                     N/A
                 {% endif %}
             </div>
-            <div class="text-xs font-semibold text-gray-500 uppercase">Wtd. Upside</div>
+            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Wtd. Upside</div>
         </div>
     </div>
 
-    <p class="text-xs text-gray-400 mb-3">
+    <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">
         {{ analystOverview.totalCovered }} of {{ analystOverview.totalHoldings }} holdings have analyst coverage ({{ '%.0f' | format(analystOverview.coverageRatio) }}%).
         Weighted upside based on consensus price targets vs. current prices.
     </p>
@@ -50,9 +50,9 @@
     {# Holdings with analyst coverage #}
     {% if analystOverview.holdingsByUpside %}
     <div class="flex items-center justify-end mb-2">
-        <label for="analyst-sort" class="text-xs text-gray-500 mr-2">Sort by</label>
+        <label for="analyst-sort" class="text-xs text-gray-500 dark:text-gray-400 mr-2">Sort by</label>
         <select id="analyst-sort" data-sortable-table="analyst-table"
-                class="text-xs border border-gray-300 rounded-md px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand">
+                class="text-xs border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand">
             <option value="symbol:asc" selected>Symbol (A-Z)</option>
             <option value="symbol:desc">Symbol (Z-A)</option>
             <option value="upside:desc">Upside (High-Low)</option>
@@ -63,11 +63,11 @@
             <option value="target:desc">Target (High-Low)</option>
         </select>
     </div>
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="overflow-x-auto">
             <table id="analyst-table" class="w-full text-sm">
                 <thead>
-                    <tr class="bg-brand-light text-brand font-bold text-xs uppercase">
+                    <tr class="bg-brand-light dark:bg-brand/20 text-brand dark:text-blue-300 font-bold text-xs uppercase">
                         <th class="px-3 py-2 text-left">Symbol</th>
                         <th class="px-3 py-2 text-left hidden sm:table-cell">Name</th>
                         <th class="px-3 py-2 text-center">Rating</th>
@@ -85,20 +85,20 @@
                         data-sort-analysts="{{ h.nAnalysts or 0 }}"
                         data-sort-price="{{ h.currentPrice or 0 }}"
                         data-sort-target="{{ h.targetMeanPrice or 0 }}"
-                        class="hover:bg-brand-light/30 transition-colors">
+                        class="hover:bg-brand-light/30 dark:hover:bg-brand/10 transition-colors">
                         <td class="px-3 py-2">
-                            <a href="/dashboard/{{ h.symbol }}" class="text-brand font-bold hover:underline">{{ h.symbol }}</a>
+                            <a href="/dashboard/{{ h.symbol }}" class="text-brand dark:text-blue-300 font-bold hover:underline">{{ h.symbol }}</a>
                         </td>
-                        <td class="px-3 py-2 text-gray-600 max-w-[180px] truncate hidden sm:table-cell" title="{{ h.name }}">{{ h.name[:30] }}</td>
+                        <td class="px-3 py-2 text-gray-600 dark:text-gray-400 max-w-[180px] truncate hidden sm:table-cell" title="{{ h.name }}">{{ h.name[:30] }}</td>
                         <td class="px-3 py-2 text-center">{{ rec_badge(h.recommendationKey) }}</td>
-                        <td class="px-3 py-2 text-right text-gray-500">{{ h.nAnalysts }}</td>
-                        <td class="px-3 py-2 text-right">
+                        <td class="px-3 py-2 text-right text-gray-500 dark:text-gray-400">{{ h.nAnalysts }}</td>
+                        <td class="px-3 py-2 text-right dark:text-gray-300">
                             {% if h.currentPrice %}${{ '%.2f' | format(h.currentPrice) }}{% else %}--{% endif %}
                         </td>
-                        <td class="px-3 py-2 text-right">
+                        <td class="px-3 py-2 text-right dark:text-gray-300">
                             {% if h.targetMeanPrice %}${{ '%.2f' | format(h.targetMeanPrice) }}{% else %}--{% endif %}
                         </td>
-                        <td class="px-3 py-2 text-right font-bold {{ 'text-green-700' if h.upsidePct >= 0 else 'text-red-600' }}">
+                        <td class="px-3 py-2 text-right font-bold {{ 'text-green-700 dark:text-green-400' if h.upsidePct >= 0 else 'text-red-600 dark:text-red-400' }}">
                             {{ '+' if h.upsidePct >= 0 }}{{ '%.1f' | format(h.upsidePct) }}%
                         </td>
                     </tr>

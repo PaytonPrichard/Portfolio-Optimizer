@@ -10,6 +10,9 @@ DEFAULT_TTL = 300     # 5 minutes for standard data
 PEERS_TTL = 600       # 10 minutes for slow peer fetches
 QUOTE_TTL = 60        # 1 minute for live quotes
 SECTOR_MOMENTUM_TTL = 1800  # 30 minutes for sector ETF data
+ESG_TTL = 1800              # 30 minutes for ESG / sustainability data
+HISTORY_INTRADAY_TTL = 300  # 5 min for 1D intraday data
+HISTORY_TTL = 900           # 15 min for 1M/1Y historical data
 
 
 def get(key: str):

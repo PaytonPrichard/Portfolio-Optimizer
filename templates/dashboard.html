@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}{{ company_name }} ({{ symbol }}) - Portfolio Optimizer{% endblock %}
+{% block title %}{{ company_name }} ({{ symbol }}) - MarketMosaic{% endblock %}
 
 {% block content %}
 <!-- Loading overlay -->
-<div id="loading-overlay" class="fixed inset-0 bg-white/80 z-50 flex flex-col items-center justify-center hidden" role="status" aria-live="polite">
+<div id="loading-overlay" class="fixed inset-0 bg-white/80 dark:bg-gray-900/80 z-50 flex flex-col items-center justify-center hidden" role="status" aria-live="polite">
     <div class="animate-spin rounded-full h-12 w-12 border-4 border-brand border-t-transparent mb-4"></div>
-    <p class="text-brand font-semibold text-lg">Loading dashboard...</p>
-    <p class="text-gray-400 text-sm mt-1">Fetching financial data from Yahoo Finance</p>
+    <p class="text-brand dark:text-blue-300 font-semibold text-lg">Loading dashboard...</p>
+    <p class="text-gray-400 dark:text-gray-500 text-sm mt-1">Fetching financial data from Yahoo Finance</p>
 </div>
 
 <div class="max-w-7xl mx-auto px-4 py-6">
@@ -21,10 +21,10 @@
     </div>
 
     <!-- Search bar -->
-    <div class="bg-brand-light px-6 py-3 rounded-b-lg mb-6">
+    <div class="bg-brand-light dark:bg-brand/30 px-6 py-3 rounded-b-lg mb-6">
         <form action="/search" method="GET" class="flex gap-2 max-w-md" id="dash-search">
             <input type="text" name="q" placeholder="Search another company..."
-                   class="flex-1 px-3 py-2 rounded text-sm focus:outline-none focus:ring-2 focus:ring-brand">
+                   class="flex-1 px-3 py-2 rounded text-sm focus:outline-none focus:ring-2 focus:ring-brand bg-white dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500">
             <button type="submit" class="bg-brand text-white px-4 py-2 rounded text-sm font-semibold hover:bg-brand-dark transition">Analyze</button>
         </form>
     </div>

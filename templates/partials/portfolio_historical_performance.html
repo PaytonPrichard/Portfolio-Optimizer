@@ -1,0 +1,277 @@
+{# Portfolio Historical Performance — async widget partial #}
+
+{% macro money(val) %}{% if val is none or val != val %}N/A{% elif val >= 1000000000 %}${{ '%.2f' | format(val / 1000000000) }}B{% elif val >= 1000000 %}${{ '%.1f' | format(val / 1000000) }}M{% elif val >= 1000 %}${{ '{:,.0f}'.format(val) }}{% else %}${{ '%.2f' | format(val) }}{% endif %}{% endmacro %}
+
+{% set period_labels = {"1d": "1D", "1mo": "1M", "1y": "1Y"} %}
+{% set period_full = {"1d": "Today", "1mo": "Past Month", "1y": "Past Year"} %}
+
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+
+    {# Insufficient data fallback #}
+    {% if dates | length < 2 %}
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-brand dark:text-blue-300">Portfolio Performance</h2>
+        <div class="flex items-center gap-2">
+            {% for p, label in [("1d", "1D"), ("1mo", "1M"), ("1y", "1Y")] %}
+            <button onclick="fetchPerformanceWidget('{{ p }}')"
+                    class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors
+                           {{ 'bg-[#1F4E79] text-white' if period == p else 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' }}">
+                {{ label }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="text-center py-8">
+        {% if marketClosed %}
+        <p class="text-yellow-600 dark:text-yellow-400 text-sm">Market is currently closed — intraday data unavailable outside trading hours.</p>
+        <p class="text-gray-300 dark:text-gray-600 text-xs mt-1">Try the 1M or 1Y view for historical data.</p>
+        {% else %}
+        <p class="text-gray-400 dark:text-gray-500 text-sm">Insufficient price data for this period.</p>
+        <p class="text-gray-300 dark:text-gray-600 text-xs mt-1">Try a longer time range.</p>
+        {% endif %}
+    </div>
+    {% else %}
+
+    {% set startValue = portfolioValues[0] %}
+    {% set endValue = portfolioValues[-1] %}
+    {% set dollarChange = endValue - startValue %}
+    {% set is_positive = (periodReturn >= 0) %}
+
+    {# ── Value header + period buttons ── #}
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+        <div>
+            <div class="text-3xl font-bold text-gray-900 dark:text-gray-100">{{ money(endValue) }}</div>
+            <div class="flex items-center gap-2 mt-1">
+                <span class="text-sm font-semibold {{ 'text-[#1F4E79] dark:text-blue-400' if is_positive else 'text-red-600 dark:text-red-400' }}">
+                    {{ '+' if dollarChange >= 0 }}{{ money(dollarChange) }}
+                </span>
+                <span class="text-sm font-semibold {{ 'text-[#1F4E79] dark:text-blue-400' if is_positive else 'text-red-600 dark:text-red-400' }}">
+                    ({{ '+' if periodReturn >= 0 }}{{ '%.2f' | format(periodReturn) }}%)
+                </span>
+                <span class="text-xs text-gray-400 dark:text-gray-500 ml-1">{{ period_full.get(period, '') }}</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            {% for p, label in [("1d", "1D"), ("1mo", "1M"), ("1y", "1Y")] %}
+            <button onclick="fetchPerformanceWidget('{{ p }}')"
+                    class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors
+                           {{ 'bg-[#1F4E79] text-white' if period == p else 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' }}">
+                {{ label }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# Market closed banner #}
+    {% if marketClosed %}
+    <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg px-4 py-2 mb-4">
+        <p class="text-sm text-yellow-700 dark:text-yellow-400">Market is currently closed. Showing last available data.</p>
+    </div>
+    {% endif %}
+
+    {# ── SVG Chart with Y-axis, grid lines, dotted baseline ── #}
+    {% set n = portfolioValues | length %}
+    {% set all_chart_vals = portfolioValues + (benchmarkValues if benchmarkValues else []) %}
+    {% set vmin = all_chart_vals | min %}
+    {% set vmax = all_chart_vals | max %}
+    {# Expand range slightly so the line doesn't touch top/bottom edges #}
+    {% set rawRange = vmax - vmin if vmax != vmin else 1 %}
+    {% set vmin_padded = vmin - rawRange * 0.05 %}
+    {% set vmax_padded = vmax + rawRange * 0.05 %}
+    {% set vrange = vmax_padded - vmin_padded %}
+    {% set svg_w = 800 %}
+    {% set svg_h = 280 %}
+    {% set pad_l = 70 %}
+    {% set pad_r = 15 %}
+    {% set pad_t = 15 %}
+    {% set pad_b = 25 %}
+    {% set chart_w = svg_w - pad_l - pad_r %}
+    {% set chart_h = svg_h - pad_t - pad_b %}
+
+    {# Chart colors — brand blue for positive, red for negative #}
+    {% set lineColor = '#1F4E79' if is_positive else '#dc2626' %}
+    {% set gradId = 'perfGrad' %}
+
+    <div class="mb-4">
+        <svg viewBox="0 0 {{ svg_w }} {{ svg_h }}" class="w-full h-auto" preserveAspectRatio="xMidYMid meet">
+            <defs>
+                <linearGradient id="{{ gradId }}" x1="0" y1="0" x2="0" y2="1">
+                    {% if is_positive %}
+                    <stop offset="0%" stop-color="var(--chart-line-pos, #1F4E79)" stop-opacity="0.15"/>
+                    <stop offset="100%" stop-color="var(--chart-line-pos, #1F4E79)" stop-opacity="0.02"/>
+                    {% else %}
+                    <stop offset="0%" stop-color="var(--chart-line-neg, #dc2626)" stop-opacity="0.15"/>
+                    <stop offset="100%" stop-color="var(--chart-line-neg, #dc2626)" stop-opacity="0.02"/>
+                    {% endif %}
+                </linearGradient>
+            </defs>
+
+            {# ── Y-axis grid lines and labels (5 lines) ── #}
+            {% for i in range(5) %}
+                {% set gridVal = vmin_padded + (vrange * (4 - i) / 4) %}
+                {% set gridY = pad_t + (i / 4) * chart_h %}
+                <line x1="{{ pad_l }}" y1="{{ gridY }}" x2="{{ svg_w - pad_r }}" y2="{{ gridY }}"
+                      stroke="var(--chart-grid, #e5e7eb)" stroke-width="0.7"/>
+                <text x="{{ pad_l - 8 }}" y="{{ gridY + 4 }}" font-size="10" fill="var(--chart-label, #6b7280)"
+                      font-family="system-ui, sans-serif" text-anchor="end">
+                    {%- if gridVal >= 1000000 -%}${{ '%.1f' | format(gridVal / 1000000) }}M
+                    {%- elif gridVal >= 1000 -%}${{ '{:,.0f}'.format(gridVal | int) }}
+                    {%- else -%}${{ '%.0f' | format(gridVal) }}
+                    {%- endif -%}
+                </text>
+            {% endfor %}
+
+            {# ── Dotted reference line at current balance (endValue) ── #}
+            {% set refY = pad_t + ((vmax_padded - endValue) / vrange * chart_h) %}
+            <line x1="{{ pad_l }}" y1="{{ refY }}" x2="{{ svg_w - pad_r }}" y2="{{ refY }}"
+                  stroke="var(--chart-label, #6b7280)" stroke-width="1" stroke-dasharray="4,4" opacity="0.5"/>
+
+            {# ── Build coordinate points ── #}
+            {% set points = [] %}
+            {% for val in portfolioValues %}
+                {% set x = pad_l + (loop.index0 / (n - 1)) * chart_w %}
+                {% set y = pad_t + ((vmax_padded - val) / vrange * chart_h) %}
+                {% if points.append('%.1f,%.1f' | format(x, y)) %}{% endif %}
+            {% endfor %}
+
+            {# Filled area under curve #}
+            <path d="M {{ pad_l }},{{ pad_t + chart_h }} L {{ points | join(' L ') }} L {{ pad_l + chart_w }},{{ pad_t + chart_h }} Z"
+                  fill="url(#{{ gradId }})" stroke="none"/>
+
+            {# Line #}
+            <polyline points="{{ points | join(' ') }}"
+                      fill="none"
+                      stroke="var(--chart-line-{{ 'pos' if is_positive else 'neg' }}, {{ lineColor }})"
+                      stroke-width="2.5"
+                      stroke-linejoin="round"
+                      stroke-linecap="round"/>
+
+            {# ── Benchmark (SPY) overlay — dashed line ── #}
+            {% if benchmarkValues and benchmarkValues | length == n %}
+            {% set bm_points = [] %}
+            {% for val in benchmarkValues %}
+                {% set x = pad_l + (loop.index0 / (n - 1)) * chart_w %}
+                {% set y = pad_t + ((vmax_padded - val) / vrange * chart_h) %}
+                {% if bm_points.append('%.1f,%.1f' | format(x, y)) %}{% endif %}
+            {% endfor %}
+            <polyline points="{{ bm_points | join(' ') }}"
+                      fill="none"
+                      stroke="var(--chart-benchmark, #9ca3af)"
+                      stroke-width="2"
+                      stroke-dasharray="6,4"
+                      stroke-linejoin="round"
+                      stroke-linecap="round"
+                      opacity="0.7"/>
+            {% endif %}
+
+            {# Endpoint dot #}
+            {% set lastX = pad_l + chart_w %}
+            {% set lastY = pad_t + ((vmax_padded - endValue) / vrange * chart_h) %}
+            <circle cx="{{ lastX }}" cy="{{ lastY }}" r="4"
+                    fill="var(--chart-line-{{ 'pos' if is_positive else 'neg' }}, {{ lineColor }})"
+                    stroke="white" stroke-width="2"/>
+
+            {# ── Date axis labels (start, middle, end) ── #}
+            {% set midIdx = (dates | length) // 2 %}
+            <text x="{{ pad_l }}" y="{{ svg_h - 3 }}" font-size="10" fill="var(--chart-label, #9ca3af)" font-family="system-ui, sans-serif">{{ dates[0] }}</text>
+            <text x="{{ pad_l + chart_w / 2 }}" y="{{ svg_h - 3 }}" font-size="10" fill="var(--chart-label, #9ca3af)" font-family="system-ui, sans-serif" text-anchor="middle">{{ dates[midIdx] }}</text>
+            <text x="{{ pad_l + chart_w }}" y="{{ svg_h - 3 }}" font-size="10" fill="var(--chart-label, #9ca3af)" font-family="system-ui, sans-serif" text-anchor="end">{{ dates[-1] }}</text>
+        </svg>
+    </div>
+
+    {# ── Chart legend ── #}
+    {% if benchmarkValues %}
+    <div class="flex items-center gap-4 mb-3 text-xs text-gray-500 dark:text-gray-400">
+        <span class="flex items-center gap-1.5">
+            <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke="var(--chart-line-{{ 'pos' if is_positive else 'neg' }}, {{ lineColor }})" stroke-width="2.5"/></svg>
+            Your Portfolio
+        </span>
+        <span class="flex items-center gap-1.5">
+            <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke="var(--chart-benchmark, #9ca3af)" stroke-width="2" stroke-dasharray="4,3"/></svg>
+            S&amp;P 500
+        </span>
+    </div>
+    {% endif %}
+
+    {# ── Stat cards (smaller, below chart) ── #}
+    <div class="grid grid-cols-2 sm:grid-cols-{{ '5' if benchmarkReturn is not none else '4' }} gap-3 mb-5">
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Period Return</div>
+            <div class="text-base font-bold {{ 'text-[#1F4E79] dark:text-blue-400' if periodReturn >= 0 else 'text-red-600 dark:text-red-400' }}">
+                {{ '+' if periodReturn >= 0 }}{{ '%.2f' | format(periodReturn) }}%
+            </div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Return $</div>
+            <div class="text-base font-bold {{ 'text-[#1F4E79] dark:text-blue-400' if periodReturnDollar >= 0 else 'text-red-600 dark:text-red-400' }}">
+                {{ '+' if periodReturnDollar >= 0 }}{{ money(periodReturnDollar) }}
+            </div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Best Performer</div>
+            {% if bestPerformer %}
+            <div class="text-sm font-bold text-green-700 dark:text-green-400">{{ bestPerformer.symbol }}</div>
+            <div class="text-xs text-green-600 dark:text-green-500">+{{ '%.2f' | format(bestPerformer.returnPct) }}%</div>
+            {% else %}
+            <div class="text-sm text-gray-400 dark:text-gray-500">--</div>
+            {% endif %}
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Worst Performer</div>
+            {% if worstPerformer %}
+            <div class="text-sm font-bold text-red-600 dark:text-red-400">{{ worstPerformer.symbol }}</div>
+            <div class="text-xs text-red-500 dark:text-red-400">{{ '%.2f' | format(worstPerformer.returnPct) }}%</div>
+            {% else %}
+            <div class="text-sm text-gray-400 dark:text-gray-500">--</div>
+            {% endif %}
+        </div>
+        {% if benchmarkReturn is not none %}
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">S&amp;P 500</div>
+            <div class="text-base font-bold {{ 'text-gray-600 dark:text-gray-300' }}">
+                {{ '+' if benchmarkReturn >= 0 }}{{ '%.2f' | format(benchmarkReturn) }}%
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    {# ── Collapsible holdings performance table ── #}
+    {% if holdingReturns %}
+    <details class="group">
+        <summary class="cursor-pointer text-sm font-medium text-brand dark:text-blue-300 hover:underline mb-2">
+            Holdings breakdown ({{ holdingReturns | length }})
+            <span class="text-gray-400 dark:text-gray-500 text-xs ml-1">click to expand</span>
+        </summary>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm mt-2">
+                <thead>
+                    <tr class="bg-gray-50 dark:bg-gray-700 text-xs text-gray-500 dark:text-gray-400 uppercase">
+                        <th class="px-3 py-2 text-left">Symbol</th>
+                        <th class="px-3 py-2 text-left hidden sm:table-cell">Name</th>
+                        <th class="px-3 py-2 text-right">Start Value</th>
+                        <th class="px-3 py-2 text-right">End Value</th>
+                        <th class="px-3 py-2 text-center">Return %</th>
+                        <th class="px-3 py-2 text-center">Weight</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for hr in holdingReturns %}
+                    <tr class="{{ 'bg-gray-50 dark:bg-gray-700/30' if loop.index is odd else '' }}">
+                        <td class="px-3 py-1.5 font-medium text-brand dark:text-blue-300">{{ hr.symbol }}</td>
+                        <td class="px-3 py-1.5 text-gray-600 dark:text-gray-400 hidden sm:table-cell truncate max-w-[150px]">{{ hr.name[:30] }}</td>
+                        <td class="px-3 py-1.5 text-right text-gray-600 dark:text-gray-400">{{ money(hr.startValue) }}</td>
+                        <td class="px-3 py-1.5 text-right font-medium dark:text-gray-200">{{ money(hr.endValue) }}</td>
+                        <td class="px-3 py-1.5 text-center font-bold {{ 'text-green-700 dark:text-green-400' if hr.returnPct >= 0 else 'text-red-600 dark:text-red-400' }}">
+                            {{ '+' if hr.returnPct >= 0 }}{{ '%.2f' | format(hr.returnPct) }}%
+                        </td>
+                        <td class="px-3 py-1.5 text-center text-gray-500 dark:text-gray-400">{{ '%.1f' | format(hr.weight) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </details>
+    {% endif %}
+
+    {% endif %}{# end dates >= 2 check #}
+</div>

@@ -1,4 +1,4 @@
-<div class="bg-white rounded-lg shadow mb-6 overflow-hidden">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 overflow-hidden">
     <div class="bg-brand text-white px-5 py-3 flex items-center justify-between">
         <h2 class="font-bold text-sm uppercase tracking-wide">1-Year Price History</h2>
         {% if current_price %}
@@ -31,6 +31,7 @@
     var startPrice = prices[0];
     var endPrice = prices[prices.length - 1];
     var isUp = endPrice >= startPrice;
+    var isDark = document.documentElement.classList.contains('dark');
 
     var ctx = document.getElementById('priceChart').getContext('2d');
 
@@ -84,17 +85,17 @@
                     ticks: {
                         maxTicksLimit: 8,
                         font: { size: 11 },
-                        color: '#6b7280',
+                        color: isDark ? '#9ca3af' : '#6b7280',
                     },
                     grid: { display: false },
                 },
                 y: {
                     ticks: {
                         font: { size: 11 },
-                        color: '#6b7280',
+                        color: isDark ? '#9ca3af' : '#6b7280',
                         callback: function(val) { return '$' + val.toFixed(0); }
                     },
-                    grid: { color: '#f3f4f6' },
+                    grid: { color: isDark ? '#374151' : '#f3f4f6' },
                 }
             }
         }

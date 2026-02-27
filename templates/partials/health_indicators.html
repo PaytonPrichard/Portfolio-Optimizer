@@ -1,11 +1,18 @@
-<div class="bg-white rounded-lg shadow mb-6 overflow-hidden">
+{% set tips = {
+    "D/E Ratio": "Debt-to-Equity ratio. Below 1.0 is conservative; above 2.0 may signal high leverage risk.",
+    "ROE": "Return on Equity. Measures profitability vs shareholder equity. Above 15% is generally strong.",
+    "Current Ratio": "Current assets / current liabilities. Above 1.5 is healthy; below 1.0 may signal liquidity issues.",
+    "Quick Ratio": "Like Current Ratio but excludes inventory. Above 1.0 means the company can cover short-term debts.",
+    "Short Float": "% of shares sold short. Above 10% suggests bearish sentiment; above 20% is very high."
+} %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 overflow-hidden">
     <div class="bg-brand text-white px-5 py-3">
         <h2 class="font-bold text-sm uppercase tracking-wide">Financial Health Indicators</h2>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-5 gap-3 p-4">
         {% for ind in health.indicators %}
         <div class="{{ ind.color }} text-white rounded-lg p-3 text-center shadow relative">
-            <p class="text-xs font-bold uppercase tracking-wide opacity-90">{{ ind.label }}</p>
+            <p class="text-xs font-bold uppercase tracking-wide opacity-90 {{ 'cursor-help' if tips.get(ind.label) }}" {% if tips.get(ind.label) %}title="{{ tips[ind.label] }}"{% endif %}>{{ ind.label }}</p>
             <p class="text-xl font-bold mt-1">{{ ind.value }}</p>
             {% if ind.signal %}
             <span class="inline-block mt-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full
@@ -19,7 +26,7 @@
         {% endfor %}
     </div>
     {% if health.ownership %}
-    <div class="bg-brand-light px-5 py-2 text-sm text-brand italic">
+    <div class="bg-brand-light dark:bg-brand/20 px-5 py-2 text-sm text-brand dark:text-blue-300 italic">
         {{ health.ownership | join(' &nbsp;|&nbsp; ') }}
     </div>
     {% endif %}

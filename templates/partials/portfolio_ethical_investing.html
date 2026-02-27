@@ -1,0 +1,204 @@
+{# Widget 6: Ethical Investing / ESG Analysis — loaded async #}
+
+{% macro money(val) %}{% if val is none or val != val %}N/A{% elif val >= 1000000000 %}${{ '%.1f' | format(val / 1000000000) }}B{% elif val >= 1000000 %}${{ '%.1f' | format(val / 1000000) }}M{% elif val >= 1000 %}${{ '{:,.0f}'.format(val) }}{% else %}${{ '%.2f' | format(val) }}{% endif %}{% endmacro %}
+
+{% macro esg_color(score) %}{% if score is none %}bg-gray-100 dark:bg-gray-700 text-gray-400{% elif score < 20 %}bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300{% elif score < 30 %}bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300{% elif score < 40 %}bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300{% else %}bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300{% endif %}{% endmacro %}
+
+{% macro esg_label(score) %}{% if score is none %}N/A{% elif score < 10 %}Negligible{% elif score < 20 %}Low{% elif score < 30 %}Medium{% elif score < 40 %}High{% else %}Severe{% endif %}{% endmacro %}
+
+{% macro esg_border_color(score) %}{% if score is none %}border-gray-300 dark:border-gray-600{% elif score < 20 %}border-green-400{% elif score < 30 %}border-yellow-400{% elif score < 40 %}border-orange-400{% else %}border-red-400{% endif %}{% endmacro %}
+
+<div class="mb-8">
+    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-1">Ethical Investing / ESG Risk</h2>
+    <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Sustainalytics ESG Risk Ratings for your holdings. Lower scores = less risk (better).</p>
+
+    {% if portfolioEsg is not none %}
+
+    {# ── Section 1: Portfolio ESG Score Cards ── #}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        {# Overall ESG #}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 {{ esg_border_color(portfolioEsg) }} p-4 text-center">
+            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Overall ESG Risk</div>
+            <div class="text-3xl font-bold {{ esg_color(portfolioEsg).split(' ')[1] if portfolioEsg is not none else 'text-gray-400' }}">
+                {% if portfolioEsg is not none %}{{ '%.1f' | format(portfolioEsg) }}{% else %}--{% endif %}
+            </div>
+            <div class="mt-1">
+                <span class="inline-block px-2 py-0.5 rounded text-xs font-bold {{ esg_color(portfolioEsg) }}">
+                    {{ esg_label(portfolioEsg) }} Risk
+                </span>
+            </div>
+        </div>
+        {# Environment #}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Environment</div>
+            <div class="text-2xl font-bold {{ esg_color(portfolioE).split(' ')[1] if portfolioE is not none else 'text-gray-400' }}">
+                {% if portfolioE is not none %}{{ '%.1f' | format(portfolioE) }}{% else %}--{% endif %}
+            </div>
+            <div class="mt-1">
+                <span class="inline-block px-2 py-0.5 rounded text-xs font-medium {{ esg_color(portfolioE) }}">
+                    {{ esg_label(portfolioE) }}
+                </span>
+            </div>
+        </div>
+        {# Social #}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Social</div>
+            <div class="text-2xl font-bold {{ esg_color(portfolioS).split(' ')[1] if portfolioS is not none else 'text-gray-400' }}">
+                {% if portfolioS is not none %}{{ '%.1f' | format(portfolioS) }}{% else %}--{% endif %}
+            </div>
+            <div class="mt-1">
+                <span class="inline-block px-2 py-0.5 rounded text-xs font-medium {{ esg_color(portfolioS) }}">
+                    {{ esg_label(portfolioS) }}
+                </span>
+            </div>
+        </div>
+        {# Governance #}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Governance</div>
+            <div class="text-2xl font-bold {{ esg_color(portfolioG).split(' ')[1] if portfolioG is not none else 'text-gray-400' }}">
+                {% if portfolioG is not none %}{{ '%.1f' | format(portfolioG) }}{% else %}--{% endif %}
+            </div>
+            <div class="mt-1">
+                <span class="inline-block px-2 py-0.5 rounded text-xs font-medium {{ esg_color(portfolioG) }}">
+                    {{ esg_label(portfolioG) }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    {# Coverage note #}
+    <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">
+        {{ coveredCount }} of {{ totalCount }} individual stock{{ 's' if totalCount != 1 }} covered by ESG data.
+        {% if skippedFunds %}{{ skippedFunds | length }} fund{{ 's' if skippedFunds | length != 1 }} excluded ({{ skippedFunds | join(', ') }}).{% endif %}
+    </p>
+
+    {# ── Section 2: Controversial Product Exposure ── #}
+    {% if controversies %}
+    <div class="mb-4">
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Controversial Product Exposure</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for c in controversies %}
+            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 border-l-4 border-l-red-400 rounded-r-lg p-3">
+                <div class="font-semibold text-red-800 dark:text-red-300 text-sm mb-1">{{ c.category }}</div>
+                <div class="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                    {% for sym in c.symbols %}
+                        <a href="/dashboard/{{ sym }}" class="text-brand dark:text-blue-300 hover:underline">{{ sym }}</a>{{ ', ' if not loop.last }}
+                    {% endfor %}
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-red-700 dark:text-red-400">{{ money(c.value) }}</span>
+                    <span class="text-xs text-red-600 dark:text-red-400 font-medium">{{ c.pct }}% of portfolio</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Section 3: Holdings ESG Table ── #}
+    {% if holdingsEsg %}
+    <div class="mb-4">
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Holdings ESG Detail</h3>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-brand-light dark:bg-brand/20 text-brand dark:text-blue-300 font-bold text-xs uppercase">
+                            <th class="px-3 py-2 text-left">Symbol</th>
+                            <th class="px-3 py-2 text-left hidden sm:table-cell">Name</th>
+                            <th class="px-3 py-2 text-center">ESG Score</th>
+                            <th class="px-3 py-2 text-center hidden md:table-cell">E</th>
+                            <th class="px-3 py-2 text-center hidden md:table-cell">S</th>
+                            <th class="px-3 py-2 text-center hidden md:table-cell">G</th>
+                            <th class="px-3 py-2 text-center hidden lg:table-cell">Controversy</th>
+                            <th class="px-3 py-2 text-left hidden xl:table-cell">Flags</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for h in holdingsEsg %}
+                        <tr class="{{ 'bg-gray-50 dark:bg-gray-700/30' if loop.index is odd else '' }} hover:bg-brand-light/30 dark:hover:bg-brand/10 transition-colors">
+                            <td class="px-3 py-2">
+                                <a href="/dashboard/{{ h.symbol }}" class="text-brand dark:text-blue-300 font-bold hover:underline">{{ h.symbol }}</a>
+                            </td>
+                            <td class="px-3 py-2 text-gray-700 dark:text-gray-300 max-w-[160px] truncate hidden sm:table-cell" title="{{ h.name }}">{{ h.name[:30] }}</td>
+                            <td class="px-3 py-2 text-center">
+                                {% if h.totalEsg is not none %}
+                                    <span class="inline-block px-2 py-0.5 rounded text-xs font-bold {{ esg_color(h.totalEsg) }}">
+                                        {{ '%.1f' | format(h.totalEsg) }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-gray-300 dark:text-gray-600">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-3 py-2 text-center hidden md:table-cell">
+                                {% if h.environmentScore is not none %}
+                                    <span class="text-xs font-medium {{ esg_color(h.environmentScore).split(' ')[1] }}">{{ '%.1f' | format(h.environmentScore) }}</span>
+                                {% else %}<span class="text-gray-300 dark:text-gray-600">--</span>{% endif %}
+                            </td>
+                            <td class="px-3 py-2 text-center hidden md:table-cell">
+                                {% if h.socialScore is not none %}
+                                    <span class="text-xs font-medium {{ esg_color(h.socialScore).split(' ')[1] }}">{{ '%.1f' | format(h.socialScore) }}</span>
+                                {% else %}<span class="text-gray-300 dark:text-gray-600">--</span>{% endif %}
+                            </td>
+                            <td class="px-3 py-2 text-center hidden md:table-cell">
+                                {% if h.governanceScore is not none %}
+                                    <span class="text-xs font-medium {{ esg_color(h.governanceScore).split(' ')[1] }}">{{ '%.1f' | format(h.governanceScore) }}</span>
+                                {% else %}<span class="text-gray-300 dark:text-gray-600">--</span>{% endif %}
+                            </td>
+                            <td class="px-3 py-2 text-center hidden lg:table-cell">
+                                {% if h.controversyLevel is not none %}
+                                    {% if h.controversyLevel >= 4 %}
+                                        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300">Level {{ h.controversyLevel }}</span>
+                                    {% elif h.controversyLevel >= 2 %}
+                                        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300">Level {{ h.controversyLevel }}</span>
+                                    {% else %}
+                                        <span class="inline-block px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300">Level {{ h.controversyLevel }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-gray-300 dark:text-gray-600">--</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-3 py-2 hidden xl:table-cell">
+                                {% if h.flags %}
+                                    {% for f in h.flags %}
+                                        <span class="inline-block bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded px-1.5 py-0.5 text-xs font-medium mr-0.5 mb-0.5">{{ f }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-gray-300 dark:text-gray-600 text-xs">None</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Section 4: Risk Scale Legend & Disclaimer ── #}
+    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+        <div class="flex flex-wrap items-center gap-2 mb-2">
+            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 mr-1">Risk Scale:</span>
+            <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300">0-10 Negligible</span>
+            <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300">10-20 Low</span>
+            <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300">20-30 Medium</span>
+            <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300">30-40 High</span>
+            <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300">40+ Severe</span>
+        </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500 italic">
+            ESG Risk Ratings from Sustainalytics via Yahoo Finance. Lower scores indicate less unmanaged ESG risk.
+            Controversial product involvement flags are binary (involved or not). This is not investment advice.
+        </p>
+    </div>
+
+    {% else %}
+    {# Fallback: no ESG data at all #}
+    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+        <p class="text-gray-400 dark:text-gray-500 text-sm italic">
+            No ESG data available for your portfolio holdings.
+            {% if skippedFunds %}ETFs/funds ({{ skippedFunds | join(', ') }}) do not have direct ESG ratings.{% endif %}
+        </p>
+    </div>
+    {% endif %}
+</div>

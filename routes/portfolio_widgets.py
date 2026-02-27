@@ -10,6 +10,9 @@ from financials.portfolio_widgets import (
     generate_portfolio_ai_commentary,
     fetch_peer_valuations,
     compute_analyst_overview,
+    fetch_ethical_analysis,
+    fetch_portfolio_performance,
+    compute_correlation_matrix,
 )
 
 portfolio_widgets_bp = Blueprint("portfolio_widgets", __name__)
@@ -69,3 +72,44 @@ def peer_valuation_widget():
                                comparisons=comparisons)
     except Exception as e:
         return f'<p class="text-red-500 text-sm italic">Peer valuation unavailable: {e}</p>'
+
+
+@portfolio_widgets_bp.route("/api/portfolio/widget/historical-performance", methods=["POST"])
+def historical_performance_widget():
+    """Return historical portfolio performance HTML fragment."""
+    try:
+        data = request.get_json(silent=True) or {}
+        holdings = data.get("holdings", [])
+        period = data.get("period", "1mo")
+        if period not in ("1d", "1mo", "1y"):
+            period = "1mo"
+        perf = fetch_portfolio_performance(holdings, period)
+        return render_template("partials/portfolio_historical_performance.html",
+                               **perf)
+    except Exception as e:
+        return f'<p class="text-red-500 text-sm italic">Historical performance unavailable: {e}</p>'
+
+
+@portfolio_widgets_bp.route("/api/portfolio/widget/correlation", methods=["POST"])
+def correlation_widget():
+    """Return correlation matrix heatmap HTML fragment."""
+    try:
+        data = request.get_json(silent=True) or {}
+        holdings = data.get("holdings", [])
+        result = compute_correlation_matrix(holdings)
+        return render_template("partials/portfolio_correlation.html", **result)
+    except Exception as e:
+        return f'<p class="text-red-500 text-sm italic">Correlation matrix unavailable: {e}</p>'
+
+
+@portfolio_widgets_bp.route("/api/portfolio/widget/ethical-investing", methods=["POST"])
+def ethical_investing_widget():
+    """Return ESG / ethical investing analysis HTML fragment."""
+    try:
+        data = request.get_json(silent=True) or {}
+        holdings = data.get("holdings", [])
+        analysis = fetch_ethical_analysis(holdings)
+        return render_template("partials/portfolio_ethical_investing.html",
+                               **analysis)
+    except Exception as e:
+        return f'<p class="text-red-500 text-sm italic">ESG analysis unavailable: {e}</p>'

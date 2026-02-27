@@ -190,9 +190,11 @@
                 }
             })
             .catch(function (err) {
+                console.error("Portfolio analysis error:", err);
                 if (!container.innerHTML.includes("text-red-500")) {
                     container.innerHTML =
-                        '<p class="text-red-500 italic p-4">Could not analyze portfolio. Please check your entries and try again.</p>';
+                        '<p class="text-red-500 italic p-4">Could not analyze portfolio. Please check your entries and try again.</p>' +
+                        '<p class="text-gray-400 text-xs px-4">(Error: ' + (err.message || err) + ')</p>';
                 }
             })
             .finally(function () {

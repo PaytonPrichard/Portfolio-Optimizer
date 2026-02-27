@@ -1,5 +1,22 @@
 /* Minimal Tailwind overrides */
 
+/* ── Theme-aware CSS custom properties ── */
+:root {
+    --chart-line-pos: #1F4E79;
+    --chart-line-neg: #dc2626;
+    --chart-grid: #e5e7eb;
+    --chart-label: #6b7280;
+    --chart-benchmark: #9ca3af;
+}
+
+.dark {
+    --chart-line-pos: #60a5fa;
+    --chart-line-neg: #f87171;
+    --chart-grid: #374151;
+    --chart-label: #9ca3af;
+    --chart-benchmark: #6b7280;
+}
+
 /* Smooth loading for async sections */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(4px); }
@@ -15,4 +32,64 @@
 /* Subtle shadow on nav */
 nav {
     box-shadow: 0 2px 8px rgba(31, 78, 121, 0.15);
+}
+
+.dark nav {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Smooth color transitions for dark mode */
+body, main, footer {
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ── Print-friendly styles ── */
+@media print {
+    nav, footer, button, input, select, label,
+    .animate-spin, .animate-pulse,
+    #theme-toggle, #loading-overlay,
+    [id$="-btn"], [data-remove], [data-edit],
+    details summary, .no-print {
+        display: none !important;
+    }
+
+    body, main, div, section {
+        background: white !important;
+        color: black !important;
+        box-shadow: none !important;
+    }
+
+    .dark body, .dark main, .dark div, .dark section {
+        background: white !important;
+        color: black !important;
+    }
+
+    a {
+        color: #1F4E79 !important;
+        text-decoration: none !important;
+    }
+
+    table {
+        border-collapse: collapse !important;
+    }
+    th, td {
+        border: 1px solid #d1d5db !important;
+        padding: 4px 8px !important;
+    }
+
+    svg {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    .shadow, .shadow-sm, .shadow-lg {
+        box-shadow: none !important;
+    }
+
+    details {
+        display: block !important;
+    }
+    details[open] > *:not(summary) {
+        display: block !important;
+    }
 }

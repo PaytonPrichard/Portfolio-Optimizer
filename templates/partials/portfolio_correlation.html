@@ -1,0 +1,100 @@
+{# Portfolio Correlation Matrix — async widget partial #}
+
+{% if symbols | length < 2 %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-2">Correlation Matrix</h2>
+    <p class="text-gray-400 dark:text-gray-500 text-sm">Need at least 2 individual stock holdings to compute correlations.</p>
+</div>
+{% else %}
+
+{% set n = symbols | length %}
+{% set cell = 60 %}
+{% set label_w = 55 %}
+{% set label_h = 55 %}
+{% set svg_w = label_w + n * cell %}
+{% set svg_h = label_h + n * cell %}
+
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-3">Correlation Matrix</h2>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">3-month daily return correlations between your top holdings.</p>
+
+    <div class="overflow-x-auto">
+        <svg viewBox="0 0 {{ svg_w }} {{ svg_h }}" class="w-full max-w-[600px] h-auto" preserveAspectRatio="xMidYMid meet">
+            {# Column headers #}
+            {% for sym in symbols %}
+            <text x="{{ label_w + loop.index0 * cell + cell / 2 }}" y="{{ label_h - 8 }}"
+                  font-size="11" font-weight="bold" fill="var(--chart-label, #6b7280)"
+                  font-family="system-ui, sans-serif" text-anchor="middle">{{ sym }}</text>
+            {% endfor %}
+
+            {# Rows #}
+            {% for i in range(n) %}
+                {# Row label #}
+                <text x="{{ label_w - 6 }}" y="{{ label_h + i * cell + cell / 2 + 4 }}"
+                      font-size="11" font-weight="bold" fill="var(--chart-label, #6b7280)"
+                      font-family="system-ui, sans-serif" text-anchor="end">{{ symbols[i] }}</text>
+
+                {% for j in range(n) %}
+                    {% set corr = matrix[i][j] %}
+                    {% set cx = label_w + j * cell %}
+                    {% set cy = label_h + i * cell %}
+
+                    {# Color scale: red (1.0) -> white (0.0) -> blue (-1.0) #}
+                    {% if i == j %}
+                        {% set fill_color = "#e5e7eb" %}
+                    {% elif corr > 0 %}
+                        {% set r = (255 - (255 - 239) * corr) | int %}
+                        {% set g = (255 - (255 - 68) * corr) | int %}
+                        {% set b = (255 - (255 - 68) * corr) | int %}
+                        {% set fill_color = "rgb(%d,%d,%d)" | format(r, g, b) %}
+                    {% elif corr < 0 %}
+                        {% set ac = -corr %}
+                        {% set r = (255 - (255 - 59) * ac) | int %}
+                        {% set g = (255 - (255 - 130) * ac) | int %}
+                        {% set b = (255 - (255 - 246) * ac) | int %}
+                        {% set fill_color = "rgb(%d,%d,%d)" | format(r, g, b) %}
+                    {% else %}
+                        {% set fill_color = "#ffffff" %}
+                    {% endif %}
+
+                    <rect x="{{ cx + 1 }}" y="{{ cy + 1 }}" width="{{ cell - 2 }}" height="{{ cell - 2 }}"
+                          rx="4" fill="{{ fill_color }}" stroke="white" stroke-width="1"/>
+
+                    <text x="{{ cx + cell / 2 }}" y="{{ cy + cell / 2 + 4 }}"
+                          font-size="{{ '10' if i == j else '12' }}"
+                          font-weight="{{ 'normal' if i == j else 'bold' }}"
+                          fill="{{ '#9ca3af' if i == j else '#1f2937' }}"
+                          font-family="system-ui, sans-serif"
+                          text-anchor="middle">{{ '%.2f' | format(corr) }}</text>
+                {% endfor %}
+            {% endfor %}
+        </svg>
+    </div>
+
+    {# Color scale legend #}
+    <div class="flex items-center justify-center gap-2 mt-3 text-xs text-gray-500 dark:text-gray-400">
+        <span>-1.0</span>
+        <div class="flex h-3 w-32 rounded overflow-hidden">
+            <div class="flex-1" style="background: rgb(59,130,246)"></div>
+            <div class="flex-1" style="background: rgb(157,193,251)"></div>
+            <div class="flex-1" style="background: #fff"></div>
+            <div class="flex-1" style="background: rgb(247,162,162)"></div>
+            <div class="flex-1" style="background: rgb(239,68,68)"></div>
+        </div>
+        <span>+1.0</span>
+    </div>
+
+    {% if highCorrelations %}
+    <div class="mt-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg px-4 py-3">
+        <p class="text-sm text-yellow-700 dark:text-yellow-400 font-medium mb-1">High Correlation Detected</p>
+        <ul class="text-sm text-yellow-600 dark:text-yellow-300 space-y-0.5">
+            {% for hc in highCorrelations %}
+            <li>{{ hc.pair }}: {{ '%.2f' | format(hc.corr) }}</li>
+            {% endfor %}
+        </ul>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">High correlation (>0.8) between holdings reduces diversification benefit.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endif %}

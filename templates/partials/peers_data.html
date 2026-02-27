@@ -8,7 +8,7 @@
 <div class="overflow-x-auto">
     <table class="w-full text-sm">
         <thead>
-            <tr class="bg-brand-light text-brand font-bold text-xs uppercase">
+            <tr class="bg-brand-light dark:bg-brand/20 text-brand dark:text-blue-300 font-bold text-xs uppercase">
                 <th class="px-3 py-2 text-left">Company</th>
                 <th class="px-3 py-2 text-center">Ticker</th>
                 <th class="px-3 py-2 text-center">Market Cap</th>
@@ -22,9 +22,9 @@
         </thead>
         <tbody>
             {% for p in peers | sort(attribute='marketCap', reverse=true) %}
-            <tr class="{{ 'bg-brand-light font-semibold' if p.is_target else ('bg-gray-50' if loop.index is odd else '') }}">
-                <td class="px-3 py-2 text-left {{ 'text-brand font-bold' if p.is_target }}">{{ p.name[:35] }}</td>
-                <td class="px-3 py-2 text-center {{ 'text-brand font-bold' if p.is_target }}">
+            <tr class="{{ 'bg-brand-light dark:bg-brand/20 font-semibold' if p.is_target else ('bg-gray-50 dark:bg-gray-700/30' if loop.index is odd else '') }}">
+                <td class="px-3 py-2 text-left {{ 'text-brand dark:text-blue-300 font-bold' if p.is_target else 'dark:text-gray-300' }}">{{ p.name[:35] }}</td>
+                <td class="px-3 py-2 text-center {{ 'text-brand dark:text-blue-300 font-bold' if p.is_target else 'dark:text-gray-300' }}">
                     <a href="/dashboard/{{ p.symbol }}" class="hover:underline">{{ p.symbol }}</a>
                 </td>
                 <td class="px-3 py-2 text-center">{{ money(p.marketCap) }}</td>
@@ -39,6 +39,6 @@
         </tbody>
     </table>
 </div>
-<p class="text-xs text-gray-400 italic px-4 py-2">
+<p class="text-xs text-gray-400 dark:text-gray-500 italic px-4 py-2">
     Target company highlighted. All data from Yahoo Finance. {{ peers | length }} companies in this industry.
 </p>

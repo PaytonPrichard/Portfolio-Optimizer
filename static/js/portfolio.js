@@ -84,6 +84,10 @@ function parseCSVLine(line) {
 
 function stripSensitiveColumns(csvText) {
     // Parse CSV, keep only SAFE_COLUMNS, return new CSV string
+    // Strip UTF-8 BOM if present (some brokerages export with BOM)
+    if (csvText.charCodeAt(0) === 0xFEFF) {
+        csvText = csvText.slice(1);
+    }
     var lines = csvText.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
     if (lines.length < 2) return null;
 
@@ -172,6 +176,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!form || !fileInput || !btn || !container) return;
 
+    // ── Portfolio Snapshot Restore ────────────────────────────────────
+    var SNAP_KEY = "portfolio_last_analysis";
+    try {
+        var snap = JSON.parse(localStorage.getItem(SNAP_KEY));
+        if (snap && snap.html && snap.timestamp) {
+            var dateStr = new Date(snap.timestamp).toLocaleString();
+            var bar = document.createElement("div");
+            bar.className = "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg px-4 py-3 mb-4 flex items-center justify-between flex-wrap gap-2";
+            bar.innerHTML =
+                '<span class="text-sm text-blue-700 dark:text-blue-300">Resume last analysis from ' + dateStr + '</span>' +
+                '<div class="flex gap-2">' +
+                '<button id="snap-load" class="text-xs font-semibold text-white bg-brand hover:bg-brand-dark px-3 py-1.5 rounded transition">Load</button>' +
+                '<button id="snap-dismiss" class="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 px-2 py-1.5 transition">Dismiss</button>' +
+                '</div>';
+            container.parentNode.insertBefore(bar, container);
+            document.getElementById("snap-load").addEventListener("click", function () {
+                container.innerHTML = snap.html;
+                bar.remove();
+                try {
+                    if (typeof initTableSorting === "function") initTableSorting();
+                    if (typeof loadPortfolioWidgets === "function") loadPortfolioWidgets();
+                } catch (e) {}
+            });
+            document.getElementById("snap-dismiss").addEventListener("click", function () {
+                bar.remove();
+                localStorage.removeItem(SNAP_KEY);
+            });
+        }
+    } catch (e) {}
+
     // Enable button when a file is selected
     fileInput.addEventListener("change", function () {
         btn.disabled = !fileInput.files.length;
@@ -236,6 +270,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 .then(function (html) {
                     container.innerHTML = html;
                     container.scrollIntoView({ behavior: "smooth", block: "start" });
+                    // Save snapshot to localStorage
+                    try {
+                        if (html.length < 500000) {
+                            localStorage.setItem(SNAP_KEY, JSON.stringify({ html: html, timestamp: Date.now() }));
+                        }
+                    } catch (e) {}
+                    // Remove any restore bar
+                    var oldBar = document.getElementById("snap-load");
+                    if (oldBar) { var p = oldBar.closest(".bg-blue-50, .dark\\:bg-blue-900\\/20"); if (p) p.remove(); }
                     // Init sort dropdowns and load async insight widgets.
                     // Wrapped in try/catch so a widget error can't nuke the results.
                     try {
@@ -250,9 +293,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 })
                 .catch(function (err) {
+                    console.error("Portfolio analysis error:", err);
                     if (!container.innerHTML.includes("text-red-500")) {
                         container.innerHTML =
-                            '<p class="text-red-500 italic p-4">Could not analyze portfolio. Please check your CSV file and try again.</p>';
+                            '<p class="text-red-500 italic p-4">Could not analyze portfolio. Please check your CSV file and try again.</p>' +
+                            '<p class="text-gray-400 text-xs px-4">(Error: ' + (err.message || err) + ')</p>';
                     }
                 })
                 .finally(function () {

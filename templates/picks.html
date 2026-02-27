@@ -1,21 +1,21 @@
 {% extends "base.html" %}
-{% block title %}Analyst Picks - Portfolio Optimizer{% endblock %}
+{% block title %}Analyst Picks - MarketMosaic{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Header -->
-    <h1 class="text-3xl font-bold text-brand mb-2">Analyst Picks</h1>
-    <p class="text-gray-600 mb-6">Explore Wall Street analyst consensus by industry. Select an industry to see price targets, ratings, and implied upside.</p>
+    <h1 class="text-3xl font-bold text-brand dark:text-blue-300 mb-2">Analyst Picks</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-6">Explore Wall Street analyst consensus by industry. Select an industry to see price targets, ratings, and implied upside.</p>
 
     <!-- Disclaimer -->
-    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-8 rounded-r">
+    <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-600 p-4 mb-8 rounded-r">
         <div class="flex">
             <div class="flex-shrink-0">
                 <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                 </svg>
             </div>
-            <p class="ml-3 text-sm text-yellow-700">
+            <p class="ml-3 text-sm text-yellow-700 dark:text-yellow-400">
                 <strong>Disclaimer:</strong> Data shown reflects Wall Street analyst consensus from Yahoo Finance, not our recommendations. When available, data is cross-referenced with <a href="https://finnhub.io" target="_blank" class="underline font-medium">Finnhub</a> for additional validation. Analyst targets are not guarantees. Always do your own research before investing.
             </p>
         </div>
@@ -23,8 +23,8 @@
 
     <!-- Industry selector -->
     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-8">
-        <label for="industry-select" class="font-medium text-gray-700">Industry:</label>
-        <select id="industry-select" class="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand focus:border-brand bg-white min-w-[260px]">
+        <label for="industry-select" class="font-medium text-gray-700 dark:text-gray-300">Industry:</label>
+        <select id="industry-select" class="border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-brand focus:border-brand bg-white dark:bg-gray-800 dark:text-gray-200 min-w-[260px]">
             <option value="">-- Select an industry --</option>
             {% for ind in industries %}
             <option value="{{ ind.key }}">{{ ind.label }}</option>
