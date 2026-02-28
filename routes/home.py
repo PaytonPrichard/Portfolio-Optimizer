@@ -9,14 +9,14 @@ home_bp = Blueprint("home", __name__)
 
 @home_bp.route("/")
 def index():
-    return redirect(url_for("tracker.tracker"))
+    return redirect(url_for("portfolio.portfolio_page"))
 
 
 @home_bp.route("/search")
 def search():
     query = request.args.get("q", "").strip()
     if not query:
-        return redirect(url_for("home.index"))
+        return render_template("home.html", query="", candidates=[], no_results=False)
 
     result = resolve_ticker(query)
 

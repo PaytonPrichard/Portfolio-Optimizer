@@ -48,13 +48,13 @@
                     {% set nav_items = [
                         ("/portfolio", "Portfolio", ["/portfolio"]),
                         ("/picks", "Picks", ["/picks"]),
-                        ("/", "Search", ["/", "/search"]),
+                        ("/search", "Search", ["/search"]),
                         ("/tracker", "Tracker", ["/tracker"]),
                         ("/info", "Info", ["/info"]),
                     ] %}
                     {% set nav_keys = ['1', '2', '3', '4', '5'] %}
                     {% for href, label, paths in nav_items %}
-                        {% set is_active = request.path in paths or (href == "/" and request.path.startswith("/dashboard")) %}
+                        {% set is_active = request.path in paths or (href == "/search" and request.path.startswith("/dashboard")) %}
                         <a href="{{ href }}" class="{{ 'text-white border-b-2 border-white font-semibold' if is_active else 'text-gray-300 hover:text-white' }} transition pb-0.5" title="{{ label }} ({{ nav_keys[loop.index0] }})">
                             <span class="hidden lg:inline-block text-[10px] font-mono opacity-50 mr-0.5 align-top">{{ nav_keys[loop.index0] }}</span>{{ label }}
                         </a>
@@ -93,7 +93,7 @@
             <!-- Mobile menu -->
             <div id="nav-menu" class="sm:hidden hidden pb-3 space-y-1">
                 {% for href, label, paths in nav_items %}
-                    {% set is_active = request.path in paths or (href == "/" and request.path.startswith("/dashboard")) %}
+                    {% set is_active = request.path in paths or (href == "/search" and request.path.startswith("/dashboard")) %}
                     <a href="{{ href }}" class="block px-3 py-2 rounded transition {{ 'bg-brand-dark font-semibold' if is_active else 'hover:bg-brand-dark' }}">{{ label }}</a>
                 {% endfor %}
             </div>
@@ -140,7 +140,7 @@
         var shortcuts = {
             '1': '/portfolio',
             '2': '/picks',
-            '3': '/',
+            '3': '/search',
             '4': '/tracker',
             '5': '/info',
         };
