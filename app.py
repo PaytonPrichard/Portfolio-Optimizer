@@ -2,6 +2,7 @@
 
 import math
 import os
+import secrets
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -51,7 +52,13 @@ def create_app():
     app = Flask(__name__)
     app.json_provider_class = _SafeJSONProvider
     app.json = _SafeJSONProvider(app)
-    app.secret_key = os.environ.get("SECRET_KEY", "dev-fallback-change-in-production")
+    app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
+
+    # Secure session cookies
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    if os.environ.get("FLASK_ENV") == "production" or not app.debug:
+        app.config["SESSION_COOKIE_SECURE"] = True
 
     app.register_blueprint(home_bp)
     app.register_blueprint(dashboard_bp)
@@ -61,6 +68,29 @@ def create_app():
     app.register_blueprint(picks_bp)
     app.register_blueprint(portfolio_bp)
     app.register_blueprint(portfolio_widgets_bp)
+
+    @app.after_request
+    def set_security_headers(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = (
+            "camera=(), microphone=(), geolocation=()"
+        )
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.tailwindcss.com cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; "
+            "font-src 'self'; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none'"
+        )
+        if os.environ.get("FLASK_ENV") == "production" or not app.debug:
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
+        return response
 
     return app
 
