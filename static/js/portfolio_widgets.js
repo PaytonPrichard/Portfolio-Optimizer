@@ -101,10 +101,13 @@ function loadPortfolioWidgets() {
         fetchWidget(w.id, w.url, w.body);
     });
 
-    // Phase 2: peer valuation + correlation — delayed 2s to let phase 1 settle
+    // Phase 2: risk, stress test, factor exposure, fee analysis — delayed 2s
     var phase2 = [
         { id: "widget-peer-valuation", url: "/api/portfolio/widget/peer-valuation", body: { holdings: meta.holdings || [] } },
         { id: "widget-correlation", url: "/api/portfolio/widget/correlation", body: { holdings: meta.holdings || [] } },
+        { id: "widget-stress-test", url: "/api/portfolio/widget/stress-test", body: { holdings: meta.holdings || [] } },
+        { id: "widget-factor-exposure", url: "/api/portfolio/widget/factor-exposure", body: { holdings: meta.holdings || [] } },
+        { id: "widget-fee-analysis", url: "/api/portfolio/widget/fee-analysis", body: { holdings: meta.holdings || [] } },
     ];
     setTimeout(function () {
         phase2.forEach(function (w) {
@@ -112,6 +115,21 @@ function loadPortfolioWidgets() {
             fetchWidget(w.id, w.url, w.body);
         });
     }, 2000);
+
+    // Phase 3: risk dashboard, monte carlo, optimizer, fundamentals — delayed 4s (heavy)
+    var phase3 = [
+        { id: "widget-risk-dashboard", url: "/api/portfolio/widget/risk-dashboard", body: { holdings: meta.holdings || [] } },
+        { id: "widget-monte-carlo", url: "/api/portfolio/widget/monte-carlo", body: { holdings: meta.holdings || [], years: 10 } },
+        { id: "widget-optimizer", url: "/api/portfolio/widget/optimizer", body: { holdings: meta.holdings || [] } },
+        { id: "widget-fundamentals", url: "/api/portfolio/widget/fundamentals", body: { holdings: meta.holdings || [] } },
+        { id: "widget-alpha-scores", url: "/api/portfolio/widget/alpha-scores", body: { holdings: meta.holdings || [] } },
+    ];
+    setTimeout(function () {
+        phase3.forEach(function (w) {
+            _widgetRegistry[w.id] = { url: w.url, body: w.body };
+            fetchWidget(w.id, w.url, w.body);
+        });
+    }, 4000);
 
     // Init compound growth (client-side only, no fetch)
     initCompoundGrowth();

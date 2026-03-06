@@ -1,0 +1,121 @@
+{# Fundamental Scorecard — async widget partial #}
+
+{% if scoredCount == 0 %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-2">Fundamental Scorecard</h2>
+    <p class="text-gray-400 dark:text-gray-500 text-sm">No fundamental data available for your holdings.</p>
+</div>
+{% else %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <div class="flex items-center justify-between mb-3">
+        <h2 class="text-lg font-semibold text-brand dark:text-blue-300">Fundamental Scorecard</h2>
+        <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Portfolio Score</span>
+            <span class="inline-block px-3 py-1 rounded-full text-sm font-bold
+                {% if portfolioScore >= 70 %}bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300
+                {% elif portfolioScore >= 50 %}bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300
+                {% elif portfolioScore >= 30 %}bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300
+                {% else %}bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300{% endif %}">
+                {{ portfolioScore }}/100
+            </span>
+        </div>
+    </div>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Financial health scoring based on profitability, leverage, cash flow quality, and growth. Includes quarterly trend detection.</p>
+
+    {# Component score bars #}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        {% for label, score, max_score in [('Profitability', profitability, 25), ('Leverage', leverage, 25), ('Cash Flow', cashflow, 25), ('Growth', growth, 25)] %}
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-2">{{ label }}</div>
+            <div class="flex items-end gap-1 mb-1">
+                <span class="text-xl font-bold text-brand dark:text-blue-300">{{ score }}</span>
+                <span class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">/{{ max_score }}</span>
+            </div>
+            <div class="h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
+                {% set pct = (score / max_score * 100) if max_score > 0 else 0 %}
+                <div class="h-full rounded-full {% if pct >= 70 %}bg-green-500{% elif pct >= 45 %}bg-yellow-500{% else %}bg-red-500{% endif %}"
+                     style="width: {{ pct }}%"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {# Alerts #}
+    {% if alerts %}
+    <div class="space-y-2 mb-6">
+        {% for a in alerts %}
+        <div class="flex items-start gap-2 px-3 py-2 rounded-lg text-sm
+            {% if a.type == 'positive' %}bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400
+            {% elif a.type == 'warning' %}bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400
+            {% else %}bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400{% endif %}">
+            {% if a.type == 'positive' %}
+            <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"/></svg>
+            {% else %}
+            <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+            {% endif %}
+            <span>{{ a.message }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Per-holding scorecard table #}
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Holdings Breakdown ({{ scoredCount }}/{{ totalCount }} scored)</h3>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Symbol</th>
+                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Score</th>
+                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Trend</th>
+                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Margin</th>
+                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">ROE</th>
+                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">D/E</th>
+                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Rev Growth</th>
+                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">FCF Yield</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in holdings %}
+                <tr class="border-t border-gray-100 dark:border-gray-700 {% if loop.index0 % 2 == 0 %}bg-gray-50 dark:bg-gray-700/30{% endif %}">
+                    <td class="px-3 py-2">
+                        <span class="font-medium text-brand dark:text-blue-300">{{ h.symbol }}</span>
+                        <span class="text-xs text-gray-400 dark:text-gray-500 ml-1">{{ h.weight }}%</span>
+                    </td>
+                    <td class="px-3 py-2 text-right">
+                        {% if h.totalScore is not none %}
+                        <span class="inline-block px-2 py-0.5 rounded text-xs font-bold
+                            {% if h.totalScore >= 70 %}bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300
+                            {% elif h.totalScore >= 50 %}bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300
+                            {% elif h.totalScore >= 30 %}bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300
+                            {% else %}bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300{% endif %}">
+                            {{ h.totalScore }}
+                        </span>
+                        {% else %}
+                        <span class="text-gray-400 dark:text-gray-500 text-xs">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-2 text-center">
+                        {% if h.trend == 'improving' %}
+                        <span class="text-green-600 dark:text-green-400 text-xs font-bold">Improving</span>
+                        {% elif h.trend == 'deteriorating' %}
+                        <span class="text-red-600 dark:text-red-400 text-xs font-bold">Declining</span>
+                        {% elif h.trend == 'stable' %}
+                        <span class="text-gray-500 dark:text-gray-400 text-xs">Stable</span>
+                        {% else %}
+                        <span class="text-gray-400 dark:text-gray-500 text-xs">--</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ h.profitMargins | string + '%' if h.profitMargins is not none else '--' }}</td>
+                    <td class="px-3 py-2 text-right {% if h.returnOnEquity is not none and h.returnOnEquity > 15 %}text-green-700 dark:text-green-400{% else %}text-gray-600 dark:text-gray-400{% endif %}">{{ h.returnOnEquity | string + '%' if h.returnOnEquity is not none else '--' }}</td>
+                    <td class="px-3 py-2 text-right {% if h.debtToEquity is not none and h.debtToEquity > 150 %}text-red-600 dark:text-red-400{% else %}text-gray-600 dark:text-gray-400{% endif %}">{{ h.debtToEquity if h.debtToEquity is not none else '--' }}</td>
+                    <td class="px-3 py-2 text-right {% if h.revenueGrowth is not none and h.revenueGrowth > 0 %}text-green-700 dark:text-green-400{% else %}text-gray-600 dark:text-gray-400{% endif %}">{{ h.revenueGrowth | string + '%' if h.revenueGrowth is not none else '--' }}</td>
+                    <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ h.fcfYield | string + '%' if h.fcfYield is not none else '--' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">Scores: Profitability + Leverage + Cash Flow + Growth (each 0-25, total 0-100). Quarterly financial data used for trend detection.</p>
+</div>
+{% endif %}

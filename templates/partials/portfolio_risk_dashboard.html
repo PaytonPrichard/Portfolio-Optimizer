@@ -1,0 +1,102 @@
+{# Risk Dashboard — async widget partial #}
+{% macro money(val) %}{% if val is none %}N/A{% elif val >= 1000000000 %}${{ '%.1f' | format(val / 1000000000) }}B{% elif val >= 1000000 %}${{ '%.1f' | format(val / 1000000) }}M{% elif val >= 1000 %}${{ '{:,.0f}'.format(val) }}{% else %}${{ '%.2f' | format(val) }}{% endif %}{% endmacro %}
+
+{% if not holdingRisk %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-2">Risk Dashboard</h2>
+    <p class="text-gray-400 dark:text-gray-500 text-sm">Insufficient price history to compute risk metrics.</p>
+</div>
+{% else %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-brand dark:text-blue-300">Risk Dashboard</h2>
+        <span class="inline-block px-3 py-1 rounded-full text-xs font-bold
+            {% if riskLevel == 'Low' %}bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300
+            {% elif riskLevel == 'Moderate' %}bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300
+            {% elif riskLevel == 'High' %}bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300
+            {% else %}bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300{% endif %}">
+            {{ riskLevel }} Risk
+        </span>
+    </div>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">1-year risk-adjusted performance metrics for your portfolio.</p>
+
+    {# Metric cards #}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Sharpe Ratio</div>
+            <div class="text-xl font-bold {% if sharpeRatio >= 1 %}text-green-700 dark:text-green-400{% elif sharpeRatio >= 0 %}text-yellow-700 dark:text-yellow-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ sharpeRatio }}</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{% if sharpeRatio >= 1.5 %}Excellent{% elif sharpeRatio >= 1 %}Good{% elif sharpeRatio >= 0.5 %}Fair{% else %}Poor{% endif %}</div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Sortino Ratio</div>
+            <div class="text-xl font-bold {% if sortinoRatio >= 1.5 %}text-green-700 dark:text-green-400{% elif sortinoRatio >= 0 %}text-yellow-700 dark:text-yellow-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ sortinoRatio }}</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Downside risk-adjusted</div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Max Drawdown</div>
+            <div class="text-xl font-bold text-red-600 dark:text-red-400">-{{ maxDrawdown }}%</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Peak to trough</div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Portfolio Beta</div>
+            <div class="text-xl font-bold text-brand dark:text-blue-300">{{ beta if beta is not none else 'N/A' }}</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">vs S&P 500</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Annual Return</div>
+            <div class="text-lg font-bold {% if annualReturn >= 0 %}text-green-700 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ '+' if annualReturn >= 0 }}{{ annualReturn }}%</div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Volatility</div>
+            <div class="text-lg font-bold text-brand dark:text-blue-300">{{ annualVolatility }}%</div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">VaR (95%)</div>
+            <div class="text-lg font-bold text-red-600 dark:text-red-400">{{ money(var95) }}</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">1-day worst case</div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">VaR (99%)</div>
+            <div class="text-lg font-bold text-red-600 dark:text-red-400">{{ money(var99) }}</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Extreme scenario</div>
+        </div>
+    </div>
+
+    {# Per-holding risk table #}
+    {% if holdingRisk %}
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Per-Holding Risk Metrics</h3>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Symbol</th>
+                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Weight</th>
+                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Return</th>
+                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Volatility</th>
+                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Sharpe</th>
+                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Beta</th>
+                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Max DD</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for h in holdingRisk %}
+                <tr class="border-t border-gray-100 dark:border-gray-700 {% if loop.index0 % 2 == 0 %}bg-gray-50 dark:bg-gray-700/30{% endif %}">
+                    <td class="px-3 py-2 font-medium text-brand dark:text-blue-300">{{ h.symbol }}</td>
+                    <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ h.weight }}%</td>
+                    <td class="px-3 py-2 text-right {% if h.annualReturn >= 0 %}text-green-700 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ '+' if h.annualReturn >= 0 }}{{ h.annualReturn }}%</td>
+                    <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ h.volatility }}%</td>
+                    <td class="px-3 py-2 text-right font-medium {% if h.sharpe >= 1 %}text-green-700 dark:text-green-400{% elif h.sharpe >= 0 %}text-yellow-700 dark:text-yellow-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ h.sharpe }}</td>
+                    <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ h.beta if h.beta is not none else '--' }}</td>
+                    <td class="px-3 py-2 text-right text-red-600 dark:text-red-400">-{{ h.maxDrawdown }}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">Based on 1-year daily returns. Sorted by Sharpe ratio (best risk-adjusted return first).</p>
+    {% endif %}
+</div>
+{% endif %}

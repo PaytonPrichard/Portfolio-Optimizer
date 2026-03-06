@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <title>{% block title %}MarketMosaic{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
@@ -34,7 +35,7 @@
 <body class="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col transition-colors">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-brand focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg">Skip to content</a>
     <!-- Navigation -->
-    <nav class="bg-brand text-white shadow-lg dark:shadow-gray-900/50">
+    <nav class="bg-brand text-white shadow-lg dark:shadow-gray-900/50 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <a href="/" class="flex items-center space-x-2">
@@ -47,12 +48,13 @@
                 <div class="hidden sm:flex items-center space-x-6">
                     {% set nav_items = [
                         ("/portfolio", "Portfolio", ["/portfolio"]),
+                        ("/alpha", "Mosaic Alpha", ["/alpha"]),
                         ("/picks", "Picks", ["/picks"]),
                         ("/search", "Search", ["/search"]),
                         ("/tracker", "Tracker", ["/tracker"]),
                         ("/info", "Info", ["/info"]),
                     ] %}
-                    {% set nav_keys = ['1', '2', '3', '4', '5'] %}
+                    {% set nav_keys = ['1', '2', '3', '4', '5', '6'] %}
                     {% for href, label, paths in nav_items %}
                         {% set is_active = request.path in paths or (href == "/search" and request.path.startswith("/dashboard")) %}
                         <a href="{{ href }}" class="{{ 'text-white border-b-2 border-white font-semibold' if is_active else 'text-gray-300 hover:text-white' }} transition pb-0.5" title="{{ label }} ({{ nav_keys[loop.index0] }})">

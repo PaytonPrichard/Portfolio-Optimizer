@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% block title %}Mosaic Alpha&trade; Score - MarketMosaic{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-3xl font-bold text-brand dark:text-blue-300 mb-2">Mosaic Alpha&#8482;</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-1 max-w-3xl">A proprietary 13-factor composite score that blends fundamentals, smart money activity, technical signals, and macro conditions to surface potential strength or weakness in a stock.</p>
+    <p class="text-gray-600 dark:text-gray-400 mb-6 max-w-3xl">Use it to quickly gauge conviction, compare across sectors, and dig into the signals driving each rating. Scores are for research purposes only, not financial advice.</p>
+
+    <!-- Search -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5 mb-8">
+        <div class="flex flex-col sm:flex-row items-start sm:items-end gap-3">
+            <div class="flex-1">
+                <label for="alpha-ticker" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ticker Symbol</label>
+                <input type="text" id="alpha-ticker" placeholder="AAPL" maxlength="10" value="{{ ticker }}"
+                       class="w-full sm:w-48 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm uppercase focus:ring-1 focus:ring-brand focus:border-brand outline-none bg-white dark:bg-gray-800 dark:text-gray-200">
+            </div>
+            <button type="button" onclick="analyzeAlpha()"
+                    class="bg-brand text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    id="alpha-analyze-btn">
+                Analyze
+            </button>
+        </div>
+    </div>
+
+    <!-- Results container -->
+    <div id="alpha-results"></div>
+
+    <!-- Intelligence Database Panel -->
+    <div class="mt-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-semibold text-brand dark:text-blue-300">Intelligence Database</h3>
+            <span id="col-status-badge" class="text-xs font-medium px-2.5 py-0.5 rounded-full
+                {% if colStatus and colStatus.running %}bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300
+                {% else %}bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400{% endif %}">
+                {% if colStatus and colStatus.running %}Running{% else %}Idle{% endif %}
+            </span>
+        </div>
+
+        <!-- Stats grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Snapshots</div>
+                <div class="text-lg font-bold text-brand dark:text-blue-300" id="db-stat-snapshots">{{ dbStats.totalSnapshots if dbStats else 0 }}</div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Stocks Tracked</div>
+                <div class="text-lg font-bold text-brand dark:text-blue-300" id="db-stat-symbols">{{ dbStats.uniqueSymbols if dbStats else 0 }}</div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Universe</div>
+                <div class="text-lg font-bold text-brand dark:text-blue-300">{{ universeSize }}</div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Date Range</div>
+                <div class="text-sm font-bold text-brand dark:text-blue-300">
+                    {% if dbStats and dbStats.oldestSnapshot %}{{ dbStats.oldestSnapshot[:7] }} &mdash; {{ dbStats.newestSnapshot[:7] }}{% else %}&mdash;{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Collection controls -->
+        <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Grow the database to improve industry comparisons, historical context, and forward-return backtesting.</p>
+            <div class="flex flex-wrap gap-2 mb-3">
+                <button onclick="triggerCollection('seed')"
+                        class="col-btn px-3 py-1.5 text-xs font-medium rounded-lg border border-brand/30 dark:border-blue-400/30 text-brand dark:text-blue-300 hover:bg-brand/5 dark:hover:bg-blue-900/20 transition">
+                    Seed Universe (~200 stocks)
+                </button>
+                <button onclick="triggerCollection('refresh')"
+                        class="col-btn px-3 py-1.5 text-xs font-medium rounded-lg border border-brand/30 dark:border-blue-400/30 text-brand dark:text-blue-300 hover:bg-brand/5 dark:hover:bg-blue-900/20 transition">
+                    Refresh All
+                </button>
+                <button onclick="triggerCollection('backfill')"
+                        class="col-btn px-3 py-1.5 text-xs font-medium rounded-lg border border-brand/30 dark:border-blue-400/30 text-brand dark:text-blue-300 hover:bg-brand/5 dark:hover:bg-blue-900/20 transition">
+                    Backfill History (5yr)
+                </button>
+                <button onclick="triggerCollection('returns')"
+                        class="col-btn px-3 py-1.5 text-xs font-medium rounded-lg border border-brand/30 dark:border-blue-400/30 text-brand dark:text-blue-300 hover:bg-brand/5 dark:hover:bg-blue-900/20 transition">
+                    Compute Returns
+                </button>
+                <button onclick="triggerCollection('hist-cycles')"
+                        class="col-btn px-3 py-1.5 text-xs font-medium rounded-lg border border-brand/30 dark:border-blue-400/30 text-brand dark:text-blue-300 hover:bg-brand/5 dark:hover:bg-blue-900/20 transition">
+                    Historical Cycles (10yr)
+                </button>
+                <button onclick="triggerCollection('full')"
+                        class="col-btn px-4 py-1.5 text-xs font-bold rounded-lg bg-brand text-white hover:bg-brand-dark transition">
+                    Run Full Pipeline
+                </button>
+            </div>
+            <div id="col-progress" class="text-xs text-gray-500 dark:text-gray-400 min-h-[1.2em]">
+                {% if colStatus and colStatus.last_result %}Last: {{ colStatus.last_result }}{% endif %}
+            </div>
+        </div>
+
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-3 border-t border-gray-100 dark:border-gray-700 pt-3">
+            CLI: <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-[11px]">python -m financials.alpha_collector full</code>
+            &mdash; run nightly via Task Scheduler or cron for automated growth.
+        </p>
+    </div>
+
+    <!-- How it works -->
+    <details class="mt-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <summary class="cursor-pointer font-semibold text-brand dark:text-blue-300 text-sm">How Mosaic Alpha&#8482; works</summary>
+        <div class="mt-3 text-sm text-gray-600 dark:text-gray-400 space-y-2">
+            <p>Mosaic Alpha is a weighted composite of 13 factor signals, each scored 0&ndash;100:</p>
+            <div class="grid sm:grid-cols-2 gap-x-6 gap-y-1 mt-2">
+                <div>
+                    <p class="font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase mt-2 mb-1">Fundamentals</p>
+                    <ul class="list-disc ml-5 space-y-0.5">
+                        <li><strong>Value (10%)</strong> &mdash; P/E, P/B, PEG, EV/EBITDA vs. peers</li>
+                        <li><strong>Quality (10%)</strong> &mdash; ROE, margins, balance sheet, FCF</li>
+                        <li><strong>Growth (8%)</strong> &mdash; Revenue &amp; earnings growth, PEG</li>
+                        <li><strong>Earnings Surprise (8%)</strong> &mdash; Beat rate and surprise magnitude</li>
+                    </ul>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase mt-2 mb-1">Smart Money</p>
+                    <ul class="list-disc ml-5 space-y-0.5">
+                        <li><strong>Insider Activity (12%)</strong> &mdash; Insider buy/sell ratio</li>
+                        <li><strong>Institutional (7%)</strong> &mdash; Ownership % and holder changes</li>
+                        <li><strong>Buyback (7%)</strong> &mdash; Share count changes over 1&ndash;3 years</li>
+                    </ul>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase mt-2 mb-1">Market Signals</p>
+                    <ul class="list-disc ml-5 space-y-0.5">
+                        <li><strong>Momentum (8%)</strong> &mdash; 3/6/12-month price performance</li>
+                        <li><strong>Technical (6%)</strong> &mdash; RSI, MACD crossovers, SMA trends</li>
+                        <li><strong>Analyst (5%)</strong> &mdash; Consensus rating and target upside</li>
+                        <li><strong>Analyst Trend (5%)</strong> &mdash; Recent upgrade/downgrade momentum</li>
+                    </ul>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase mt-2 mb-1">Environment</p>
+                    <ul class="list-disc ml-5 space-y-0.5">
+                        <li><strong>Industry Cycle (7%)</strong> &mdash; Sector ETF cycle phase</li>
+                        <li><strong>Macro (7%)</strong> &mdash; VIX regime and yield curve shape</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="mt-3">Every stock analyzed is stored in a local SQLite database, building a historical record that enables industry-relative comparisons and forward-return analysis over time.</p>
+        </div>
+    </details>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function analyzeAlpha() {
+    var input = document.getElementById("alpha-ticker");
+    var btn = document.getElementById("alpha-analyze-btn");
+    var container = document.getElementById("alpha-results");
+    var symbol = input.value.trim().toUpperCase();
+    if (!symbol) { input.focus(); return; }
+
+    btn.disabled = true;
+    btn.textContent = "Analyzing...";
+    container.innerHTML =
+        '<div class="flex flex-col items-center justify-center py-16">' +
+        '  <div class="w-12 h-12 border-4 border-gray-200 border-t-[#1F4E79] rounded-full animate-spin mb-4"></div>' +
+        '  <p class="text-sm font-medium text-brand dark:text-blue-300">Computing Mosaic Alpha\u2122 for ' + symbol + '...</p>' +
+        '  <p class="text-xs text-gray-400 mt-1">Fetching fundamentals, insider activity, technicals, and macro signals.</p>' +
+        '</div>';
+
+    fetch("/api/alpha/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbol: symbol }),
+    })
+    .then(function(resp) { return resp.text(); })
+    .then(function(html) {
+        container.innerHTML = html;
+        // Update URL without reload
+        var url = new URL(window.location);
+        url.searchParams.set("ticker", symbol);
+        history.replaceState(null, "", url);
+    })
+    .catch(function(err) {
+        container.innerHTML = '<p class="text-red-500 italic p-4">Could not compute Mosaic Alpha score: ' + err.message + '</p>';
+    })
+    .finally(function() {
+        btn.disabled = false;
+        btn.textContent = "Analyze";
+    });
+}
+
+// Enter key triggers analyze
+document.getElementById("alpha-ticker").addEventListener("keydown", function(e) {
+    if (e.key === "Enter") { e.preventDefault(); analyzeAlpha(); }
+});
+
+// Auto-analyze if ticker in URL
+document.addEventListener("DOMContentLoaded", function() {
+    var ticker = document.getElementById("alpha-ticker").value.trim();
+    if (ticker) analyzeAlpha();
+});
+
+// ── Collection controls ──────────────────────────────────────────────
+var _colPolling = null;
+
+function triggerCollection(action) {
+    var btns = document.querySelectorAll(".col-btn");
+    btns.forEach(function(b) { b.disabled = true; b.style.opacity = "0.5"; });
+
+    var progress = document.getElementById("col-progress");
+    var badge = document.getElementById("col-status-badge");
+    progress.textContent = "Starting " + action + "...";
+    badge.textContent = "Running";
+    badge.className = "text-xs font-medium px-2.5 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300";
+
+    fetch("/api/alpha/collect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: action }),
+    })
+    .then(function(resp) { return resp.json(); })
+    .then(function(data) {
+        if (data.error) {
+            progress.textContent = data.error;
+            resetColBtns();
+            return;
+        }
+        startColPolling();
+    })
+    .catch(function(err) {
+        progress.textContent = "Error: " + err.message;
+        resetColBtns();
+    });
+}
+
+function startColPolling() {
+    if (_colPolling) clearInterval(_colPolling);
+    _colPolling = setInterval(pollColStatus, 3000);
+}
+
+function pollColStatus() {
+    fetch("/api/alpha/collect/status")
+    .then(function(resp) { return resp.json(); })
+    .then(function(s) {
+        var progress = document.getElementById("col-progress");
+        var badge = document.getElementById("col-status-badge");
+
+        if (s.running) {
+            progress.textContent = s.progress || ("Running: " + s.action);
+            badge.textContent = "Running";
+            badge.className = "text-xs font-medium px-2.5 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300";
+        } else {
+            progress.textContent = s.last_result || "Idle";
+            badge.textContent = "Idle";
+            badge.className = "text-xs font-medium px-2.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400";
+            resetColBtns();
+            if (_colPolling) { clearInterval(_colPolling); _colPolling = null; }
+            // Refresh stats
+            refreshDbStats();
+        }
+    })
+    .catch(function() {});
+}
+
+function resetColBtns() {
+    document.querySelectorAll(".col-btn").forEach(function(b) {
+        b.disabled = false; b.style.opacity = "";
+    });
+}
+
+function refreshDbStats() {
+    fetch("/alpha")
+    .then(function(resp) { return resp.text(); })
+    .then(function(html) {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, "text/html");
+        var newSnap = doc.getElementById("db-stat-snapshots");
+        var newSym = doc.getElementById("db-stat-symbols");
+        if (newSnap) document.getElementById("db-stat-snapshots").textContent = newSnap.textContent;
+        if (newSym) document.getElementById("db-stat-symbols").textContent = newSym.textContent;
+    })
+    .catch(function() {});
+}
+
+// Resume polling if collection was already running on page load
+{% if colStatus and colStatus.running %}
+startColPolling();
+{% endif %}
+</script>
+{% endblock %}

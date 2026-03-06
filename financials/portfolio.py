@@ -440,6 +440,20 @@ _ENRICHMENT_FALLBACK = {
     "fiftyTwoWeekLow": None,
     "beta": None,
     "trailingPE": None,
+    "forwardPE": None,
+    "priceToBook": None,
+    "grossMargins": None,
+    "profitMargins": None,
+    "operatingMargins": None,
+    "returnOnEquity": None,
+    "returnOnAssets": None,
+    "debtToEquity": None,
+    "currentRatio": None,
+    "freeCashflow": None,
+    "operatingCashflow": None,
+    "revenueGrowth": None,
+    "earningsGrowth": None,
+    "payoutRatio": None,
 }
 
 # yfinance funds_data uses snake_case sector keys; map to title case for display
@@ -493,6 +507,20 @@ def _enrich_one(symbol: str) -> dict:
             "fiftyTwoWeekLow": info.get("fiftyTwoWeekLow"),
             "beta": info.get("beta"),
             "trailingPE": info.get("trailingPE"),
+            "forwardPE": info.get("forwardPE"),
+            "priceToBook": info.get("priceToBook"),
+            "grossMargins": info.get("grossMargins"),
+            "profitMargins": info.get("profitMargins"),
+            "operatingMargins": info.get("operatingMargins"),
+            "returnOnEquity": info.get("returnOnEquity"),
+            "returnOnAssets": info.get("returnOnAssets"),
+            "debtToEquity": info.get("debtToEquity"),
+            "currentRatio": info.get("currentRatio"),
+            "freeCashflow": info.get("freeCashflow"),
+            "operatingCashflow": info.get("operatingCashflow"),
+            "revenueGrowth": info.get("revenueGrowth"),
+            "earningsGrowth": info.get("earningsGrowth"),
+            "payoutRatio": info.get("payoutRatio"),
         }
 
         # If no sector, this is likely an ETF or mutual fund — try fund data
@@ -805,6 +833,21 @@ def analyze_portfolio(holdings: list) -> dict:
             "nAnalysts": h.get("nAnalysts"),
             "currentPrice": h.get("currentPrice"),
             "lastPrice": h.get("lastPrice"),
+            "marketCap": h.get("marketCap"),
+            "forwardPE": h.get("forwardPE"),
+            "priceToBook": h.get("priceToBook"),
+            "grossMargins": h.get("grossMargins"),
+            "profitMargins": h.get("profitMargins"),
+            "operatingMargins": h.get("operatingMargins"),
+            "returnOnEquity": h.get("returnOnEquity"),
+            "returnOnAssets": h.get("returnOnAssets"),
+            "debtToEquity": h.get("debtToEquity"),
+            "currentRatio": h.get("currentRatio"),
+            "freeCashflow": h.get("freeCashflow"),
+            "operatingCashflow": h.get("operatingCashflow"),
+            "revenueGrowth": h.get("revenueGrowth"),
+            "earningsGrowth": h.get("earningsGrowth"),
+            "payoutRatio": h.get("payoutRatio"),
         })
 
     widget_meta = _sanitize_for_json({

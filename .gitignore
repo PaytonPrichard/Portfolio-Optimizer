@@ -8,5 +8,5 @@ venv/
 dist/
 build/
 .DS_Store
-=2.28.0
 inputs/
+data/*.db

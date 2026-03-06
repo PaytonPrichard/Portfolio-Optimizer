@@ -1,0 +1,110 @@
+{# Monte Carlo Simulation — async widget partial #}
+{% macro money(val) %}{% if val is none %}N/A{% elif val >= 1000000000 %}${{ '%.1f' | format(val / 1000000000) }}B{% elif val >= 1000000 %}${{ '%.1f' | format(val / 1000000) }}M{% elif val >= 1000 %}${{ '{:,.0f}'.format(val) }}{% else %}${{ '%.2f' | format(val) }}{% endif %}{% endmacro %}
+
+{% if years == 0 %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-2">Monte Carlo Projection</h2>
+    <p class="text-gray-400 dark:text-gray-500 text-sm">Insufficient data for Monte Carlo simulation.</p>
+</div>
+{% else %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-3">Monte Carlo Projection</h2>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ simulations }} simulations over {{ years }} years based on your portfolio's historical risk/return profile.</p>
+
+    {# Summary cards #}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Median Outcome</div>
+            <div class="text-xl font-bold text-green-700 dark:text-green-400">{{ money(medianFinal) }}</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">50th percentile</div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Bear Case</div>
+            <div class="text-xl font-bold text-red-600 dark:text-red-400">{{ money(p10Final) }}</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">10th percentile</div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Bull Case</div>
+            <div class="text-xl font-bold text-green-700 dark:text-green-400">{{ money(p90Final) }}</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">90th percentile</div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Loss Probability</div>
+            <div class="text-xl font-bold {% if probabilityOfLoss <= 15 %}text-green-700 dark:text-green-400{% elif probabilityOfLoss <= 35 %}text-yellow-700 dark:text-yellow-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ probabilityOfLoss }}%</div>
+            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Chance of losing money</div>
+        </div>
+    </div>
+
+    {# Probability cone chart (SVG) #}
+    {% if curves and curves.p50 %}
+    {% set max_val = curves.p90 | max %}
+    {% set min_val = curves.p10 | min %}
+    {% set range_val = max_val - min_val if max_val > min_val else 1 %}
+    {% set svg_w = 700 %}
+    {% set svg_h = 280 %}
+    {% set pad_l = 70 %}
+    {% set pad_r = 20 %}
+    {% set pad_t = 20 %}
+    {% set pad_b = 35 %}
+    {% set chart_w = svg_w - pad_l - pad_r %}
+    {% set chart_h = svg_h - pad_t - pad_b %}
+
+    <div class="overflow-x-auto mb-4">
+        <svg viewBox="0 0 {{ svg_w }} {{ svg_h }}" class="w-full max-w-[700px] h-auto" preserveAspectRatio="xMidYMid meet">
+            {# Y-axis gridlines #}
+            {% for i in range(5) %}
+            {% set y_val = min_val + (range_val * (4 - i) / 4) %}
+            {% set y_pos = pad_t + (chart_h * i / 4) %}
+            <line x1="{{ pad_l }}" y1="{{ y_pos }}" x2="{{ svg_w - pad_r }}" y2="{{ y_pos }}"
+                  stroke="var(--chart-grid, #e5e7eb)" stroke-width="0.5"/>
+            <text x="{{ pad_l - 8 }}" y="{{ y_pos + 4 }}" font-size="10" fill="var(--chart-label, #9ca3af)"
+                  font-family="system-ui, sans-serif" text-anchor="end">
+                {% if y_val >= 1000000 %}${{ '%.1f' | format(y_val / 1000000) }}M{% elif y_val >= 1000 %}${{ '%.0f' | format(y_val / 1000) }}K{% else %}${{ '%.0f' | format(y_val) }}{% endif %}
+            </text>
+            {% endfor %}
+
+            {# Cone bands: p10-p90, p25-p75 #}
+            {% set n_pts = yearLabels | length %}
+            {% macro x_pos(idx) %}{{ pad_l + (chart_w * idx / (n_pts - 1)) }}{% endmacro %}
+            {% macro y_pos(val) %}{{ pad_t + chart_h - (chart_h * (val - min_val) / range_val) }}{% endmacro %}
+
+            {# p10-p90 band (lightest) #}
+            <polygon fill="rgba(31,78,121,0.1)" stroke="none"
+                points="{% for i in range(n_pts) %}{{ x_pos(i) }},{{ y_pos(curves.p90[i]) }} {% endfor %}{% for i in range(n_pts - 1, -1, -1) %}{{ x_pos(i) }},{{ y_pos(curves.p10[i]) }} {% endfor %}"/>
+
+            {# p25-p75 band (medium) #}
+            <polygon fill="rgba(31,78,121,0.2)" stroke="none"
+                points="{% for i in range(n_pts) %}{{ x_pos(i) }},{{ y_pos(curves.p75[i]) }} {% endfor %}{% for i in range(n_pts - 1, -1, -1) %}{{ x_pos(i) }},{{ y_pos(curves.p25[i]) }} {% endfor %}"/>
+
+            {# Median line #}
+            <polyline fill="none" stroke="#1F4E79" stroke-width="2.5"
+                points="{% for i in range(n_pts) %}{{ x_pos(i) }},{{ y_pos(curves.p50[i]) }} {% endfor %}"/>
+
+            {# Start value line #}
+            <line x1="{{ pad_l }}" y1="{{ y_pos(startValue) }}" x2="{{ svg_w - pad_r }}" y2="{{ y_pos(startValue) }}"
+                  stroke="#ef4444" stroke-width="1" stroke-dasharray="4,3"/>
+
+            {# X-axis labels #}
+            {% for i in range(n_pts) %}
+            {% if i == 0 or i == n_pts - 1 or i % 2 == 0 %}
+            <text x="{{ x_pos(i) }}" y="{{ svg_h - 5 }}" font-size="10" fill="var(--chart-label, #9ca3af)"
+                  font-family="system-ui, sans-serif" text-anchor="middle">Yr {{ yearLabels[i] }}</text>
+            {% endif %}
+            {% endfor %}
+        </svg>
+    </div>
+
+    {# Legend #}
+    <div class="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-3">
+        <span class="flex items-center gap-1.5"><span class="w-4 h-1 bg-[#1F4E79] rounded"></span> Median (50th)</span>
+        <span class="flex items-center gap-1.5"><span class="w-4 h-3 rounded" style="background:rgba(31,78,121,0.2)"></span> 25th-75th</span>
+        <span class="flex items-center gap-1.5"><span class="w-4 h-3 rounded" style="background:rgba(31,78,121,0.1)"></span> 10th-90th</span>
+        <span class="flex items-center gap-1.5"><span class="w-4 h-0.5 bg-red-400 rounded" style="border-top:1px dashed #ef4444"></span> Starting Value</span>
+    </div>
+    {% endif %}
+
+    <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg px-4 py-3 mt-3">
+        <p class="text-xs text-yellow-700 dark:text-yellow-400">Projections assume returns follow a normal distribution based on your portfolio's historical 1-year mean ({{ meanAnnualReturn }}%) and volatility ({{ annualVolatility }}%). Real markets have fat tails — extreme events may be more likely than shown. This is not financial advice.</p>
+    </div>
+</div>
+{% endif %}

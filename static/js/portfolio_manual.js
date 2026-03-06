@@ -131,7 +131,7 @@
 
         // Clear inputs and focus symbol for fast keyboard entry
         symInput.value = "";
-        sharesInput.value = "";
+        sharesInput.value = "1";
         if (costInput) costInput.value = "";
         symInput.focus();
     };

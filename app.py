@@ -18,6 +18,7 @@ from routes.download import download_bp
 from routes.picks import picks_bp
 from routes.portfolio import portfolio_bp
 from routes.portfolio_widgets import portfolio_widgets_bp
+from routes.alpha import alpha_bp
 
 
 def _sanitize_nan(obj):
@@ -68,6 +69,7 @@ def create_app():
     app.register_blueprint(picks_bp)
     app.register_blueprint(portfolio_bp)
     app.register_blueprint(portfolio_widgets_bp)
+    app.register_blueprint(alpha_bp)
 
     @app.after_request
     def set_security_headers(response):

@@ -1,0 +1,73 @@
+{# Factor Exposure — async widget partial #}
+
+{% if not holdings %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-2">Factor Exposure</h2>
+    <p class="text-gray-400 dark:text-gray-500 text-sm">No holdings data available.</p>
+</div>
+{% else %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-3">Factor Exposure</h2>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Portfolio style, size, and factor tilts based on fundamental characteristics.</p>
+
+    {# Style + Key metrics row #}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-center">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Investment Style</div>
+            <div class="text-xl font-bold text-brand dark:text-blue-300">{{ style }}</div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-center">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Weighted P/E</div>
+            <div class="text-xl font-bold text-brand dark:text-blue-300">{{ weightedPE if weightedPE else 'N/A' }}x</div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-center">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Portfolio Yield</div>
+            <div class="text-xl font-bold {% if portfolioYield > 2 %}text-green-700 dark:text-green-400{% else %}text-brand dark:text-blue-300{% endif %}">{{ portfolioYield }}%</div>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-center">
+            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Weighted Beta</div>
+            <div class="text-xl font-bold text-brand dark:text-blue-300">{{ factors.weightedBeta if factors.weightedBeta is not none else 'N/A' }}</div>
+        </div>
+    </div>
+
+    {# Size Mix #}
+    {% if sizeMix %}
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Market Cap Distribution</h3>
+    <div class="flex h-7 rounded-full overflow-hidden mb-1 border border-gray-200 dark:border-gray-600">
+        {% set colors = {'Mega Cap': 'bg-[#1F4E79]', 'Large Cap': 'bg-blue-500', 'Mid Cap': 'bg-cyan-500', 'Small Cap': 'bg-teal-500'} %}
+        {% for cat, pct in sizeMix.items() %}
+        <div class="{{ colors.get(cat, 'bg-gray-400') }} flex items-center justify-center" style="width: {{ pct }}%">
+            {% if pct > 8 %}<span class="text-white text-xs font-bold">{{ pct }}%</span>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    <div class="flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400 mb-6">
+        {% for cat, pct in sizeMix.items() %}
+        <span class="flex items-center gap-1">
+            <span class="w-2.5 h-2.5 rounded-full {{ colors.get(cat, 'bg-gray-400') }}"></span>
+            {{ cat }} {{ pct }}%
+        </span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# Factor Bar Chart #}
+    {% if factors %}
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Factor Tilts</h3>
+    <div class="space-y-3 mb-4">
+        {% for name, score in [('Value', factors.value), ('Growth', factors.growth), ('Yield', factors.yield), ('Volatility', factors.volatility), ('Small Cap Tilt', factors.size)] %}
+        <div class="flex items-center gap-3">
+            <span class="w-28 text-xs font-medium text-gray-600 dark:text-gray-400">{{ name }}</span>
+            <div class="flex-1 h-4 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                {% set color = 'bg-[#1F4E79] dark:bg-blue-500' %}
+                {% if name == 'Volatility' and score > 70 %}{% set color = 'bg-red-500' %}{% endif %}
+                <div class="{{ color }} h-full rounded-full transition-all" style="width: {{ score }}%"></div>
+            </div>
+            <span class="w-10 text-xs text-right font-medium text-gray-600 dark:text-gray-400">{{ score }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    <p class="text-xs text-gray-400 dark:text-gray-500">Factor scores range from 0 (no exposure) to 100 (maximum exposure).</p>
+    {% endif %}
+</div>
+{% endif %}
