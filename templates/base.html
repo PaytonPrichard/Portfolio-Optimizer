@@ -140,6 +140,13 @@
         document.getElementById('theme-toggle-mobile').addEventListener('click', toggleTheme);
     </script>
 
+    <!-- Global loading overlay — triggered by any link/button with data-loading attribute -->
+    <div id="global-loading" class="hidden fixed inset-0 bg-white/80 dark:bg-gray-900/80 z-[100] flex flex-col items-center justify-center" role="status" aria-live="polite">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-brand border-t-transparent mb-4"></div>
+        <p class="text-brand dark:text-blue-300 font-semibold text-lg" id="global-loading-text">Loading...</p>
+        <p class="text-gray-400 dark:text-gray-500 text-sm mt-1">Fetching data from Yahoo Finance</p>
+    </div>
+
     <!-- Main content -->
     <main id="main-content" class="flex-1">
         {% block content %}{% endblock %}
@@ -244,6 +251,33 @@
                 e.preventDefault();
                 window.location.href = dest;
             }
+        });
+    })();
+    </script>
+
+    {# ── Global loading overlay handler ── #}
+    <script>
+    (function() {
+        var overlay = document.getElementById('global-loading');
+        var text = document.getElementById('global-loading-text');
+
+        document.addEventListener('click', function(e) {
+            var link = e.target.closest('[data-loading]');
+            if (!link) return;
+            var href = link.getAttribute('href') || '';
+            var isDownload = href.indexOf('/download/') !== -1;
+            if (overlay) {
+                text.textContent = link.getAttribute('data-loading') || 'Loading...';
+                overlay.classList.remove('hidden');
+            }
+            // For file downloads, the page won't navigate — hide overlay after a timeout
+            if (isDownload) {
+                setTimeout(function() { overlay.classList.add('hidden'); }, 8000);
+            }
+        });
+        // Hide overlay if user navigates back (browser back button / bfcache)
+        window.addEventListener('pageshow', function(e) {
+            if (e.persisted && overlay) overlay.classList.add('hidden');
         });
     })();
     </script>
