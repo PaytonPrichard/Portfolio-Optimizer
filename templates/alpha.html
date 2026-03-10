@@ -3,8 +3,18 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <h1 class="text-3xl font-bold text-brand dark:text-blue-300 mb-1">Mosaic Score</h1>
-    <p class="text-gray-500 dark:text-gray-400 text-sm mb-6">13-factor composite blending fundamentals, smart money signals, technicals, and macro conditions.</p>
+    <div class="flex items-start justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-brand dark:text-blue-300 mb-1">Mosaic Score</h1>
+            <p class="text-gray-500 dark:text-gray-400 text-sm">13-factor composite blending fundamentals, smart money signals, technicals, and macro conditions.</p>
+        </div>
+        <button type="button" id="score-another-btn" style="display:none"
+                onclick="document.getElementById('idle-state').style.display='';document.getElementById('how-it-works').style.display='';document.getElementById('score-results').innerHTML='';this.style.display='none';window.scrollTo({top:0,behavior:'smooth'});setTimeout(function(){document.getElementById('score-input').focus();document.getElementById('score-input').select();},300);"
+                class="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-brand dark:text-blue-300 border border-brand/25 dark:border-blue-400/25 rounded-lg hover:bg-brand/5 dark:hover:bg-blue-900/20 transition whitespace-nowrap">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            Score Another Stock
+        </button>
+    </div>
 
     <!-- Two-column: Search + Sidebar -->
     <div id="idle-state" class="grid lg:grid-cols-5 gap-6 mb-6">
@@ -290,6 +300,8 @@ function analyzeScore() {
     .then(function(resp) { return resp.text(); })
     .then(function(html) {
         container.innerHTML = html;
+        var saBtn = document.getElementById("score-another-btn");
+        if (saBtn) saBtn.style.display = "";
         var url = new URL(window.location);
         url.searchParams.set("ticker", symbol);
         history.replaceState(null, "", url);
