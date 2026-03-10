@@ -72,7 +72,6 @@ def score_summary_api(ticker):
         return jsonify({
             "symbol": result["symbol"],
             "companyName": result.get("companyName", result["symbol"]),
-            "logoUrl": result.get("logoUrl", ""),
             "alphaScore": result["alphaScore"],
             "conviction": result["conviction"],
             "sector": result.get("sector", ""),
