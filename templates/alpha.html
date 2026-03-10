@@ -65,17 +65,20 @@
         </div>
     </details>
 
-    <!-- Search -->
+    <!-- Search with autocomplete -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5 mb-8">
         <div class="flex flex-col sm:flex-row items-start sm:items-end gap-3">
-            <div class="flex-1">
-                <label for="alpha-ticker" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ticker Symbol</label>
-                <input type="text" id="alpha-ticker" placeholder="AAPL" maxlength="10" value="{{ ticker }}"
-                       class="w-full sm:w-48 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm uppercase focus:ring-1 focus:ring-brand focus:border-brand outline-none bg-white dark:bg-gray-800 dark:text-gray-200">
+            <div class="flex-1 relative">
+                <label for="score-input" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Ticker or Company Name</label>
+                <input type="text" id="score-input" placeholder="AAPL or Apple" maxlength="60" value="{{ ticker }}"
+                       autocomplete="off"
+                       class="w-full sm:w-72 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-1 focus:ring-brand focus:border-brand outline-none bg-white dark:bg-gray-800 dark:text-gray-200">
+                <!-- Autocomplete dropdown -->
+                <div id="search-dropdown" class="hidden absolute z-40 left-0 right-0 sm:w-72 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden"></div>
             </div>
-            <button type="button" onclick="analyzeAlpha()"
+            <button type="button" onclick="analyzeScore()"
                     class="bg-brand text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    id="alpha-analyze-btn">
+                    id="score-analyze-btn">
                 Analyze
             </button>
         </div>
@@ -84,7 +87,7 @@
     <!-- Stock of the Day + Results in a responsive layout -->
     <div class="flex flex-col lg:flex-row gap-6">
         <!-- Results container (main) -->
-        <div id="alpha-results" class="flex-1 min-w-0"></div>
+        <div id="score-results" class="flex-1 min-w-0"></div>
 
         <!-- Stock of the Day sidebar — loads score async -->
         {% if sotdSymbol %}
@@ -98,14 +101,14 @@
                 </div>
                 <div id="sotd-content">
                     <div class="mb-2">
-                        <a href="/alpha?ticker={{ sotdSymbol }}" class="text-lg font-bold text-brand dark:text-blue-300 hover:underline">{{ sotdSymbol }}</a>
+                        <a href="/score?ticker={{ sotdSymbol }}" class="text-lg font-bold text-brand dark:text-blue-300 hover:underline">{{ sotdSymbol }}</a>
                     </div>
                     <div class="flex items-center gap-2 text-xs text-gray-400">
                         <div class="w-3 h-3 border-2 border-gray-300 border-t-brand rounded-full animate-spin"></div>
                         Loading score...
                     </div>
                 </div>
-                <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-3 pt-2 border-t border-gray-100 dark:border-gray-700">Rotates daily. Click to view full analysis.</p>
+                <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-3 pt-2 border-t border-gray-100 dark:border-gray-700">Rotates daily from the Dow 30. Click to view full analysis.</p>
             </div>
         </div>
         {% endif %}
@@ -116,13 +119,112 @@
 
 {% block scripts %}
 <script>
-function analyzeAlpha() {
-    var input = document.getElementById("alpha-ticker");
-    var btn = document.getElementById("alpha-analyze-btn");
-    var container = document.getElementById("alpha-results");
+// ── Autocomplete search ─────────────────────────────────────────────
+var _searchTimeout = null;
+var _searchDropdown = document.getElementById("search-dropdown");
+var _searchInput = document.getElementById("score-input");
+var _selectedIdx = -1;
+
+_searchInput.addEventListener("input", function() {
+    clearTimeout(_searchTimeout);
+    var q = this.value.trim();
+
+    // If it looks like a pure ticker (all caps, short), skip autocomplete
+    if (!q || q.length < 2 || (q === q.toUpperCase() && q.length <= 5 && /^[A-Z]+$/.test(q))) {
+        _searchDropdown.classList.add("hidden");
+        _selectedIdx = -1;
+        return;
+    }
+
+    _searchTimeout = setTimeout(function() {
+        fetch("/api/score/search?q=" + encodeURIComponent(q))
+        .then(function(r) { return r.json(); })
+        .then(function(results) {
+            if (!results || !results.length) {
+                _searchDropdown.classList.add("hidden");
+                return;
+            }
+            _selectedIdx = -1;
+            var html = results.map(function(r, i) {
+                return '<button type="button" data-idx="' + i + '" data-symbol="' + r.symbol + '"' +
+                    ' class="search-item w-full text-left px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 transition flex items-center justify-between border-b border-gray-100 dark:border-gray-700 last:border-0">' +
+                    '<div><span class="font-bold text-sm text-brand dark:text-blue-300">' + r.symbol + '</span>' +
+                    '<span class="text-xs text-gray-500 dark:text-gray-400 ml-2">' + (r.name || '') + '</span></div>' +
+                    (r.exchange ? '<span class="text-[10px] text-gray-400">' + r.exchange + '</span>' : '') +
+                    '</button>';
+            }).join("");
+            _searchDropdown.innerHTML = html;
+            _searchDropdown.classList.remove("hidden");
+
+            // Click handler for each result
+            _searchDropdown.querySelectorAll(".search-item").forEach(function(btn) {
+                btn.addEventListener("click", function() {
+                    _searchInput.value = this.dataset.symbol;
+                    _searchDropdown.classList.add("hidden");
+                    analyzeScore();
+                });
+            });
+        })
+        .catch(function() { _searchDropdown.classList.add("hidden"); });
+    }, 300);
+});
+
+// Keyboard navigation in dropdown
+_searchInput.addEventListener("keydown", function(e) {
+    var items = _searchDropdown.querySelectorAll(".search-item");
+    if (!items.length || _searchDropdown.classList.contains("hidden")) {
+        if (e.key === "Enter") { e.preventDefault(); analyzeScore(); }
+        return;
+    }
+
+    if (e.key === "ArrowDown") {
+        e.preventDefault();
+        _selectedIdx = Math.min(_selectedIdx + 1, items.length - 1);
+        highlightItem(items);
+    } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        _selectedIdx = Math.max(_selectedIdx - 1, -1);
+        highlightItem(items);
+    } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (_selectedIdx >= 0 && items[_selectedIdx]) {
+            _searchInput.value = items[_selectedIdx].dataset.symbol;
+            _searchDropdown.classList.add("hidden");
+        }
+        analyzeScore();
+    } else if (e.key === "Escape") {
+        _searchDropdown.classList.add("hidden");
+        _selectedIdx = -1;
+    }
+});
+
+function highlightItem(items) {
+    items.forEach(function(item, i) {
+        if (i === _selectedIdx) {
+            item.classList.add("bg-gray-100", "dark:bg-gray-700");
+        } else {
+            item.classList.remove("bg-gray-100", "dark:bg-gray-700");
+        }
+    });
+}
+
+// Close dropdown when clicking outside
+document.addEventListener("click", function(e) {
+    if (!_searchInput.contains(e.target) && !_searchDropdown.contains(e.target)) {
+        _searchDropdown.classList.add("hidden");
+    }
+});
+
+
+// ── Analyze ─────────────────────────────────────────────────────────
+function analyzeScore() {
+    var input = document.getElementById("score-input");
+    var btn = document.getElementById("score-analyze-btn");
+    var container = document.getElementById("score-results");
     var symbol = input.value.trim().toUpperCase();
     if (!symbol) { input.focus(); return; }
 
+    _searchDropdown.classList.add("hidden");
     btn.disabled = true;
     btn.textContent = "Analyzing...";
     container.innerHTML =
@@ -132,11 +234,10 @@ function analyzeAlpha() {
         '  <p class="text-xs text-gray-400 mt-1">Fetching fundamentals, insider activity, technicals, and macro signals.</p>' +
         '</div>';
 
-    // Hide stock of the day when results load (on smaller screens it's below)
     var sotd = document.getElementById("sotd-card");
     if (sotd) sotd.style.display = "none";
 
-    fetch("/api/alpha/score", {
+    fetch("/api/score/compute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ symbol: symbol }),
@@ -158,17 +259,13 @@ function analyzeAlpha() {
     });
 }
 
-document.getElementById("alpha-ticker").addEventListener("keydown", function(e) {
-    if (e.key === "Enter") { e.preventDefault(); analyzeAlpha(); }
-});
-
 document.addEventListener("DOMContentLoaded", function() {
-    var ticker = document.getElementById("alpha-ticker").value.trim();
-    if (ticker) analyzeAlpha();
+    var ticker = document.getElementById("score-input").value.trim();
+    if (ticker) analyzeScore();
 
     // Load Stock of the Day score async
     {% if sotdSymbol %}
-    fetch("/api/alpha/summary/{{ sotdSymbol }}")
+    fetch("/api/score/summary/{{ sotdSymbol }}")
     .then(function(r) { return r.ok ? r.json() : null; })
     .then(function(d) {
         var el = document.getElementById("sotd-content");
@@ -180,7 +277,7 @@ document.addEventListener("DOMContentLoaded", function() {
                       : d.conviction === "Hold" ? "text-yellow-700 dark:text-yellow-400"
                       : "text-red-600 dark:text-red-400";
         el.innerHTML =
-            '<a href="/alpha?ticker=' + d.symbol + '" class="block group">' +
+            '<a href="/score?ticker=' + d.symbol + '" class="block group">' +
             '  <div class="mb-2">' +
             '    <span class="text-lg font-bold text-brand dark:text-blue-300 group-hover:underline">' + d.symbol + '</span>' +
             '    <p class="text-xs text-gray-500 dark:text-gray-400 leading-tight mt-0.5">' + (d.companyName || '') + '</p>' +

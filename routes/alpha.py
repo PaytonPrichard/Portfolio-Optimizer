@@ -1,8 +1,8 @@
-"""Alpha Score routes — stock intelligence page and API endpoints."""
+"""Mosaic Score routes — stock intelligence page and API endpoints."""
 
 import os
 
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify, redirect
 
 from financials.alpha import (
     compute_alpha_score,
@@ -20,21 +20,34 @@ from financials.alpha_collector import (
 alpha_bp = Blueprint("alpha", __name__)
 
 
-@alpha_bp.route("/alpha")
-def alpha_page():
-    """Render the Alpha Score page."""
+# ── Main page ────────────────────────────────────────────────────────
+
+@alpha_bp.route("/score")
+def score_page():
+    """Render the Mosaic Score page."""
     ticker = request.args.get("ticker", "").strip().upper()
     sotd_symbol = get_stock_of_the_day_symbol()
     return render_template("alpha.html", ticker=ticker, sotdSymbol=sotd_symbol)
 
 
-@alpha_bp.route("/api/alpha/score", methods=["POST"])
-def alpha_score_api():
-    """Compute Alpha Score for a ticker. Returns HTML fragment."""
+# Keep /alpha as a redirect so old bookmarks/links still work
+@alpha_bp.route("/alpha")
+def alpha_redirect():
+    ticker = request.args.get("ticker", "")
+    if ticker:
+        return redirect(f"/score?ticker={ticker}", code=301)
+    return redirect("/score", code=301)
+
+
+# ── Score APIs ───────────────────────────────────────────────────────
+
+@alpha_bp.route("/api/score/compute", methods=["POST"])
+def score_compute_api():
+    """Compute Mosaic Score for a ticker. Returns HTML fragment."""
     data = request.get_json(silent=True) or {}
     symbol = (data.get("symbol") or "").strip().upper()
     if not symbol:
-        return '<p class="text-red-500 text-sm italic p-4">Enter a ticker symbol.</p>', 400
+        return '<p class="text-red-500 text-sm italic p-4">Enter a ticker symbol or company name.</p>', 400
 
     try:
         result = compute_alpha_score(symbol)
@@ -45,8 +58,8 @@ def alpha_score_api():
         return f'<p class="text-red-500 text-sm italic p-4">Error: {e}</p>', 500
 
 
-@alpha_bp.route("/api/alpha/summary/<ticker>")
-def alpha_summary_api(ticker):
+@alpha_bp.route("/api/score/summary/<ticker>")
+def score_summary_api(ticker):
     """Return a lightweight JSON score summary for a ticker (used by SOTD card)."""
     ticker = ticker.upper().strip()
     try:
@@ -65,7 +78,31 @@ def alpha_summary_api(ticker):
         return jsonify({"error": str(e)}), 500
 
 
-@alpha_bp.route("/api/alpha/sector-cycles")
+@alpha_bp.route("/api/score/search")
+def score_search_api():
+    """Autocomplete search — resolves company names to tickers via yfinance."""
+    q = request.args.get("q", "").strip()
+    if not q or len(q) < 2:
+        return jsonify([])
+
+    try:
+        import yfinance as yf
+        # yfinance search returns a dict with 'quotes' key
+        results = yf.Search(q, max_results=6)
+        matches = []
+        for item in getattr(results, "quotes", []):
+            if item.get("quoteType") in ("EQUITY", "ETF"):
+                matches.append({
+                    "symbol": item.get("symbol", ""),
+                    "name": item.get("shortname") or item.get("longname", ""),
+                    "exchange": item.get("exchange", ""),
+                })
+        return jsonify(matches)
+    except Exception:
+        return jsonify([])
+
+
+@alpha_bp.route("/api/score/sector-cycles")
 def sector_cycles_api():
     """Return current sector cycle analysis as JSON."""
     try:
@@ -75,7 +112,9 @@ def sector_cycles_api():
         return jsonify({"error": str(e)}), 500
 
 
-@alpha_bp.route("/api/alpha/collect", methods=["POST"])
+# ── Collection APIs (used by cron/CLI) ───────────────────────────────
+
+@alpha_bp.route("/api/score/collect", methods=["POST"])
 def trigger_collection():
     """Trigger a background data collection action."""
     data = request.get_json(silent=True) or {}
@@ -91,16 +130,18 @@ def trigger_collection():
     return jsonify({"status": "started", "action": action})
 
 
-@alpha_bp.route("/api/alpha/collect/status")
+@alpha_bp.route("/api/score/collect/status")
 def collection_status():
     """Return current collection status as JSON."""
     status = get_collection_status()
     return jsonify(status)
 
 
-@alpha_bp.route("/api/portfolio/widget/alpha-scores", methods=["POST"])
-def alpha_scores_widget():
-    """Portfolio widget: Alpha Scores for all holdings."""
+# ── Portfolio widget ─────────────────────────────────────────────────
+
+@alpha_bp.route("/api/portfolio/widget/mosaic-scores", methods=["POST"])
+def mosaic_scores_widget():
+    """Portfolio widget: Mosaic Scores for all holdings."""
     try:
         data = request.get_json(silent=True) or {}
         holdings = data.get("holdings", [])
@@ -111,7 +152,6 @@ def alpha_scores_widget():
 
         scores = compute_alpha_scores_batch(symbols[:15])  # cap at 15
 
-        # Merge with holding data for portfolio context
         scored = []
         for h in holdings:
             sym = h.get("symbol")
@@ -130,28 +170,32 @@ def alpha_scores_widget():
 
         total_value = sum(h.get("currentValue", 0) for h in holdings)
         if total_value > 0 and scored:
-            weighted_alpha = sum(
+            weighted = sum(
                 s["alphaScore"] * s["currentValue"] / total_value
                 for s in scored if s["currentValue"] > 0
             )
         else:
-            weighted_alpha = 0
+            weighted = 0
 
         return render_template("partials/portfolio_alpha_scores.html",
                                scored=scored,
-                               weightedAlpha=round(weighted_alpha),
+                               weightedAlpha=round(weighted),
                                scoredCount=len(scored))
     except Exception as e:
-        return f'<p class="text-red-500 text-sm italic">Alpha scores unavailable: {e}</p>'
+        return f'<p class="text-red-500 text-sm italic">Mosaic scores unavailable: {e}</p>'
 
 
-@alpha_bp.route("/api/alpha/cron", methods=["GET"])
+# Keep old widget URL working for cached JS
+@alpha_bp.route("/api/portfolio/widget/alpha-scores", methods=["POST"])
+def alpha_scores_widget_compat():
+    return mosaic_scores_widget()
+
+
+# ── Vercel Cron ──────────────────────────────────────────────────────
+
+@alpha_bp.route("/api/score/cron", methods=["GET"])
 def cron_collect():
-    """Vercel Cron endpoint — runs a time-boxed batch of data collection.
-
-    Secured by CRON_SECRET env var: Vercel sends it as an Authorization
-    header on cron invocations.  Returns 401 if the secret doesn't match.
-    """
+    """Vercel Cron endpoint — runs a time-boxed batch of data collection."""
     cron_secret = os.environ.get("CRON_SECRET")
     if cron_secret:
         auth = request.headers.get("Authorization", "")

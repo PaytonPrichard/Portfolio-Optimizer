@@ -122,7 +122,7 @@ function loadPortfolioWidgets() {
         { id: "widget-monte-carlo", url: "/api/portfolio/widget/monte-carlo", body: { holdings: meta.holdings || [], years: 10 } },
         { id: "widget-optimizer", url: "/api/portfolio/widget/optimizer", body: { holdings: meta.holdings || [] } },
         { id: "widget-fundamentals", url: "/api/portfolio/widget/fundamentals", body: { holdings: meta.holdings || [] } },
-        { id: "widget-alpha-scores", url: "/api/portfolio/widget/alpha-scores", body: { holdings: meta.holdings || [] } },
+        { id: "widget-alpha-scores", url: "/api/portfolio/widget/mosaic-scores", body: { holdings: meta.holdings || [] } },
     ];
     setTimeout(function () {
         phase3.forEach(function (w) {

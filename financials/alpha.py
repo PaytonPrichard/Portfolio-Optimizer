@@ -1159,12 +1159,12 @@ def backfill_forward_returns():
     return updated
 
 
+# Dow Jones Industrial Average 30 components (as of early 2026)
 _SOTD_CURATED = [
-    "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA", "JPM",
-    "V", "JNJ", "UNH", "HD", "PG", "MA", "DIS", "NFLX", "ADBE",
-    "CRM", "COST", "PEP", "ABBV", "TMO", "AVGO", "MRK", "KO",
-    "WMT", "CSCO", "ACN", "MCD", "LIN", "AMD", "TXN", "CAT",
-    "DE", "UPS", "GS", "LOW", "ISRG", "SYK", "MDLZ",
+    "AMGN", "AMZN", "AAPL", "BA", "CAT", "CSCO", "CVX", "DIS",
+    "GS", "HD", "HON", "IBM", "JNJ", "JPM", "KO", "MCD",
+    "MMM", "MRK", "MSFT", "NKE", "NVDA", "PG", "CRM", "SHW",
+    "TRV", "UNH", "V", "VZ", "WMT", "WBA",
 ]
 
 
