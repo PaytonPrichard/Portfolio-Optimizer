@@ -8,15 +8,13 @@ from financials.alpha import (
     compute_alpha_score,
     compute_alpha_scores_batch,
     get_db_stats,
-    get_symbol_history,
+    get_stock_of_the_day_symbol,
     _compute_sector_cycles,
 )
 from financials.alpha_collector import (
     get_collection_status,
     run_in_background,
     run_cron_batch,
-    get_all_tracked_symbols,
-    SEED_UNIVERSE,
 )
 
 alpha_bp = Blueprint("alpha", __name__)
@@ -26,13 +24,8 @@ alpha_bp = Blueprint("alpha", __name__)
 def alpha_page():
     """Render the Alpha Score page."""
     ticker = request.args.get("ticker", "").strip().upper()
-    db_stats = get_db_stats()
-    col_status = get_collection_status()
-    tracked = len(get_all_tracked_symbols())
-    universe_size = len(SEED_UNIVERSE)
-    return render_template("alpha.html", ticker=ticker, dbStats=db_stats,
-                           colStatus=col_status, trackedCount=tracked,
-                           universeSize=universe_size)
+    sotd_symbol = get_stock_of_the_day_symbol()
+    return render_template("alpha.html", ticker=ticker, sotdSymbol=sotd_symbol)
 
 
 @alpha_bp.route("/api/alpha/score", methods=["POST"])
@@ -50,6 +43,26 @@ def alpha_score_api():
         return render_template("partials/alpha_result.html", **result)
     except Exception as e:
         return f'<p class="text-red-500 text-sm italic p-4">Error: {e}</p>', 500
+
+
+@alpha_bp.route("/api/alpha/summary/<ticker>")
+def alpha_summary_api(ticker):
+    """Return a lightweight JSON score summary for a ticker (used by SOTD card)."""
+    ticker = ticker.upper().strip()
+    try:
+        result = compute_alpha_score(ticker)
+        if not result:
+            return jsonify({"error": "not found"}), 404
+        return jsonify({
+            "symbol": result["symbol"],
+            "companyName": result.get("companyName", result["symbol"]),
+            "alphaScore": result["alphaScore"],
+            "conviction": result["conviction"],
+            "sector": result.get("sector", ""),
+            "price": result.get("price"),
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @alpha_bp.route("/api/alpha/sector-cycles")
