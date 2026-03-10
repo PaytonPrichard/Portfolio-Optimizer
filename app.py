@@ -128,7 +128,7 @@ def create_app():
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.tailwindcss.com cdn.jsdelivr.net; "
             "style-src 'self' 'unsafe-inline'; "
-            "img-src 'self' data:; "
+            "img-src 'self' data: www.google.com t2.gstatic.com t3.gstatic.com; "
             "font-src 'self'; "
             "connect-src 'self'; "
             "frame-ancestors 'none'"
