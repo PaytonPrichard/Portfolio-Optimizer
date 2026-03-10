@@ -1,11 +1,69 @@
 {% extends "base.html" %}
-{% block title %}Mosaic Alpha&trade; Score - MarketMosaic{% endblock %}
+{% block title %}Mosaic Score - MarketMosaic{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <h1 class="text-3xl font-bold text-brand dark:text-blue-300 mb-2">Mosaic Alpha&#8482;</h1>
-    <p class="text-gray-600 dark:text-gray-400 mb-1 max-w-3xl">A proprietary 13-factor composite score that blends fundamentals, smart money activity, technical signals, and macro conditions to surface potential strength or weakness in a stock.</p>
-    <p class="text-gray-600 dark:text-gray-400 mb-6 max-w-3xl">Use it to quickly gauge conviction, compare across sectors, and dig into the signals driving each rating. Scores are for research purposes only, not financial advice.</p>
+    <h1 class="text-3xl font-bold text-brand dark:text-blue-300 mb-2">Mosaic Score</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-6 max-w-3xl">13-factor composite blending fundamentals, smart money signals, technicals, and macro conditions. For research only, not financial advice.</p>
+
+    <!-- How it works — collapsible -->
+    <details class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 mb-8 group">
+        <summary class="flex items-center justify-between cursor-pointer px-5 py-3.5 select-none hover:bg-gray-50 dark:hover:bg-gray-700/40 transition rounded-lg">
+            <span class="font-semibold text-brand dark:text-blue-300 text-sm">How it works</span>
+            <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </summary>
+        <div class="px-5 pb-5 border-t border-gray-100 dark:border-gray-700 pt-4">
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div class="space-y-2">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-brand/10 dark:bg-blue-900/30">
+                            <svg class="w-3.5 h-3.5 text-brand dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                        </span>
+                        <p class="font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase tracking-wide">Fundamentals</p>
+                    </div>
+                    <p class="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed"><strong class="text-gray-700 dark:text-gray-300">Value</strong> &middot; P/E, P/B, PEG, EV/EBITDA vs. peers</p>
+                    <p class="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed"><strong class="text-gray-700 dark:text-gray-300">Quality</strong> &middot; ROE, margins, balance sheet, FCF</p>
+                    <p class="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed"><strong class="text-gray-700 dark:text-gray-300">Growth</strong> &middot; Revenue &amp; earnings growth</p>
+                    <p class="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed"><strong class="text-gray-700 dark:text-gray-300">Earnings Surprise</strong> &middot; Beat rate and magnitude</p>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-brand/10 dark:bg-blue-900/30">
+                            <svg class="w-3.5 h-3.5 text-brand dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                        </span>
+                        <p class="font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase tracking-wide">Smart Money</p>
+                    </div>
+                    <p class="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed"><strong class="text-gray-700 dark:text-gray-300">Insider Activity</strong> &middot; Insider buy/sell ratio</p>
+                    <p class="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed"><strong class="text-gray-700 dark:text-gray-300">Institutional</strong> &middot; Ownership and holder changes</p>
+                    <p class="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed"><strong class="text-gray-700 dark:text-gray-300">Buyback</strong> &middot; Share count changes</p>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-brand/10 dark:bg-blue-900/30">
+                            <svg class="w-3.5 h-3.5 text-brand dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                        </span>
+                        <p class="font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase tracking-wide">Market Signals</p>
+                    </div>
+                    <p class="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed"><strong class="text-gray-700 dark:text-gray-300">Momentum</strong> &middot; 3/6/12-month performance</p>
+                    <p class="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed"><strong class="text-gray-700 dark:text-gray-300">Technical</strong> &middot; RSI, MACD, SMA trends</p>
+                    <p class="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed"><strong class="text-gray-700 dark:text-gray-300">Analyst</strong> &middot; Consensus rating and target</p>
+                    <p class="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed"><strong class="text-gray-700 dark:text-gray-300">Analyst Trend</strong> &middot; Upgrade/downgrade momentum</p>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="flex items-center justify-center w-7 h-7 rounded-full bg-brand/10 dark:bg-blue-900/30">
+                            <svg class="w-3.5 h-3.5 text-brand dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </span>
+                        <p class="font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase tracking-wide">Environment</p>
+                    </div>
+                    <p class="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed"><strong class="text-gray-700 dark:text-gray-300">Industry Cycle</strong> &middot; Sector ETF cycle phase</p>
+                    <p class="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed"><strong class="text-gray-700 dark:text-gray-300">Macro</strong> &middot; VIX regime and yield curve</p>
+                </div>
+            </div>
+        </div>
+    </details>
 
     <!-- Search -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5 mb-8">
@@ -99,49 +157,6 @@
         </p>
     </div>
 
-    <!-- How it works -->
-    <details class="mt-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-        <summary class="cursor-pointer font-semibold text-brand dark:text-blue-300 text-sm">How Mosaic Alpha&#8482; works</summary>
-        <div class="mt-3 text-sm text-gray-600 dark:text-gray-400 space-y-2">
-            <p>Mosaic Alpha is a weighted composite of 13 factor signals, each scored 0&ndash;100:</p>
-            <div class="grid sm:grid-cols-2 gap-x-6 gap-y-1 mt-2">
-                <div>
-                    <p class="font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase mt-2 mb-1">Fundamentals</p>
-                    <ul class="list-disc ml-5 space-y-0.5">
-                        <li><strong>Value (10%)</strong> &mdash; P/E, P/B, PEG, EV/EBITDA vs. peers</li>
-                        <li><strong>Quality (10%)</strong> &mdash; ROE, margins, balance sheet, FCF</li>
-                        <li><strong>Growth (8%)</strong> &mdash; Revenue &amp; earnings growth, PEG</li>
-                        <li><strong>Earnings Surprise (8%)</strong> &mdash; Beat rate and surprise magnitude</li>
-                    </ul>
-                </div>
-                <div>
-                    <p class="font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase mt-2 mb-1">Smart Money</p>
-                    <ul class="list-disc ml-5 space-y-0.5">
-                        <li><strong>Insider Activity (12%)</strong> &mdash; Insider buy/sell ratio</li>
-                        <li><strong>Institutional (7%)</strong> &mdash; Ownership % and holder changes</li>
-                        <li><strong>Buyback (7%)</strong> &mdash; Share count changes over 1&ndash;3 years</li>
-                    </ul>
-                </div>
-                <div>
-                    <p class="font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase mt-2 mb-1">Market Signals</p>
-                    <ul class="list-disc ml-5 space-y-0.5">
-                        <li><strong>Momentum (8%)</strong> &mdash; 3/6/12-month price performance</li>
-                        <li><strong>Technical (6%)</strong> &mdash; RSI, MACD crossovers, SMA trends</li>
-                        <li><strong>Analyst (5%)</strong> &mdash; Consensus rating and target upside</li>
-                        <li><strong>Analyst Trend (5%)</strong> &mdash; Recent upgrade/downgrade momentum</li>
-                    </ul>
-                </div>
-                <div>
-                    <p class="font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase mt-2 mb-1">Environment</p>
-                    <ul class="list-disc ml-5 space-y-0.5">
-                        <li><strong>Industry Cycle (7%)</strong> &mdash; Sector ETF cycle phase</li>
-                        <li><strong>Macro (7%)</strong> &mdash; VIX regime and yield curve shape</li>
-                    </ul>
-                </div>
-            </div>
-            <p class="mt-3">Every stock analyzed is stored in a local SQLite database, building a historical record that enables industry-relative comparisons and forward-return analysis over time.</p>
-        </div>
-    </details>
 </div>
 {% endblock %}
 
@@ -159,7 +174,7 @@ function analyzeAlpha() {
     container.innerHTML =
         '<div class="flex flex-col items-center justify-center py-16">' +
         '  <div class="w-12 h-12 border-4 border-gray-200 border-t-[#1F4E79] rounded-full animate-spin mb-4"></div>' +
-        '  <p class="text-sm font-medium text-brand dark:text-blue-300">Computing Mosaic Alpha\u2122 for ' + symbol + '...</p>' +
+        '  <p class="text-sm font-medium text-brand dark:text-blue-300">Computing Mosaic Score for ' + symbol + '...</p>' +
         '  <p class="text-xs text-gray-400 mt-1">Fetching fundamentals, insider activity, technicals, and macro signals.</p>' +
         '</div>';
 
@@ -177,7 +192,7 @@ function analyzeAlpha() {
         history.replaceState(null, "", url);
     })
     .catch(function(err) {
-        container.innerHTML = '<p class="text-red-500 italic p-4">Could not compute Mosaic Alpha score: ' + err.message + '</p>';
+        container.innerHTML = '<p class="text-red-500 italic p-4">Could not compute Mosaic Score: ' + err.message + '</p>';
     })
     .finally(function() {
         btn.disabled = false;

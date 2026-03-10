@@ -9,7 +9,7 @@ home_bp = Blueprint("home", __name__)
 
 @home_bp.route("/")
 def index():
-    return redirect(url_for("portfolio.portfolio_page"))
+    return redirect(url_for("alpha.alpha_page"))
 
 
 @home_bp.route("/search")
