@@ -26,7 +26,10 @@ alpha_bp = Blueprint("alpha", __name__)
 def score_page():
     """Render the Mosaic Score page."""
     ticker = request.args.get("ticker", "").strip().upper()
-    sotd_symbol = get_stock_of_the_day_symbol()
+    try:
+        sotd_symbol = get_stock_of_the_day_symbol()
+    except Exception:
+        sotd_symbol = None
     return render_template("alpha.html", ticker=ticker, sotdSymbol=sotd_symbol)
 
 

@@ -166,8 +166,11 @@ def init_db():
     conn.close()
 
 
-# Initialize on import
-init_db()
+# Initialize on import — wrapped to never crash the app on startup
+try:
+    init_db()
+except Exception:
+    pass  # DB init failure should not prevent the app from starting
 
 
 # ── Data collection ──────────────────────────────────────────────────
@@ -1171,27 +1174,9 @@ _SOTD_CURATED = [
 def get_stock_of_the_day_symbol():
     """Return the ticker symbol for today's Stock of the Day.
 
-    Deterministic by day-of-year so it's consistent across page loads.
-    Uses tracked DB symbols if available, otherwise falls back to a
-    curated list of well-known stocks.
+    Deterministic by day-of-year. Uses the Dow 30 curated list directly
+    to avoid any DB queries on page load (keeps the landing page fast
+    and crash-proof on serverless).
     """
     today = datetime.now().timetuple().tm_yday
-
-    # Try DB first
-    try:
-        with _db_lock:
-            conn = _get_db()
-            try:
-                rows = conn.execute(
-                    "SELECT DISTINCT symbol FROM metric_snapshots ORDER BY symbol"
-                ).fetchall()
-            finally:
-                conn.close()
-        if rows:
-            symbols = [r["symbol"] for r in rows]
-            return symbols[today % len(symbols)]
-    except Exception:
-        pass
-
-    # Fallback to curated list
     return _SOTD_CURATED[today % len(_SOTD_CURATED)]
