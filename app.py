@@ -3,11 +3,12 @@
 import math
 import os
 import secrets
+import traceback
 
 from dotenv import load_dotenv
 load_dotenv()
 
-from flask import Flask
+from flask import Flask, jsonify, render_template_string
 from flask.json.provider import DefaultJSONProvider
 
 from routes.home import home_bp
@@ -70,6 +71,50 @@ def create_app():
     app.register_blueprint(portfolio_bp)
     app.register_blueprint(portfolio_widgets_bp)
     app.register_blueprint(alpha_bp)
+
+    # ── Health check endpoint ──────────────────────────────────────
+    @app.route("/health")
+    def health_check():
+        return jsonify({"status": "ok"}), 200
+
+    # ── Global error handlers ──────────────────────────────────────
+    _ERROR_PAGE = """
+    <!DOCTYPE html>
+    <html lang="en"><head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>{{ title }} - MarketMosaic</title>
+    <script src="https://cdn.tailwindcss.com"></script></head>
+    <body class="bg-gray-50 flex items-center justify-center min-h-screen">
+    <div class="text-center p-8">
+      <h1 class="text-6xl font-bold text-[#1F4E79] mb-4">{{ code }}</h1>
+      <p class="text-xl text-gray-600 mb-6">{{ message }}</p>
+      <a href="/" class="inline-block px-6 py-3 bg-[#1F4E79] text-white rounded-lg
+         hover:bg-[#163a5c] transition">Back to Home</a>
+    </div></body></html>
+    """
+
+    @app.errorhandler(404)
+    def not_found(e):
+        return render_template_string(
+            _ERROR_PAGE, title="Not Found", code=404,
+            message="The page you're looking for doesn't exist."
+        ), 404
+
+    @app.errorhandler(500)
+    def server_error(e):
+        traceback.print_exc()
+        return render_template_string(
+            _ERROR_PAGE, title="Server Error", code=500,
+            message="Something went wrong. Please try again."
+        ), 500
+
+    @app.errorhandler(Exception)
+    def unhandled_exception(e):
+        traceback.print_exc()
+        return render_template_string(
+            _ERROR_PAGE, title="Error", code=500,
+            message="An unexpected error occurred. Please try again."
+        ), 500
 
     @app.after_request
     def set_security_headers(response):

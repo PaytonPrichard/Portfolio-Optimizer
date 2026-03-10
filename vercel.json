@@ -1,18 +1,16 @@
 {
-  "builds": [
-    {
-      "src": "app.py",
-      "use": "@vercel/python"
-    }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index" }
   ],
-  "routes": [
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 60
+    }
+  },
+  "crons": [
     {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/app.py"
+      "path": "/api/alpha/cron",
+      "schedule": "0 6 * * *"
     }
   ]
 }

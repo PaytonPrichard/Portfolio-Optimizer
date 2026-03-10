@@ -16,6 +16,7 @@ Usage (CLI):
     python -m financials.alpha_collector full        # Run complete pipeline
 """
 
+import os
 import sys
 import time
 import threading
@@ -23,6 +24,11 @@ from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import yfinance as yf
+
+
+def _is_serverless():
+    """Detect if running in a serverless environment (Vercel, AWS Lambda, etc.)."""
+    return bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
 
 from .alpha import (
     collect_snapshot,
@@ -674,13 +680,88 @@ def run_full_pipeline():
     return summary
 
 
+# ── Serverless-friendly batch runner ──────────────────────────────────
+
+def run_cron_batch(max_seconds=50):
+    """Run a small collection batch synchronously, fitting within a
+    serverless timeout.  Prioritises: seed (if empty) → refresh → cycles.
+    Returns a summary string.
+    """
+    start = time.time()
+    results = []
+
+    tracked = get_all_tracked_symbols()
+
+    # If database is empty, seed a small batch
+    if not tracked:
+        batch = SEED_UNIVERSE[:20]  # ~20 symbols fits in ~50s
+        done, errors = 0, 0
+        for sym in batch:
+            if time.time() - start > max_seconds:
+                break
+            try:
+                if collect_snapshot(sym):
+                    done += 1
+                else:
+                    errors += 1
+            except Exception:
+                errors += 1
+        results.append(f"seeded {done}/{len(batch)}")
+        return "; ".join(results)
+
+    # Refresh a batch of tracked symbols (round-robin based on day of year)
+    batch_size = 15
+    day_offset = (datetime.now().timetuple().tm_yday * batch_size) % len(tracked)
+    batch = tracked[day_offset:day_offset + batch_size]
+    if len(batch) < batch_size:
+        batch += tracked[:batch_size - len(batch)]
+
+    done, errors = 0, 0
+
+    def _snap(sym):
+        try:
+            return collect_snapshot(sym)
+        except Exception:
+            return None
+
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        futures = {pool.submit(_snap, s): s for s in batch}
+        for future in as_completed(futures, timeout=max_seconds):
+            if time.time() - start > max_seconds:
+                break
+            try:
+                if future.result(timeout=10):
+                    done += 1
+                else:
+                    errors += 1
+            except Exception:
+                errors += 1
+
+    results.append(f"refreshed {done}/{len(batch)}")
+
+    # Persist sector cycles if time permits
+    if time.time() - start < max_seconds - 15:
+        try:
+            n = persist_sector_cycles()
+            results.append(f"{n} sector cycles")
+        except Exception:
+            pass
+
+    return "; ".join(results)
+
+
 # ── Background runner (for web UI trigger) ────────────────────────────
 
 _bg_thread = None
 
 
 def run_in_background(action="full"):
-    """Start a collection action in a background thread.
+    """Start a collection action.
+
+    On serverless (Vercel): runs synchronously with a smaller scope so
+    the work actually completes before the function exits.
+    On traditional servers: runs in a background thread.
+
     Returns True if started, False if already running.
     """
     global _bg_thread
@@ -701,6 +782,27 @@ def run_in_background(action="full"):
     if not fn:
         return False
 
+    # ── Serverless: run synchronously with a time-boxed batch ─────
+    if _is_serverless():
+        _update_status(running=True, action=action, progress=f"Starting: {action}")
+        try:
+            result = run_cron_batch(max_seconds=50)
+            _update_status(
+                running=False,
+                last_run=datetime.now().isoformat(),
+                last_result=f"Completed: {action} ({result})",
+                progress="",
+            )
+        except Exception as e:
+            _update_status(
+                running=False,
+                last_run=datetime.now().isoformat(),
+                last_result=f"Error in {action}: {e}",
+                progress="",
+            )
+        return True
+
+    # ── Traditional server: background thread ─────────────────────
     def _run():
         _update_status(running=True, action=action, progress=f"Starting: {action}")
         try:

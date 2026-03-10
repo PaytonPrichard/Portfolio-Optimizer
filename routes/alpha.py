@@ -1,5 +1,7 @@
 """Alpha Score routes — stock intelligence page and API endpoints."""
 
+import os
+
 from flask import Blueprint, render_template, request, jsonify
 
 from financials.alpha import (
@@ -12,6 +14,7 @@ from financials.alpha import (
 from financials.alpha_collector import (
     get_collection_status,
     run_in_background,
+    run_cron_batch,
     get_all_tracked_symbols,
     SEED_UNIVERSE,
 )
@@ -127,3 +130,31 @@ def alpha_scores_widget():
                                scoredCount=len(scored))
     except Exception as e:
         return f'<p class="text-red-500 text-sm italic">Alpha scores unavailable: {e}</p>'
+
+
+@alpha_bp.route("/api/alpha/cron", methods=["GET"])
+def cron_collect():
+    """Vercel Cron endpoint — runs a time-boxed batch of data collection.
+
+    Secured by CRON_SECRET env var: Vercel sends it as an Authorization
+    header on cron invocations.  Returns 401 if the secret doesn't match.
+    """
+    cron_secret = os.environ.get("CRON_SECRET")
+    if cron_secret:
+        auth = request.headers.get("Authorization", "")
+        if auth != f"Bearer {cron_secret}":
+            return jsonify({"error": "Unauthorized"}), 401
+
+    try:
+        result = run_cron_batch(max_seconds=50)
+        stats = get_db_stats()
+        return jsonify({
+            "status": "ok",
+            "result": result,
+            "db": {
+                "symbols": stats.get("uniqueSymbols", 0),
+                "snapshots": stats.get("totalSnapshots", 0),
+            },
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "error": str(e)}), 500
