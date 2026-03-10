@@ -22,11 +22,25 @@
 {# ─── Header: Score + Conviction ─── #}
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-        <div>
-            <h2 class="text-2xl font-bold text-brand dark:text-blue-300">{{ symbol }}{% if companyName %} <span class="text-lg font-semibold text-gray-600 dark:text-gray-400">{{ companyName }}</span>{% endif %}</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ sector }} / {{ industry }}</p>
-            {% if price %}<p class="text-lg font-semibold text-gray-800 dark:text-gray-200 mt-1">${{ '%.2f' | format(price) }} {% if marketCap %}<span class="text-sm text-gray-400 dark:text-gray-500 font-normal">{{ money(marketCap) }} market cap</span>{% endif %}</p>{% endif %}
-            <div class="flex items-center gap-2 mt-3">
+        <div class="flex items-start gap-4">
+            {% if logoUrl %}
+            <img src="{{ logoUrl }}" alt="{{ symbol }}" width="48" height="48"
+                 class="rounded-xl object-contain bg-white border border-gray-100 dark:border-gray-700 flex-shrink-0 mt-1"
+                 style="width:48px;height:48px;"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <div class="rounded-xl flex items-center justify-center flex-shrink-0 mt-1" style="width:48px;height:48px;background:#1F4E7915;border:1px solid #1F4E7925;display:none">
+                <span style="font-size:18px;font-weight:700;color:#1F4E79">{{ symbol[0] }}</span>
+            </div>
+            {% else %}
+            <div class="rounded-xl flex items-center justify-center flex-shrink-0 mt-1" style="width:48px;height:48px;background:#1F4E7915;border:1px solid #1F4E7925">
+                <span style="font-size:18px;font-weight:700;color:#1F4E79">{{ symbol[0] }}</span>
+            </div>
+            {% endif %}
+            <div>
+                <h2 class="text-2xl font-bold text-brand dark:text-blue-300">{{ symbol }}{% if companyName %} <span class="text-lg font-semibold text-gray-600 dark:text-gray-400">{{ companyName }}</span>{% endif %}</h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ sector }} / {{ industry }}</p>
+                {% if price %}<p class="text-lg font-semibold text-gray-800 dark:text-gray-200 mt-1">${{ '%.2f' | format(price) }} {% if marketCap %}<span class="text-sm text-gray-400 dark:text-gray-500 font-normal">{{ money(marketCap) }} market cap</span>{% endif %}</p>{% endif %}
+                <div class="flex items-center gap-2 mt-3">
                 <a href="/dashboard/{{ symbol }}" data-loading="Loading dashboard..." class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-[#183d5f] transition shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                     Full Dashboard
@@ -35,6 +49,7 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     Excel Report
                 </a>
+            </div>
             </div>
         </div>
         <div class="text-center">

@@ -206,9 +206,21 @@ def collect_snapshot(symbol):
     fcf = _safe_float(info.get("freeCashflow"))
     fcf_yield = (fcf / mcap) if fcf and mcap and mcap > 0 else None
 
+    # Extract logo domain from website
+    _website = info.get("website") or ""
+    _logo_domain = ""
+    if _website:
+        try:
+            from urllib.parse import urlparse
+            _parsed = urlparse(_website)
+            _logo_domain = (_parsed.netloc or _parsed.path).replace("www.", "")
+        except Exception:
+            pass
+
     snapshot = {
         "symbol": symbol.upper(),
         "company_name": info.get("longName") or info.get("shortName") or symbol.upper(),
+        "logo_domain": _logo_domain,
         "snapshot_date": datetime.now().strftime("%Y-%m-%d"),
         "sector": info.get("sector") or "Unknown",
         "industry": info.get("industry") or "Unknown",
@@ -261,7 +273,7 @@ def collect_snapshot(symbol):
         pass  # signal fetch failure shouldn't block snapshot storage
 
     # Store in database (exclude non-DB fields)
-    _non_db_fields = {"company_name"}
+    _non_db_fields = {"company_name", "logo_domain"}
     with _db_lock:
         conn = _get_db()
         try:
@@ -825,9 +837,13 @@ def compute_alpha_score(symbol):
     sector = snapshot.get("sector", "Unknown")
     cycle_data = sector_cycles.get(sector, {})
 
+    logo_domain = snapshot.get("logo_domain", "")
+    logo_url = f"https://logo.clearbit.com/{logo_domain}" if logo_domain else ""
+
     return {
         "symbol": symbol,
         "companyName": snapshot.get("company_name", symbol),
+        "logoUrl": logo_url,
         "alphaScore": alpha,
         "conviction": conviction,
         "subScores": sub_scores,
