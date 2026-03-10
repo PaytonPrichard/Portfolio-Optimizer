@@ -140,13 +140,12 @@
     <!-- Results container -->
     <div id="score-results"></div>
 
-    <p class="text-center text-[11px] text-gray-400 dark:text-gray-500 mt-6">For research purposes only, not financial advice. Market data sourced from Yahoo Finance.</p>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-// ── Ticker initial badge ────────────────────────────────────────────
+// ── Logo helpers ────────────────────────────────────────────────────
 function tickerBadge(symbol, size) {
     size = size || 40;
     var colors = ['#1F4E79','#2563eb','#7c3aed','#059669','#d97706','#dc2626','#0891b2','#4f46e5'];
@@ -154,6 +153,13 @@ function tickerBadge(symbol, size) {
     var fs = Math.round(size * 0.38);
     return '<div class="rounded-lg flex items-center justify-center flex-shrink-0" style="width:' + size + 'px;height:' + size + 'px;background:' + c + '15;border:1px solid ' + c + '25">' +
         '<span style="font-size:' + fs + 'px;font-weight:700;color:' + c + '">' + (symbol || '?')[0] + '</span></div>';
+}
+function logoImg(url, symbol, size) {
+    size = size || 40;
+    if (!url) return tickerBadge(symbol, size);
+    return '<img src="' + url + '" alt="' + symbol + '" width="' + size + '" height="' + size + '"' +
+        ' class="rounded-lg object-contain bg-white" style="width:' + size + 'px;height:' + size + 'px;"' +
+        ' onerror="this.outerHTML=tickerBadge(\'' + symbol + '\',' + size + ')">';
 }
 
 // ── Autocomplete search ─────────────────────────────────────────────
@@ -316,7 +322,7 @@ document.addEventListener("DOMContentLoaded", function() {
         var convColor = (d.conviction === "Strong Buy" || d.conviction === "Buy") ? "text-green-600 dark:text-green-400"
                       : d.conviction === "Hold" ? "text-yellow-600 dark:text-yellow-400"
                       : "text-red-600 dark:text-red-400";
-        var logo = tickerBadge(d.symbol, 44);
+        var logo = logoImg(d.logoUrl, d.symbol, 44);
         el.innerHTML =
             '<div class="flex items-center gap-3">' +
             '  <div class="flex-shrink-0">' + logo + '</div>' +
