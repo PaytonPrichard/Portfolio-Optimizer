@@ -838,7 +838,7 @@ def compute_alpha_score(symbol):
     cycle_data = sector_cycles.get(sector, {})
 
     logo_domain = snapshot.get("logo_domain", "")
-    logo_url = f"https://logo.clearbit.com/{logo_domain}" if logo_domain else ""
+    logo_url = f"https://www.google.com/s2/favicons?domain={logo_domain}&sz=128" if logo_domain else ""
 
     return {
         "symbol": symbol,
