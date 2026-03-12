@@ -149,6 +149,13 @@ function fetchWidget(containerId, url, body) {
         })
         .then(function (html) {
             el.innerHTML = html;
+            // If the server returned an error message, add a retry button
+            if (html.indexOf('text-red-500') !== -1) {
+                var retryDiv = document.createElement('div');
+                retryDiv.className = 'mt-2';
+                retryDiv.innerHTML = '<button onclick="retryWidget(\'' + containerId + '\')" class="text-xs font-semibold text-brand dark:text-blue-300 hover:underline px-2 py-1 border border-brand/30 dark:border-blue-400/30 rounded">Retry</button>';
+                el.appendChild(retryDiv);
+            }
         })
         .catch(function () {
             el.innerHTML =

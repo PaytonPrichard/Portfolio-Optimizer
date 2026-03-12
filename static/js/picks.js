@@ -36,6 +36,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 initPicksSorting();
                 initPicksFilters();
                 initComparison();
+                initMosaicScores();
             })
             .catch(function () {
                 container.innerHTML =
@@ -141,6 +142,8 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!tbody) return;
         var hideLow = document.getElementById("picks-hide-low");
         var buyOnly = document.getElementById("picks-buy-only");
+        var minScoreEl = document.getElementById("picks-min-score");
+        var minScore = minScoreEl ? parseInt(minScoreEl.value) || 0 : 0;
         var rows = tbody.querySelectorAll("tr");
         rows.forEach(function (row) {
             var hide = false;
@@ -148,6 +151,10 @@ document.addEventListener("DOMContentLoaded", function () {
             if (buyOnly && buyOnly.checked) {
                 var rec = row.getAttribute("data-rec-key") || "";
                 if (rec !== "buy" && rec !== "strong_buy") hide = true;
+            }
+            if (minScore > 0) {
+                var sc = parseInt(row.getAttribute("data-sort-score") || "0");
+                if (sc > 0 && sc < minScore) hide = true;
             }
             if (hide) { row.classList.add("hidden"); } else { row.classList.remove("hidden"); }
         });
@@ -299,5 +306,81 @@ document.addEventListener("DOMContentLoaded", function () {
                 updateBtn();
             });
         }
+    }
+
+    // ── Mosaic Score integration ──────────────────────────────────────
+    function initMosaicScores() {
+        var loadBtn = document.getElementById("load-scores-btn");
+        if (!loadBtn) return;
+
+        loadBtn.addEventListener("click", function() {
+            var cells = document.querySelectorAll(".picks-score-cell");
+            var symbols = [];
+            cells.forEach(function(c) {
+                var t = c.getAttribute("data-ticker");
+                if (t) symbols.push(t);
+            });
+            if (!symbols.length) return;
+
+            loadBtn.disabled = true;
+            loadBtn.textContent = "Loading scores...";
+
+            // Show spinner in each cell and reveal column
+            document.querySelectorAll(".picks-score-col").forEach(function(el) {
+                el.style.display = "";
+            });
+            cells.forEach(function(c) {
+                c.innerHTML = '<div class="w-4 h-4 border-2 border-gray-200 border-t-brand rounded-full animate-spin mx-auto"></div>';
+            });
+
+            fetch("/api/score/compare", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ symbols: symbols }),
+            })
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+                if (data.error) throw new Error(data.error);
+                var scoreMap = {};
+                (data.stocks || []).forEach(function(s) {
+                    scoreMap[s.symbol] = s.alphaScore;
+                });
+
+                cells.forEach(function(c) {
+                    var t = c.getAttribute("data-ticker");
+                    var score = scoreMap[t];
+                    var row = c.closest("tr");
+                    if (score !== undefined) {
+                        var cls = score >= 70 ? 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300' :
+                                  score >= 45 ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300' :
+                                  'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300';
+                        c.innerHTML = '<a href="/score?ticker=' + t + '" class="inline-block px-2 py-0.5 rounded text-xs font-bold ' + cls + ' hover:opacity-80 transition">' + score + '</a>';
+                        if (row) row.setAttribute("data-sort-score", score);
+                    } else {
+                        c.innerHTML = '<span class="text-xs text-gray-300 dark:text-gray-600">N/A</span>';
+                        if (row) row.setAttribute("data-sort-score", "0");
+                    }
+                });
+
+                // Show min-score filter
+                var wrap = document.getElementById("min-score-wrap");
+                if (wrap) wrap.style.display = "";
+                var minScoreEl = document.getElementById("picks-min-score");
+                if (minScoreEl) {
+                    minScoreEl.addEventListener("change", function() { applyPicksFilters(); });
+                    minScoreEl.addEventListener("input", function() { applyPicksFilters(); });
+                }
+
+                loadBtn.textContent = "Scores loaded";
+                loadBtn.classList.add("opacity-50", "cursor-default");
+            })
+            .catch(function() {
+                cells.forEach(function(c) {
+                    c.innerHTML = '<span class="text-xs text-red-400">err</span>';
+                });
+                loadBtn.textContent = "Retry Scores";
+                loadBtn.disabled = false;
+            });
+        });
     }
 });

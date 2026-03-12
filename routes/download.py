@@ -1,5 +1,7 @@
 """Excel download route — in-memory workbook served as file."""
 
+from datetime import datetime
+
 from flask import Blueprint, send_file
 
 from financials.data import fetch_data, fetch_recent_news, fetch_industry_peers
@@ -27,9 +29,10 @@ def download_excel(ticker):
     buf = build_full_workbook(ticker, info, quarterly_income, history,
                               commentary, news, peers)
 
+    date_stamp = datetime.now().strftime("%Y-%m-%d")
     return send_file(
         buf,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         as_attachment=True,
-        download_name=f"{ticker}_financials.xlsx",
+        download_name=f"{ticker}_financials_{date_stamp}.xlsx",
     )

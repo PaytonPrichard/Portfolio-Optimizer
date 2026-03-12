@@ -111,6 +111,47 @@ def score_search_api():
         return jsonify([])
 
 
+@alpha_bp.route("/api/score/compare", methods=["POST"])
+def score_compare_api():
+    """Return JSON comparison data for 2-5 tickers."""
+    data = request.get_json(silent=True) or {}
+    symbols = data.get("symbols", [])
+    if not isinstance(symbols, list):
+        return jsonify({"error": "symbols must be a list"}), 400
+    # Clean and validate
+    symbols = [s.strip().upper() for s in symbols if isinstance(s, str) and s.strip()]
+    symbols = [s for s in symbols if _TICKER_RE.match(s)]
+    symbols = list(dict.fromkeys(symbols))[:15]  # dedupe, cap at 15
+    if len(symbols) < 1:
+        return jsonify({"error": "Need at least 1 valid ticker"}), 400
+
+    try:
+        results = compute_alpha_scores_batch(symbols)
+        items = []
+        for sym in symbols:
+            r = results.get(sym)
+            if not r:
+                continue
+            items.append({
+                "symbol": r["symbol"],
+                "companyName": r.get("companyName", sym),
+                "logoUrl": r.get("logoUrl", ""),
+                "alphaScore": r["alphaScore"],
+                "conviction": r["conviction"],
+                "sector": r.get("sector", ""),
+                "price": r.get("price"),
+                "marketCap": r.get("marketCap"),
+                "subScores": r["subScores"],
+                "weights": r.get("weights", {}),
+                "factorExplanations": r.get("factorExplanations", {}),
+            })
+        if not items:
+            return jsonify({"error": "Could not score any tickers. Check symbols and try again."}), 404
+        return jsonify({"stocks": items})
+    except Exception:
+        return jsonify({"error": "Something went wrong"}), 500
+
+
 @alpha_bp.route("/api/score/sector-cycles")
 def sector_cycles_api():
     """Return current sector cycle analysis as JSON."""

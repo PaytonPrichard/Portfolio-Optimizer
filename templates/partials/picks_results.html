@@ -48,6 +48,7 @@
             <option value="analysts:desc">Analysts (Most-Least)</option>
             <option value="mcap:desc">Market Cap (High-Low)</option>
             <option value="rating:desc">Rating (Best-Worst)</option>
+            <option value="score:desc">Mosaic Score (High-Low)</option>
             <option value="symbol:asc">Symbol (A-Z)</option>
         </select>
     </div>
@@ -58,6 +59,15 @@
     <label class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
         <input type="checkbox" id="picks-buy-only" class="rounded">
         Buy/Strong Buy Only
+    </label>
+    <span class="mx-1 h-4 w-px bg-gray-300 dark:bg-gray-600 hidden sm:inline-block"></span>
+    <button type="button" id="load-scores-btn" class="text-xs font-semibold text-brand dark:text-blue-300 bg-brand/5 dark:bg-blue-900/20 border border-brand/15 dark:border-blue-400/20 px-3 py-1 rounded-full hover:bg-brand/15 dark:hover:bg-blue-900/40 transition">
+        Load Mosaic Scores
+    </button>
+    <label class="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400" id="min-score-wrap" style="display:none">
+        Min Score:
+        <input type="number" id="picks-min-score" min="0" max="100" value="0" step="5"
+               class="w-14 text-xs border border-gray-300 dark:border-gray-600 rounded px-1.5 py-0.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300">
     </label>
 </div>
 
@@ -112,6 +122,7 @@
                 <th class="px-3 py-2 text-center">Implied Upside</th>
                 <th class="px-3 py-2 text-center">Rating</th>
                 <th class="px-3 py-2 text-center"># Analysts</th>
+                <th class="px-3 py-2 text-center picks-score-col" style="display:none">Mosaic</th>
                 <th class="px-3 py-2 text-center w-10"></th>
             </tr>
         </thead>
@@ -156,6 +167,9 @@
                 </td>
                 <td class="px-3 py-2 text-center text-gray-500 dark:text-gray-400">
                     {{ p.nAnalysts }}{{ low_coverage_badge(p.lowCoverage) }}
+                </td>
+                <td class="px-3 py-2 text-center picks-score-col picks-score-cell" data-ticker="{{ p.symbol }}" style="display:none">
+                    <span class="text-xs text-gray-300 dark:text-gray-600">&mdash;</span>
                 </td>
                 <td class="px-3 py-2 text-center">
                     <button class="add-to-tracker text-brand dark:text-blue-300 hover:text-green-600 dark:hover:text-green-400 transition" data-ticker="{{ p.symbol }}" title="Add to Tracker watchlist">

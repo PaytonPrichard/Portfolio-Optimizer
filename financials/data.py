@@ -215,6 +215,69 @@ def fetch_quote(symbol: str) -> dict:
     return result
 
 
+def fetch_earnings_dates(symbols: list) -> list:
+    """Fetch next earnings dates for a list of symbols. Returns list of dicts."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def _get_one(sym):
+        try:
+            t = yf.Ticker(sym)
+            info = t.info or {}
+            # yfinance stores next earnings date in earningsTimestamp or earningsDate
+            cal = None
+            try:
+                cal = t.calendar
+            except Exception:
+                pass
+
+            earnings_date = None
+            if isinstance(cal, dict):
+                ed = cal.get("Earnings Date")
+                if isinstance(ed, list) and ed:
+                    earnings_date = str(ed[0])
+                elif ed:
+                    earnings_date = str(ed)
+            if not earnings_date:
+                # Fallback: info dict
+                for key in ("earningsTimestamp", "earningsDate"):
+                    val = info.get(key)
+                    if val:
+                        if isinstance(val, (int, float)):
+                            earnings_date = datetime.fromtimestamp(val).strftime("%Y-%m-%d")
+                        else:
+                            earnings_date = str(val)[:10]
+                        break
+
+            name = info.get("longName") or info.get("shortName") or sym
+            price = info.get("currentPrice") or info.get("regularMarketPrice")
+            market_cap = info.get("marketCap")
+
+            return {
+                "symbol": sym.upper(),
+                "name": name,
+                "earningsDate": earnings_date,
+                "price": price,
+                "marketCap": market_cap,
+                "sector": info.get("sector", ""),
+            }
+        except Exception:
+            return {"symbol": sym.upper(), "name": sym, "earningsDate": None,
+                    "price": None, "marketCap": None, "sector": ""}
+
+    results = []
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        futures = {pool.submit(_get_one, s): s for s in symbols[:30]}
+        for f in as_completed(futures):
+            try:
+                results.append(f.result())
+            except Exception:
+                pass
+
+    # Sort by earnings date (soonest first, None last)
+    results.sort(key=lambda x: (x["earningsDate"] is None, x["earningsDate"] or "9999"))
+    return results
+
+
 ALLOWED_INDUSTRIES = {
     # Technology
     "semiconductors", "software-infrastructure", "software-application",

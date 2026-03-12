@@ -8,12 +8,20 @@
             <h1 class="text-3xl font-bold text-brand dark:text-blue-300 mb-1">Mosaic Score</h1>
             <p class="text-gray-500 dark:text-gray-400 text-sm">13-factor composite blending fundamentals, smart money signals, technicals, and macro conditions.</p>
         </div>
-        <button type="button" id="score-another-btn" style="display:none"
-                onclick="document.getElementById('idle-state').style.display='';document.getElementById('how-it-works').style.display='';document.getElementById('score-results').innerHTML='';this.style.display='none';window.scrollTo({top:0,behavior:'smooth'});setTimeout(function(){document.getElementById('score-input').focus();document.getElementById('score-input').select();},300);"
-                class="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-brand dark:text-blue-300 border border-brand/25 dark:border-blue-400/25 rounded-lg hover:bg-brand/5 dark:hover:bg-blue-900/20 transition whitespace-nowrap">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            Score Another Stock
-        </button>
+        <div class="flex items-center gap-2 flex-shrink-0">
+            <button type="button" id="compare-toggle-btn"
+                    onclick="toggleCompare()"
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-brand dark:text-blue-300 border border-brand/25 dark:border-blue-400/25 rounded-lg hover:bg-brand/5 dark:hover:bg-blue-900/20 transition whitespace-nowrap">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                Compare
+            </button>
+            <button type="button" id="score-another-btn" style="display:none"
+                    onclick="document.getElementById('idle-state').style.display='';document.getElementById('how-it-works').style.display='';document.getElementById('score-results').innerHTML='';this.style.display='none';window.scrollTo({top:0,behavior:'smooth'});setTimeout(function(){document.getElementById('score-input').focus();document.getElementById('score-input').select();},300);"
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-brand dark:text-blue-300 border border-brand/25 dark:border-blue-400/25 rounded-lg hover:bg-brand/5 dark:hover:bg-blue-900/20 transition whitespace-nowrap">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                Score Another
+            </button>
+        </div>
     </div>
 
     <!-- Two-column: Search + Sidebar -->
@@ -146,6 +154,40 @@
             </div>
         </div>
     </details>
+
+    <!-- Compare Mode Panel (hidden by default) -->
+    <div id="compare-panel" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 mb-6" style="display:none">
+        <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-brand dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300">Compare Stocks</h3>
+            </div>
+            <button type="button" onclick="toggleCompare()" class="text-xs text-gray-400 hover:text-red-500 transition">Close</button>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Enter 2-5 tickers separated by commas to compare Mosaic Scores side by side.</p>
+        <div class="flex flex-col sm:flex-row gap-3">
+            <input type="text" id="compare-input" placeholder="e.g. AAPL, MSFT, GOOGL" maxlength="60"
+                   class="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-brand/30 focus:border-brand outline-none bg-white dark:bg-gray-800 dark:text-gray-200 placeholder-gray-400"
+                   onkeydown="if(event.key==='Enter'){event.preventDefault();runCompare();}">
+            <button type="button" onclick="runCompare()" id="compare-btn"
+                    class="bg-brand text-white px-8 py-3 rounded-lg text-sm font-semibold hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                Compare
+            </button>
+        </div>
+        <!-- Quick compare presets -->
+        <div class="mt-3 flex flex-wrap gap-1.5">
+            <span class="text-[11px] text-gray-400 dark:text-gray-500 mr-1 self-center">Quick:</span>
+            {% for group in [("FAANG", "META, AAPL, AMZN, NFLX, GOOGL"), ("Mega Cap", "AAPL, MSFT, NVDA, GOOGL"), ("Banks", "JPM, BAC, GS, WFC"), ("EV", "TSLA, RIVN, F, GM")] %}
+            <button type="button" onclick="document.getElementById('compare-input').value='{{ group[1] }}';runCompare();"
+                    class="px-2.5 py-1 text-[11px] font-medium text-brand dark:text-blue-300 bg-brand/5 dark:bg-blue-900/20 border border-brand/10 dark:border-blue-400/20 rounded-full hover:bg-brand/15 dark:hover:bg-blue-900/40 transition">
+                {{ group[0] }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Compare results container -->
+    <div id="compare-results"></div>
 
     <!-- Results container -->
     <div id="score-results"></div>
@@ -315,6 +357,203 @@ function analyzeScore() {
         btn.disabled = false;
         btn.textContent = "Analyze";
     });
+}
+
+// ── Compare Stocks ──────────────────────────────────────────────────
+var _compareOpen = false;
+function toggleCompare() {
+    _compareOpen = !_compareOpen;
+    var panel = document.getElementById("compare-panel");
+    var results = document.getElementById("compare-results");
+    panel.style.display = _compareOpen ? "" : "none";
+    if (!_compareOpen) { results.innerHTML = ""; }
+    else { document.getElementById("compare-input").focus(); }
+}
+
+function runCompare() {
+    var input = document.getElementById("compare-input");
+    var btn = document.getElementById("compare-btn");
+    var container = document.getElementById("compare-results");
+    var raw = input.value.trim();
+    if (!raw) { input.focus(); return; }
+
+    var symbols = raw.split(/[\s,]+/).map(function(s) { return s.trim().toUpperCase(); }).filter(Boolean);
+    symbols = symbols.filter(function(s, i, a) { return a.indexOf(s) === i; }); // dedupe
+    if (symbols.length < 2) {
+        container.innerHTML = '<p class="text-red-500 text-sm italic p-4">Enter at least 2 tickers to compare.</p>';
+        return;
+    }
+    if (symbols.length > 5) symbols = symbols.slice(0, 5);
+
+    btn.disabled = true;
+    btn.textContent = "Comparing...";
+    container.innerHTML =
+        '<div class="flex flex-col items-center justify-center py-12">' +
+        '  <div class="w-10 h-10 border-4 border-gray-200 border-t-[#1F4E79] rounded-full animate-spin mb-3"></div>' +
+        '  <p class="text-sm font-medium text-brand dark:text-blue-300">Comparing ' + symbols.join(", ") + '...</p>' +
+        '  <p class="text-xs text-gray-400 mt-1">Computing scores for ' + symbols.length + ' stocks in parallel.</p>' +
+        '</div>';
+
+    // Hide single-score results
+    document.getElementById("score-results").innerHTML = "";
+    var saBtn = document.getElementById("score-another-btn");
+    if (saBtn) saBtn.style.display = "none";
+
+    fetch("/api/score/compare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbols: symbols }),
+    })
+    .then(function(resp) { return resp.json(); })
+    .then(function(data) {
+        if (data.error) {
+            container.innerHTML = '<p class="text-red-500 text-sm italic p-4">' + data.error + '</p>';
+            return;
+        }
+        container.innerHTML = renderCompareTable(data.stocks);
+    })
+    .catch(function(err) {
+        container.innerHTML = '<p class="text-red-500 text-sm italic p-4">Comparison failed: ' + err.message + '</p>';
+    })
+    .finally(function() {
+        btn.disabled = false;
+        btn.textContent = "Compare";
+    });
+}
+
+function renderCompareTable(stocks) {
+    var factors = [
+        ["Fundamentals", [["Value", "value"], ["Quality", "quality"], ["Growth", "growth"], ["Earnings", "earnings_surprise"]]],
+        ["Smart Money", [["Insider", "insider"], ["Institutional", "institutional"], ["Buyback", "buyback"]]],
+        ["Market Signals", [["Momentum", "momentum"], ["Technical", "technical"], ["Analyst", "analyst"], ["Analyst Trend", "analyst_momentum"]]],
+        ["Environment", [["Industry Cycle", "industry_cycle"], ["Macro", "macro"]]],
+    ];
+
+    function scoreClass(s) {
+        return s >= 70 ? 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20' :
+               s >= 45 ? 'text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' :
+                         'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20';
+    }
+    function convClass(c) {
+        return (c === 'Strong Buy' || c === 'Buy') ? 'text-green-600 dark:text-green-400' :
+               c === 'Hold' ? 'text-yellow-600 dark:text-yellow-400' :
+               'text-red-600 dark:text-red-400';
+    }
+    function barHtml(score) {
+        var color = score >= 70 ? 'bg-green-500' : score >= 45 ? 'bg-yellow-500' : 'bg-red-500';
+        return '<div class="h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden mt-0.5" style="width:60px">' +
+               '<div class="h-full rounded-full ' + color + '" style="width:' + score + '%"></div></div>';
+    }
+    function fmtCap(v) {
+        if (!v) return '-';
+        if (v >= 1e12) return '$' + (v / 1e12).toFixed(1) + 'T';
+        if (v >= 1e9) return '$' + (v / 1e9).toFixed(1) + 'B';
+        if (v >= 1e6) return '$' + (v / 1e6).toFixed(0) + 'M';
+        return '$' + v.toLocaleString();
+    }
+
+    var colW = Math.floor(100 / (stocks.length + 1));
+    var h = '<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">';
+
+    // Header row with logos, names, scores
+    h += '<div class="grid border-b border-gray-200 dark:border-gray-700" style="grid-template-columns: minmax(120px, 1fr) repeat(' + stocks.length + ', minmax(100px, 1fr))">';
+    h += '<div class="p-4 bg-gray-50 dark:bg-gray-700/50"></div>';
+    stocks.forEach(function(s) {
+        var logo = logoImg(s.logoUrl, s.symbol, 36);
+        h += '<div class="p-4 text-center border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">';
+        h += '<div class="flex flex-col items-center gap-1.5">';
+        h += logo;
+        h += '<div><span class="text-sm font-bold text-brand dark:text-blue-300">' + s.symbol + '</span></div>';
+        h += '<p class="text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[120px]">' + (s.companyName || '') + '</p>';
+        h += '</div></div>';
+    });
+    h += '</div>';
+
+    // Overall score row
+    h += '<div class="grid border-b border-gray-200 dark:border-gray-700" style="grid-template-columns: minmax(120px, 1fr) repeat(' + stocks.length + ', minmax(100px, 1fr))">';
+    h += '<div class="p-3 px-4 font-bold text-sm text-gray-700 dark:text-gray-300 bg-brand/5 dark:bg-blue-900/10">Mosaic Score</div>';
+    // Find best score to highlight winner
+    var bestScore = Math.max.apply(null, stocks.map(function(s) { return s.alphaScore; }));
+    stocks.forEach(function(s) {
+        var isBest = s.alphaScore === bestScore && stocks.length > 1;
+        h += '<div class="p-3 text-center border-l border-gray-200 dark:border-gray-700 bg-brand/5 dark:bg-blue-900/10">';
+        h += '<span class="text-2xl font-bold ' + scoreClass(s.alphaScore) + ' px-2 py-0.5 rounded-lg">' + s.alphaScore + '</span>';
+        if (isBest) h += '<span class="block text-[10px] text-green-600 dark:text-green-400 font-semibold mt-0.5">Best</span>';
+        h += '</div>';
+    });
+    h += '</div>';
+
+    // Conviction row
+    h += '<div class="grid border-b border-gray-200 dark:border-gray-700" style="grid-template-columns: minmax(120px, 1fr) repeat(' + stocks.length + ', minmax(100px, 1fr))">';
+    h += '<div class="p-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400">Conviction</div>';
+    stocks.forEach(function(s) {
+        h += '<div class="p-3 text-center border-l border-gray-200 dark:border-gray-700">';
+        h += '<span class="text-xs font-bold ' + convClass(s.conviction) + '">' + s.conviction + '</span>';
+        h += '</div>';
+    });
+    h += '</div>';
+
+    // Price & market cap
+    h += '<div class="grid border-b border-gray-200 dark:border-gray-700" style="grid-template-columns: minmax(120px, 1fr) repeat(' + stocks.length + ', minmax(100px, 1fr))">';
+    h += '<div class="p-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400">Price / Cap</div>';
+    stocks.forEach(function(s) {
+        h += '<div class="p-3 text-center border-l border-gray-200 dark:border-gray-700">';
+        h += '<span class="text-sm font-semibold text-gray-700 dark:text-gray-300">' + (s.price ? '$' + s.price.toFixed(2) : '-') + '</span>';
+        h += '<span class="block text-[10px] text-gray-400">' + fmtCap(s.marketCap) + '</span>';
+        h += '</div>';
+    });
+    h += '</div>';
+
+    // Factor groups
+    factors.forEach(function(group) {
+        var catName = group[0], items = group[1];
+        // Category header
+        h += '<div class="grid border-b border-gray-200 dark:border-gray-700" style="grid-template-columns: minmax(120px, 1fr) repeat(' + stocks.length + ', minmax(100px, 1fr))">';
+        h += '<div class="p-2 px-4 bg-gray-50 dark:bg-gray-700/50 col-span-' + (stocks.length + 1) + '">';
+        h += '<span class="text-[10px] uppercase tracking-wider font-bold text-gray-400 dark:text-gray-500">' + catName + '</span>';
+        h += '</div></div>';
+
+        items.forEach(function(item) {
+            var fname = item[0], fkey = item[1];
+            // Find best sub-score in this row
+            var bestSub = Math.max.apply(null, stocks.map(function(s) { return (s.subScores || {})[fkey] || 0; }));
+            h += '<div class="grid border-b border-gray-100 dark:border-gray-700/50" style="grid-template-columns: minmax(120px, 1fr) repeat(' + stocks.length + ', minmax(100px, 1fr))">';
+            h += '<div class="p-2 px-4 text-xs font-medium text-gray-600 dark:text-gray-400">' + fname + '</div>';
+            stocks.forEach(function(s) {
+                var sc = (s.subScores || {})[fkey] || 0;
+                var isBest = sc === bestSub && sc > 0 && stocks.length > 1;
+                h += '<div class="p-2 text-center border-l border-gray-100 dark:border-gray-700/50">';
+                h += '<span class="text-sm font-bold ' + scoreClass(sc) + ' px-1.5 py-0.5 rounded">' + sc + '</span>';
+                if (isBest) h += '<span class="text-[9px] text-green-500 ml-0.5">&#9650;</span>';
+                h += barHtml(sc);
+                h += '</div>';
+            });
+            h += '</div>';
+        });
+    });
+
+    // Sector row
+    h += '<div class="grid" style="grid-template-columns: minmax(120px, 1fr) repeat(' + stocks.length + ', minmax(100px, 1fr))">';
+    h += '<div class="p-3 px-4 text-xs font-medium text-gray-500 dark:text-gray-400">Sector</div>';
+    stocks.forEach(function(s) {
+        h += '<div class="p-3 text-center border-l border-gray-200 dark:border-gray-700">';
+        h += '<span class="text-[11px] text-gray-500 dark:text-gray-400">' + (s.sector || '-') + '</span>';
+        h += '</div>';
+    });
+    h += '</div>';
+
+    h += '</div>'; // close wrapper
+
+    // Actions row
+    h += '<div class="flex items-center justify-between mb-6">';
+    h += '<p class="text-[11px] text-gray-400 dark:text-gray-500">Mosaic Scores are quantitative composites for research purposes only, not investment advice.</p>';
+    h += '<div class="flex gap-2">';
+    stocks.forEach(function(s) {
+        h += '<a href="/score?ticker=' + s.symbol + '" class="text-xs font-medium text-brand dark:text-blue-300 hover:underline">' + s.symbol + ' detail</a>';
+    });
+    h += '</div></div>';
+
+    return h;
 }
 
 document.addEventListener("DOMContentLoaded", function() {

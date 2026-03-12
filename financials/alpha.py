@@ -839,6 +839,8 @@ def compute_alpha_score(symbol):
     _ld = snapshot.get("logo_domain", "")
     logo_url = f"https://www.google.com/s2/favicons?domain={_ld}&sz=128" if _ld else ""
 
+    factor_explanations = _generate_factor_explanations(snapshot, signals, cycle_data)
+
     return {
         "symbol": symbol,
         "companyName": snapshot.get("company_name", symbol),
@@ -851,6 +853,7 @@ def compute_alpha_score(symbol):
         "historicalContext": context,
         "sectorCycle": cycle_data,
         "insights": insights,
+        "factorExplanations": factor_explanations,
         "price": snapshot.get("price"),
         "sector": sector,
         "industry": snapshot.get("industry", "Unknown"),
@@ -864,6 +867,161 @@ def compute_alpha_score(symbol):
         "technicalData": signals.get("technical"),
         "macroData": signals.get("macro"),
     }
+
+
+def _generate_factor_explanations(snapshot, signals, sector_cycle):
+    """Build concise one-line explanations for each sub-score factor."""
+    s = snapshot or {}
+    sig = signals or {}
+    expl = {}
+
+    # ── Value ──
+    parts = []
+    pe = s.get("trailing_pe")
+    if pe:
+        parts.append(f"P/E {pe:.1f}")
+    pb = s.get("price_to_book")
+    if pb:
+        parts.append(f"P/B {pb:.1f}")
+    peg = s.get("peg_ratio")
+    if peg:
+        parts.append(f"PEG {peg:.1f}")
+    ev = s.get("ev_to_ebitda")
+    if ev:
+        parts.append(f"EV/EBITDA {ev:.1f}")
+    expl["value"] = " · ".join(parts) if parts else ""
+
+    # ── Quality ──
+    parts = []
+    roe = s.get("roe")
+    if roe is not None:
+        parts.append(f"ROE {roe * 100:.0f}%")
+    om = s.get("operating_margins")
+    if om is not None:
+        parts.append(f"Op margin {om * 100:.0f}%")
+    de = s.get("debt_to_equity")
+    if de is not None:
+        parts.append(f"D/E {de:.0f}")
+    fy = s.get("fcf_yield")
+    if fy is not None:
+        parts.append(f"FCF yield {fy * 100:.1f}%")
+    expl["quality"] = " · ".join(parts) if parts else ""
+
+    # ── Growth ──
+    parts = []
+    rg = s.get("revenue_growth")
+    if rg is not None:
+        parts.append(f"Revenue {'+' if rg >= 0 else ''}{rg * 100:.0f}%")
+    eg = s.get("earnings_growth")
+    if eg is not None:
+        parts.append(f"Earnings {'+' if eg >= 0 else ''}{eg * 100:.0f}%")
+    expl["growth"] = " · ".join(parts) if parts else ""
+
+    # ── Earnings Surprise ──
+    ed = sig.get("earnings") or {}
+    br = ed.get("beatRate")
+    avgs = ed.get("avgSurprise")
+    if br is not None:
+        txt = f"Beat {br * 100:.0f}% of quarters"
+        if avgs is not None:
+            txt += f" · Avg surprise {'+' if avgs >= 0 else ''}{avgs:.1f}%"
+        expl["earnings_surprise"] = txt
+    else:
+        expl["earnings_surprise"] = ""
+
+    # ── Insider ──
+    ins = sig.get("insider") or {}
+    ib = ins.get("buyCount", 0)
+    isl = ins.get("sellCount", 0)
+    if ib or isl:
+        expl["insider"] = f"{ib} buy{'s' if ib != 1 else ''}, {isl} sell{'s' if isl != 1 else ''} (6mo)"
+    else:
+        expl["insider"] = "No recent insider activity"
+
+    # ── Institutional ──
+    inst = sig.get("institutional") or {}
+    ip = inst.get("institutionalPct")
+    if ip is not None:
+        expl["institutional"] = f"{ip:.0f}% institutional ownership"
+    else:
+        expl["institutional"] = ""
+
+    # ── Buyback ──
+    bb = sig.get("buyback") or {}
+    sc = bb.get("sharesChange1y")
+    if sc is not None:
+        if sc < -0.5:
+            expl["buyback"] = f"Shares down {abs(sc):.1f}% YoY (buyback)"
+        elif sc > 0.5:
+            expl["buyback"] = f"Shares up {sc:.1f}% YoY (dilution)"
+        else:
+            expl["buyback"] = "Share count roughly flat YoY"
+    else:
+        expl["buyback"] = ""
+
+    # ── Momentum ──
+    expl["momentum"] = ""  # computed from price history, no simple metric to show
+
+    # ── Technical ──
+    tech = sig.get("technical") or {}
+    parts = []
+    rsi = tech.get("rsi14")
+    if rsi is not None:
+        parts.append(f"RSI {rsi:.0f}")
+    macd = tech.get("macdSignal")
+    if macd:
+        parts.append(f"MACD {macd.replace('_', ' ')}")
+    if tech.get("aboveSma200"):
+        parts.append("Above 200d SMA")
+    elif tech.get("aboveSma200") is False:
+        parts.append("Below 200d SMA")
+    expl["technical"] = " · ".join(parts) if parts else ""
+
+    # ── Analyst ──
+    parts = []
+    ar = s.get("analyst_rating")
+    if ar:
+        parts.append(ar.replace("_", " ").title())
+    at = s.get("analyst_target")
+    pr = s.get("price")
+    if at and pr and pr > 0:
+        upside = (at - pr) / pr * 100
+        parts.append(f"${at:.0f} target ({'+' if upside >= 0 else ''}{upside:.0f}%)")
+    ac = s.get("analyst_count")
+    if ac:
+        parts.append(f"{ac} analysts")
+    expl["analyst"] = " · ".join(parts) if parts else ""
+
+    # ── Analyst Momentum ──
+    am = sig.get("analyst_momentum") or {}
+    up = am.get("upgrades6m", 0)
+    dn = am.get("downgrades6m", 0)
+    if up or dn:
+        expl["analyst_momentum"] = f"{up} upgrade{'s' if up != 1 else ''}, {dn} downgrade{'s' if dn != 1 else ''} (6mo)"
+    else:
+        expl["analyst_momentum"] = "No recent rating changes"
+
+    # ── Industry Cycle ──
+    sc_data = sector_cycle or {}
+    phase = sc_data.get("phase", "")
+    if phase:
+        expl["industry_cycle"] = f"{s.get('sector', 'Sector')} in {phase} phase"
+    else:
+        expl["industry_cycle"] = ""
+
+    # ── Macro ──
+    mac = sig.get("macro") or {}
+    parts = []
+    vix = mac.get("vix")
+    if vix is not None:
+        parts.append(f"VIX {vix:.0f}")
+    ys = mac.get("yieldSpread")
+    if ys is not None:
+        label = "inverted" if ys < 0 else "normal" if ys > 0.5 else "flat"
+        parts.append(f"Yield curve {label} ({'+' if ys >= 0 else ''}{ys:.2f}%)")
+    expl["macro"] = " · ".join(parts) if parts else ""
+
+    return expl
 
 
 def _generate_insights(snapshot, sub_scores, context, sector_cycles, signals=None):

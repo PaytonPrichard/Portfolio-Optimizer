@@ -186,10 +186,16 @@ def _prepare_dashboard_data(symbol: str) -> dict:
         try:
             price_data = []
             for date, row in history.iterrows():
-                price_data.append({
+                entry = {
                     "date": date.strftime("%Y-%m-%d"),
                     "close": round(float(row["Close"]), 2),
-                })
+                }
+                if "Volume" in row and row["Volume"] is not None:
+                    try:
+                        entry["volume"] = int(row["Volume"])
+                    except (ValueError, TypeError):
+                        pass
+                price_data.append(entry)
             price_history_json = json.dumps(price_data)
         except Exception:
             pass

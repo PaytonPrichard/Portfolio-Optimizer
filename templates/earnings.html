@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}Earnings Calendar - MarketMosaic{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex items-start justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-brand dark:text-blue-300 mb-1">Earnings Calendar</h1>
+            <p class="text-gray-500 dark:text-gray-400 text-sm">Upcoming earnings report dates for major stocks. Add your own tickers to track.</p>
+        </div>
+    </div>
+
+    <!-- Custom tickers input -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 mb-6">
+        <div class="flex flex-col sm:flex-row gap-3">
+            <div class="flex-1">
+                <label for="earnings-input" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Custom tickers (comma-separated)</label>
+                <input type="text" id="earnings-input" placeholder="e.g. AAPL, MSFT, TSLA or leave blank for popular stocks" maxlength="200"
+                       class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-brand/30 focus:border-brand outline-none bg-white dark:bg-gray-800 dark:text-gray-200 placeholder-gray-400">
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="button" onclick="loadEarnings()" id="earnings-load-btn"
+                        class="bg-brand text-white px-6 py-3 rounded-lg text-sm font-semibold hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                    Load Calendar
+                </button>
+                <button type="button" onclick="loadFromTracker()" id="earnings-tracker-btn"
+                        class="px-4 py-3 text-sm font-semibold text-brand dark:text-blue-300 border border-brand/25 dark:border-blue-400/25 rounded-lg hover:bg-brand/5 dark:hover:bg-blue-900/20 transition whitespace-nowrap">
+                    From Tracker
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div id="earnings-content"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    var TRACKER_KEY = "finanalyzer_watchlist";
+
+    function loadFromTracker() {
+        var list = [];
+        try { list = JSON.parse(localStorage.getItem(TRACKER_KEY)) || []; } catch(e) {}
+        if (!list.length) {
+            document.getElementById("earnings-content").innerHTML =
+                '<p class="text-gray-500 text-sm italic p-4">No stocks in your tracker. Add stocks on the <a href="/tracker" class="text-brand hover:underline">Tracker page</a> first.</p>';
+            return;
+        }
+        var syms = list.map(function(i) { return i.ticker; }).join(", ");
+        document.getElementById("earnings-input").value = syms;
+        loadEarnings();
+    }
+    window.loadFromTracker = loadFromTracker;
+
+    function loadEarnings() {
+        var input = document.getElementById("earnings-input");
+        var btn = document.getElementById("earnings-load-btn");
+        var container = document.getElementById("earnings-content");
+        var raw = input.value.trim();
+        var symbols = raw ? raw.split(/[\s,]+/).map(function(s) { return s.trim().toUpperCase(); }).filter(Boolean) : [];
+
+        btn.disabled = true;
+        btn.textContent = "Loading...";
+        container.innerHTML =
+            '<div class="flex flex-col items-center justify-center py-16">' +
+            '  <div class="w-10 h-10 border-4 border-gray-200 border-t-[#1F4E79] rounded-full animate-spin mb-3"></div>' +
+            '  <p class="text-sm font-medium text-brand dark:text-blue-300">Fetching earnings dates...</p>' +
+            '  <p class="text-xs text-gray-400 mt-1">This may take a moment for many tickers.</p>' +
+            '</div>';
+
+        fetch("/api/earnings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ symbols: symbols.length ? symbols : null }),
+        })
+        .then(function(resp) { return resp.json(); })
+        .then(function(data) {
+            if (data.error) {
+                container.innerHTML = '<p class="text-red-500 text-sm italic p-4">' + data.error + '</p>';
+                return;
+            }
+            container.innerHTML = renderEarningsCalendar(data.earnings || []);
+        })
+        .catch(function(err) {
+            container.innerHTML = '<p class="text-red-500 text-sm italic p-4">Failed to load earnings data. Please try again.</p>';
+        })
+        .finally(function() {
+            btn.disabled = false;
+            btn.textContent = "Load Calendar";
+        });
+    }
+    window.loadEarnings = loadEarnings;
+
+    function renderEarningsCalendar(items) {
+        if (!items.length) return '<p class="text-gray-500 text-sm italic p-4">No earnings data found.</p>';
+
+        var today = new Date();
+        today.setHours(0,0,0,0);
+
+        // Split into upcoming and past/unknown
+        var upcoming = [], noDate = [];
+        items.forEach(function(item) {
+            if (item.earningsDate) {
+                var ed = new Date(item.earningsDate + "T00:00:00");
+                var diff = Math.ceil((ed - today) / (1000 * 60 * 60 * 24));
+                item._date = ed;
+                item._daysAway = diff;
+                upcoming.push(item);
+            } else {
+                item._daysAway = null;
+                noDate.push(item);
+            }
+        });
+
+        // Sort upcoming by date
+        upcoming.sort(function(a, b) { return a._date - b._date; });
+
+        function fmtDate(d) {
+            var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            var days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            return days[d.getDay()] + ", " + months[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
+        }
+
+        function fmtCap(v) {
+            if (!v) return '';
+            if (v >= 1e12) return '$' + (v / 1e12).toFixed(1) + 'T';
+            if (v >= 1e9) return '$' + (v / 1e9).toFixed(1) + 'B';
+            if (v >= 1e6) return '$' + (v / 1e6).toFixed(0) + 'M';
+            return '$' + v.toLocaleString();
+        }
+
+        function urgencyClass(days) {
+            if (days <= 0) return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300';
+            if (days <= 7) return 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300';
+            if (days <= 30) return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300';
+            return 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
+        }
+
+        function daysLabel(days) {
+            if (days < 0) return Math.abs(days) + 'd ago';
+            if (days === 0) return 'Today';
+            if (days === 1) return 'Tomorrow';
+            return days + ' days';
+        }
+
+        var h = '';
+
+        // Summary cards for this week / next week
+        var thisWeek = upcoming.filter(function(i) { return i._daysAway >= 0 && i._daysAway <= 7; });
+        var nextWeek = upcoming.filter(function(i) { return i._daysAway > 7 && i._daysAway <= 14; });
+
+        if (thisWeek.length || nextWeek.length) {
+            h += '<div class="grid sm:grid-cols-2 gap-4 mb-6">';
+            if (thisWeek.length) {
+                h += '<div class="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-800 rounded-xl p-4">';
+                h += '<h3 class="text-sm font-bold text-orange-700 dark:text-orange-300 mb-2">This Week (' + thisWeek.length + ')</h3>';
+                h += '<div class="space-y-1.5">';
+                thisWeek.forEach(function(i) {
+                    h += '<div class="flex items-center justify-between">';
+                    h += '<a href="/score?ticker=' + i.symbol + '" class="text-sm font-bold text-brand dark:text-blue-300 hover:underline">' + i.symbol + '</a>';
+                    h += '<span class="text-xs text-orange-600 dark:text-orange-400">' + fmtDate(i._date) + '</span>';
+                    h += '</div>';
+                });
+                h += '</div></div>';
+            }
+            if (nextWeek.length) {
+                h += '<div class="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4">';
+                h += '<h3 class="text-sm font-bold text-yellow-700 dark:text-yellow-300 mb-2">Next Week (' + nextWeek.length + ')</h3>';
+                h += '<div class="space-y-1.5">';
+                nextWeek.forEach(function(i) {
+                    h += '<div class="flex items-center justify-between">';
+                    h += '<a href="/score?ticker=' + i.symbol + '" class="text-sm font-bold text-brand dark:text-blue-300 hover:underline">' + i.symbol + '</a>';
+                    h += '<span class="text-xs text-yellow-600 dark:text-yellow-400">' + fmtDate(i._date) + '</span>';
+                    h += '</div>';
+                });
+                h += '</div></div>';
+            }
+            h += '</div>';
+        }
+
+        // Full table
+        h += '<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">';
+        h += '<table class="w-full text-sm">';
+        h += '<thead><tr class="bg-brand-light dark:bg-brand/20 text-brand dark:text-blue-300 font-bold text-xs uppercase">';
+        h += '<th class="px-4 py-2.5 text-left">Company</th>';
+        h += '<th class="px-3 py-2.5 text-center">Ticker</th>';
+        h += '<th class="px-3 py-2.5 text-center">Earnings Date</th>';
+        h += '<th class="px-3 py-2.5 text-center">Countdown</th>';
+        h += '<th class="px-3 py-2.5 text-right">Price</th>';
+        h += '<th class="px-3 py-2.5 text-center">Sector</th>';
+        h += '</tr></thead><tbody>';
+
+        var all = upcoming.concat(noDate);
+        all.forEach(function(item, idx) {
+            var stripe = idx % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/30' : '';
+            h += '<tr class="' + stripe + ' hover:bg-brand-light/30 dark:hover:bg-brand/10 transition-colors">';
+            h += '<td class="px-4 py-2.5"><a href="/dashboard/' + item.symbol + '" class="text-brand dark:text-blue-300 hover:underline font-medium">' + (item.name || item.symbol) + '</a></td>';
+            h += '<td class="px-3 py-2.5 text-center"><a href="/score?ticker=' + item.symbol + '" class="text-brand dark:text-blue-300 font-bold hover:underline">' + item.symbol + '</a></td>';
+            h += '<td class="px-3 py-2.5 text-center text-gray-700 dark:text-gray-300">' + (item._date ? fmtDate(item._date) : '<span class="text-gray-400 italic">TBD</span>') + '</td>';
+
+            if (item._daysAway !== null) {
+                h += '<td class="px-3 py-2.5 text-center"><span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold ' + urgencyClass(item._daysAway) + '">' + daysLabel(item._daysAway) + '</span></td>';
+            } else {
+                h += '<td class="px-3 py-2.5 text-center text-gray-400">-</td>';
+            }
+
+            h += '<td class="px-3 py-2.5 text-right text-gray-700 dark:text-gray-300">' + (item.price ? '$' + item.price.toFixed(2) : '-') + '</td>';
+            h += '<td class="px-3 py-2.5 text-center text-xs text-gray-500 dark:text-gray-400">' + (item.sector || '-') + '</td>';
+            h += '</tr>';
+        });
+
+        h += '</tbody></table></div>';
+        h += '<p class="text-[11px] text-gray-400 dark:text-gray-500 italic mt-3">Earnings dates sourced from Yahoo Finance. Dates may change. Not investment advice.</p>';
+
+        return h;
+    }
+
+    // Auto-load popular stocks on page visit
+    document.addEventListener("DOMContentLoaded", function() {
+        loadEarnings();
+    });
+})();
+</script>
+{% endblock %}

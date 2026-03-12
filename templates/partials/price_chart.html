@@ -5,7 +5,23 @@
         <span class="text-lg font-bold">${{ '%.2f' | format(current_price) }}</span>
         {% endif %}
     </div>
-    <div class="p-4" style="height: 320px;">
+    <!-- Indicator toggles -->
+    <div class="px-4 pt-3 pb-1 flex flex-wrap items-center gap-3 text-xs" id="chart-controls">
+        <span class="text-gray-400 dark:text-gray-500 font-medium uppercase tracking-wide">Overlays:</span>
+        <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" id="toggle-sma50" class="rounded accent-blue-500" checked>
+            <span class="text-gray-600 dark:text-gray-400">SMA 50</span>
+        </label>
+        <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" id="toggle-sma200" class="rounded accent-purple-500">
+            <span class="text-gray-600 dark:text-gray-400">SMA 200</span>
+        </label>
+        <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" id="toggle-volume" class="rounded accent-gray-500">
+            <span class="text-gray-600 dark:text-gray-400">Volume</span>
+        </label>
+    </div>
+    <div class="px-4 pb-4" style="height: 340px;">
         <canvas id="priceChart"></canvas>
     </div>
 </div>
@@ -15,14 +31,47 @@
     var rawData = {{ price_history_json | safe }};
     if (!rawData || !rawData.length) return;
 
-    // Sample down for performance if > 200 points
+    // Keep all data for SMA calculations, but sample for display
+    var fullPrices = rawData.map(function(d) { return d.close; });
+    var fullVolumes = rawData.map(function(d) { return d.volume || 0; });
+
+    // Compute SMAs on full data
+    function computeSMA(prices, period) {
+        var sma = [];
+        for (var i = 0; i < prices.length; i++) {
+            if (i < period - 1) { sma.push(null); continue; }
+            var sum = 0;
+            for (var j = i - period + 1; j <= i; j++) sum += prices[j];
+            sma.push(sum / period);
+        }
+        return sma;
+    }
+
+    var sma50Full = computeSMA(fullPrices, 50);
+    var sma200Full = computeSMA(fullPrices, 200);
+
+    // Sample down for display
     var data = rawData;
+    var sma50 = sma50Full, sma200 = sma200Full, volumes = fullVolumes;
     if (data.length > 200) {
         var step = Math.ceil(data.length / 200);
-        var sampled = [];
-        for (var i = 0; i < data.length; i += step) sampled.push(data[i]);
-        if (sampled[sampled.length - 1] !== data[data.length - 1]) sampled.push(data[data.length - 1]);
+        var sampled = [], s50 = [], s200 = [], vol = [];
+        for (var i = 0; i < data.length; i += step) {
+            sampled.push(data[i]);
+            s50.push(sma50Full[i]);
+            s200.push(sma200Full[i]);
+            vol.push(fullVolumes[i]);
+        }
+        if (sampled[sampled.length - 1] !== data[data.length - 1]) {
+            sampled.push(data[data.length - 1]);
+            s50.push(sma50Full[data.length - 1]);
+            s200.push(sma200Full[data.length - 1]);
+            vol.push(fullVolumes[data.length - 1]);
+        }
         data = sampled;
+        sma50 = s50;
+        sma200 = s200;
+        volumes = vol;
     }
 
     var labels = data.map(function(d) { return d.date; });
@@ -35,7 +84,6 @@
 
     var ctx = document.getElementById('priceChart').getContext('2d');
 
-    // Gradient fill
     var gradient = ctx.createLinearGradient(0, 0, 0, 300);
     if (isUp) {
         gradient.addColorStop(0, 'rgba(34, 197, 94, 0.25)');
@@ -45,20 +93,68 @@
         gradient.addColorStop(1, 'rgba(239, 68, 68, 0.02)');
     }
 
-    new Chart(ctx, {
+    // Normalize volume for overlay (scale to ~20% of price range)
+    var maxVol = Math.max.apply(null, volumes.filter(function(v) { return v > 0; })) || 1;
+    var minPrice = Math.min.apply(null, prices);
+    var priceRange = Math.max.apply(null, prices) - minPrice;
+    var volScaled = volumes.map(function(v) {
+        return minPrice + (v / maxVol) * priceRange * 0.2;
+    });
+
+    var chart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
-            datasets: [{
-                data: prices,
-                borderColor: isUp ? '#16a34a' : '#dc2626',
-                backgroundColor: gradient,
-                borderWidth: 2,
-                fill: true,
-                tension: 0.1,
-                pointRadius: 0,
-                pointHitRadius: 8,
-            }]
+            datasets: [
+                {
+                    label: 'Price',
+                    data: prices,
+                    borderColor: isUp ? '#16a34a' : '#dc2626',
+                    backgroundColor: gradient,
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    pointHitRadius: 8,
+                    order: 1,
+                },
+                {
+                    label: 'SMA 50',
+                    data: sma50,
+                    borderColor: '#3b82f6',
+                    borderWidth: 1.5,
+                    borderDash: [4, 3],
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    hidden: false,
+                    order: 2,
+                },
+                {
+                    label: 'SMA 200',
+                    data: sma200,
+                    borderColor: '#a855f7',
+                    borderWidth: 1.5,
+                    borderDash: [6, 4],
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 0,
+                    hidden: true,
+                    order: 3,
+                },
+                {
+                    label: 'Volume',
+                    data: volScaled,
+                    type: 'bar',
+                    backgroundColor: isDark ? 'rgba(156, 163, 175, 0.15)' : 'rgba(156, 163, 175, 0.2)',
+                    borderWidth: 0,
+                    barPercentage: 1.0,
+                    categoryPercentage: 1.0,
+                    hidden: true,
+                    order: 4,
+                    yAxisID: 'y',
+                },
+            ]
         },
         options: {
             responsive: true,
@@ -72,10 +168,16 @@
                 tooltip: {
                     backgroundColor: '#1F4E79',
                     titleFont: { size: 12 },
-                    bodyFont: { size: 13, weight: 'bold' },
+                    bodyFont: { size: 12 },
+                    filter: function(item) {
+                        return item.dataset.label !== 'Volume';
+                    },
                     callbacks: {
                         label: function(ctx) {
-                            return '$' + ctx.parsed.y.toFixed(2);
+                            if (ctx.dataset.label === 'Volume') return null;
+                            var val = ctx.parsed.y;
+                            if (val === null) return null;
+                            return ctx.dataset.label + ': $' + val.toFixed(2);
                         }
                     }
                 }
@@ -99,6 +201,20 @@
                 }
             }
         }
+    });
+
+    // Toggle handlers
+    document.getElementById('toggle-sma50').addEventListener('change', function() {
+        chart.data.datasets[1].hidden = !this.checked;
+        chart.update();
+    });
+    document.getElementById('toggle-sma200').addEventListener('change', function() {
+        chart.data.datasets[2].hidden = !this.checked;
+        chart.update();
+    });
+    document.getElementById('toggle-volume').addEventListener('change', function() {
+        chart.data.datasets[3].hidden = !this.checked;
+        chart.update();
     });
 })();
 </script>
