@@ -38,8 +38,8 @@ def sector_momentum_widget():
         momentum = fetch_sector_momentum(portfolio_sectors)
         return render_template("partials/portfolio_sector_momentum.html",
                                sectors=momentum)
-    except Exception as e:
-        return f'<p class="text-red-500 text-sm italic">Sector momentum unavailable: {e}</p>'
+    except Exception:
+        return '<p class="text-red-500 text-sm italic">Sector momentum temporarily unavailable.</p>'
 
 
 @portfolio_widgets_bp.route("/api/portfolio/widget/news-digest", methods=["POST"])
@@ -51,8 +51,8 @@ def news_digest_widget():
         news = fetch_holdings_news(holdings)
         return render_template("partials/portfolio_news_digest.html",
                                news=news)
-    except Exception as e:
-        return f'<p class="text-red-500 text-sm italic">News digest unavailable: {e}</p>'
+    except Exception:
+        return '<p class="text-red-500 text-sm italic">News digest temporarily unavailable.</p>'
 
 
 @portfolio_widgets_bp.route("/api/portfolio/widget/ai-commentary", methods=["POST"])
@@ -68,8 +68,8 @@ def ai_commentary_widget():
             holdings, by_sector, concentration, analyst_overview)
         return render_template("partials/portfolio_ai_commentary.html",
                                commentary=commentary)
-    except Exception as e:
-        return f'<p class="text-red-500 text-sm italic">AI commentary unavailable: {e}</p>'
+    except Exception:
+        return '<p class="text-red-500 text-sm italic">AI commentary temporarily unavailable.</p>'
 
 
 @portfolio_widgets_bp.route("/api/portfolio/widget/peer-valuation", methods=["POST"])
@@ -81,8 +81,8 @@ def peer_valuation_widget():
         comparisons = fetch_peer_valuations(holdings)
         return render_template("partials/portfolio_peer_valuation.html",
                                comparisons=comparisons)
-    except Exception as e:
-        return f'<p class="text-red-500 text-sm italic">Peer valuation unavailable: {e}</p>'
+    except Exception:
+        return '<p class="text-red-500 text-sm italic">Peer valuation temporarily unavailable.</p>'
 
 
 @portfolio_widgets_bp.route("/api/portfolio/widget/historical-performance", methods=["POST"])
@@ -97,8 +97,8 @@ def historical_performance_widget():
         perf = fetch_portfolio_performance(holdings, period)
         return render_template("partials/portfolio_historical_performance.html",
                                **perf)
-    except Exception as e:
-        return f'<p class="text-red-500 text-sm italic">Historical performance unavailable: {e}</p>'
+    except Exception:
+        return '<p class="text-red-500 text-sm italic">Historical performance temporarily unavailable.</p>'
 
 
 @portfolio_widgets_bp.route("/api/portfolio/widget/correlation", methods=["POST"])
@@ -109,8 +109,8 @@ def correlation_widget():
         holdings = data.get("holdings", [])
         result = compute_correlation_matrix(holdings)
         return render_template("partials/portfolio_correlation.html", **result)
-    except Exception as e:
-        return f'<p class="text-red-500 text-sm italic">Correlation matrix unavailable: {e}</p>'
+    except Exception:
+        return '<p class="text-red-500 text-sm italic">Correlation matrix temporarily unavailable.</p>'
 
 
 @portfolio_widgets_bp.route("/api/portfolio/widget/ethical-investing", methods=["POST"])
@@ -122,8 +122,8 @@ def ethical_investing_widget():
         analysis = fetch_ethical_analysis(holdings)
         return render_template("partials/portfolio_ethical_investing.html",
                                **analysis)
-    except Exception as e:
-        return f'<p class="text-red-500 text-sm italic">ESG analysis unavailable: {e}</p>'
+    except Exception:
+        return '<p class="text-red-500 text-sm italic">ESG analysis temporarily unavailable.</p>'
 
 
 @portfolio_widgets_bp.route("/api/portfolio/widget/risk-dashboard", methods=["POST"])
@@ -134,8 +134,8 @@ def risk_dashboard_widget():
         holdings = data.get("holdings", [])
         metrics = compute_risk_metrics(holdings)
         return render_template("partials/portfolio_risk_dashboard.html", **metrics)
-    except Exception as e:
-        return f'<p class="text-red-500 text-sm italic">Risk dashboard unavailable: {e}</p>'
+    except Exception:
+        return '<p class="text-red-500 text-sm italic">Risk dashboard temporarily unavailable.</p>'
 
 
 @portfolio_widgets_bp.route("/api/portfolio/widget/monte-carlo", methods=["POST"])
@@ -147,8 +147,8 @@ def monte_carlo_widget():
         years = data.get("years", 10)
         result = run_monte_carlo(holdings, years=years)
         return render_template("partials/portfolio_monte_carlo.html", **result)
-    except Exception as e:
-        return f'<p class="text-red-500 text-sm italic">Monte Carlo unavailable: {e}</p>'
+    except Exception:
+        return '<p class="text-red-500 text-sm italic">Monte Carlo temporarily unavailable.</p>'
 
 
 @portfolio_widgets_bp.route("/api/portfolio/widget/stress-test", methods=["POST"])
@@ -160,8 +160,8 @@ def stress_test_widget():
         scenarios = run_stress_tests(holdings)
         return render_template("partials/portfolio_stress_test.html",
                                scenarios=scenarios)
-    except Exception as e:
-        return f'<p class="text-red-500 text-sm italic">Stress test unavailable: {e}</p>'
+    except Exception:
+        return '<p class="text-red-500 text-sm italic">Stress test temporarily unavailable.</p>'
 
 
 @portfolio_widgets_bp.route("/api/portfolio/widget/optimizer", methods=["POST"])
@@ -174,8 +174,8 @@ def optimizer_widget():
         if result is None:
             return '<p class="text-gray-400 text-sm italic">Need at least 2 holdings for portfolio optimization.</p>'
         return render_template("partials/portfolio_optimizer.html", **result)
-    except Exception as e:
-        return f'<p class="text-red-500 text-sm italic">Optimizer unavailable: {e}</p>'
+    except Exception:
+        return '<p class="text-red-500 text-sm italic">Optimizer temporarily unavailable.</p>'
 
 
 @portfolio_widgets_bp.route("/api/portfolio/widget/fee-analysis", methods=["POST"])
@@ -186,8 +186,8 @@ def fee_analysis_widget():
         holdings = data.get("holdings", [])
         result = compute_fee_analysis(holdings)
         return render_template("partials/portfolio_fee_analysis.html", **result)
-    except Exception as e:
-        return f'<p class="text-red-500 text-sm italic">Fee analysis unavailable: {e}</p>'
+    except Exception:
+        return '<p class="text-red-500 text-sm italic">Fee analysis temporarily unavailable.</p>'
 
 
 @portfolio_widgets_bp.route("/api/portfolio/widget/factor-exposure", methods=["POST"])
@@ -198,8 +198,8 @@ def factor_exposure_widget():
         holdings = data.get("holdings", [])
         result = compute_factor_exposure(holdings)
         return render_template("partials/portfolio_factor_exposure.html", **result)
-    except Exception as e:
-        return f'<p class="text-red-500 text-sm italic">Factor exposure unavailable: {e}</p>'
+    except Exception:
+        return '<p class="text-red-500 text-sm italic">Factor exposure temporarily unavailable.</p>'
 
 
 @portfolio_widgets_bp.route("/api/portfolio/widget/fundamentals", methods=["POST"])
@@ -210,5 +210,5 @@ def fundamentals_widget():
         holdings = data.get("holdings", [])
         result = analyze_portfolio_fundamentals(holdings)
         return render_template("partials/portfolio_fundamentals.html", **result)
-    except Exception as e:
-        return f'<p class="text-red-500 text-sm italic">Fundamental analysis unavailable: {e}</p>'
+    except Exception:
+        return '<p class="text-red-500 text-sm italic">Fundamental analysis temporarily unavailable.</p>'

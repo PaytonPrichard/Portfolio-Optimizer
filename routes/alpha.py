@@ -1,6 +1,7 @@
 """Mosaic Score routes — stock intelligence page and API endpoints."""
 
 import os
+import re
 
 from flask import Blueprint, render_template, request, jsonify, redirect
 
@@ -18,6 +19,8 @@ from financials.alpha_collector import (
 )
 
 alpha_bp = Blueprint("alpha", __name__)
+
+_TICKER_RE = re.compile(r"^[A-Z0-9\-\.]{1,10}$")
 
 
 # ── Main page ────────────────────────────────────────────────────────
@@ -51,14 +54,16 @@ def score_compute_api():
     symbol = (data.get("symbol") or "").strip().upper()
     if not symbol:
         return '<p class="text-red-500 text-sm italic p-4">Enter a ticker symbol or company name.</p>', 400
+    if not _TICKER_RE.match(symbol):
+        return '<p class="text-red-500 text-sm italic p-4">Invalid ticker format. Use letters, numbers, dots, or hyphens.</p>', 400
 
     try:
         result = compute_alpha_score(symbol)
         if not result:
             return f'<p class="text-red-500 text-sm italic p-4">Could not analyze {symbol}. Check the ticker and try again.</p>', 404
         return render_template("partials/alpha_result.html", **result)
-    except Exception as e:
-        return f'<p class="text-red-500 text-sm italic p-4">Error: {e}</p>', 500
+    except Exception:
+        return '<p class="text-red-500 text-sm italic p-4">Something went wrong. Please try again.</p>', 500
 
 
 @alpha_bp.route("/api/score/summary/<ticker>")
@@ -78,8 +83,8 @@ def score_summary_api(ticker):
             "sector": result.get("sector", ""),
             "price": result.get("price"),
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        return jsonify({"error": "Something went wrong"}), 500
 
 
 @alpha_bp.route("/api/score/search")
@@ -112,8 +117,8 @@ def sector_cycles_api():
     try:
         cycles = _compute_sector_cycles()
         return jsonify(cycles)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        return jsonify({"error": "Something went wrong"}), 500
 
 
 # ── Collection APIs (used by cron/CLI) ───────────────────────────────
@@ -185,8 +190,8 @@ def mosaic_scores_widget():
                                scored=scored,
                                weightedAlpha=round(weighted),
                                scoredCount=len(scored))
-    except Exception as e:
-        return f'<p class="text-red-500 text-sm italic">Mosaic scores unavailable: {e}</p>'
+    except Exception:
+        return '<p class="text-red-500 text-sm italic">Mosaic scores temporarily unavailable. Please try again.</p>'
 
 
 # Keep old widget URL working for cached JS
@@ -201,10 +206,11 @@ def alpha_scores_widget_compat():
 def cron_collect():
     """Vercel Cron endpoint — runs a time-boxed batch of data collection."""
     cron_secret = os.environ.get("CRON_SECRET")
-    if cron_secret:
-        auth = request.headers.get("Authorization", "")
-        if auth != f"Bearer {cron_secret}":
-            return jsonify({"error": "Unauthorized"}), 401
+    if not cron_secret:
+        return jsonify({"error": "Not configured"}), 503
+    auth = request.headers.get("Authorization", "")
+    if auth != f"Bearer {cron_secret}":
+        return jsonify({"error": "Unauthorized"}), 401
 
     try:
         result = run_cron_batch(max_seconds=50)
@@ -217,5 +223,5 @@ def cron_collect():
                 "snapshots": stats.get("totalSnapshots", 0),
             },
         })
-    except Exception as e:
-        return jsonify({"status": "error", "error": str(e)}), 500
+    except Exception:
+        return jsonify({"status": "error"}), 500

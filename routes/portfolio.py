@@ -1,6 +1,7 @@
 """Portfolio analysis blueprint — upload brokerage CSV or manual entry, get analysis."""
 
 import traceback
+from html import escape
 
 from flask import Blueprint, render_template, request, jsonify
 
@@ -29,7 +30,7 @@ def portfolio_analyze():
         return '<p class="text-red-500 italic p-4">No file selected.</p>', 400
 
     if not file.filename.lower().endswith(".csv"):
-        return '<p class="text-red-500 italic p-4">Please upload a .csv file (got: ' + file.filename + ').</p>', 400
+        return '<p class="text-red-500 italic p-4">Please upload a .csv file (got: ' + escape(file.filename) + ').</p>', 400
 
     try:
         holdings = parse_portfolio_csv(file.stream)
@@ -43,9 +44,9 @@ def portfolio_analyze():
         holdings = enrich_holdings(holdings)
         analysis = analyze_portfolio(holdings)
         return render_template("partials/portfolio_results.html", **analysis)
-    except Exception as e:
+    except Exception:
         traceback.print_exc()
-        return f'<p class="text-red-500 italic p-4">Error during analysis: {e.__class__.__name__}: {e}</p>', 500
+        return '<p class="text-red-500 italic p-4">Something went wrong during analysis. Please check your CSV and try again.</p>', 500
 
 
 @portfolio_bp.route("/api/portfolio/analyze-manual", methods=["POST"])
@@ -68,6 +69,6 @@ def portfolio_analyze_manual():
         holdings = _fill_prices_from_enrichment(holdings)
         analysis = analyze_portfolio(holdings)
         return render_template("partials/portfolio_results.html", **analysis)
-    except Exception as e:
+    except Exception:
         traceback.print_exc()
-        return f'<p class="text-red-500 italic p-4">Error during analysis: {e.__class__.__name__}: {e}</p>', 500
+        return '<p class="text-red-500 italic p-4">Something went wrong during analysis. Please check your entries and try again.</p>', 500

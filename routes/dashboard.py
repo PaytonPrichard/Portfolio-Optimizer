@@ -217,10 +217,10 @@ def dashboard(ticker):
     ticker = ticker.upper()
     try:
         data = _prepare_dashboard_data(ticker)
-    except Exception as exc:
+    except Exception:
         return render_template("error.html",
                                title="Data Fetch Failed",
-                               message=f"Could not retrieve data for {ticker}: {exc}"), 500
+                               message=f"Could not retrieve data for {ticker}. Please check the ticker and try again."), 500
 
     if data is None:
         return render_template("error.html",
