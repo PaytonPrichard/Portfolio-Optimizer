@@ -35,60 +35,74 @@
 <body class="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col transition-colors">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-brand focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg">Skip to content</a>
     <!-- Navigation -->
+    {% set nav_categories = [
+        ("Analysis", [
+            ("/score", "Score a Stock", ["/score"]),
+            ("/portfolio", "Optimize My Portfolio", ["/portfolio"]),
+        ]),
+        ("Discover", [
+            ("/screener", "Find My Next Stock", ["/screener"]),
+            ("/picks", "See Analyst Picks", ["/picks"]),
+        ]),
+        ("Monitor", [
+            ("/earnings", "Earnings Calendar", ["/earnings"]),
+            ("/tracker", "Track My Stocks", ["/tracker"]),
+        ]),
+    ] %}
     <nav class="bg-brand text-white shadow-lg dark:shadow-gray-900/50 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <a href="/" class="flex items-center space-x-2">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
-                    <span class="font-bold text-lg">MarketMosaic</span>
-                </a>
-                <!-- Desktop links -->
-                <div class="hidden sm:flex items-center space-x-1">
-                    {% set primary_nav = [
-                        ("/score", "Mosaic Score", ["/score"]),
-                        ("/portfolio", "Portfolio", ["/portfolio"]),
-                    ] %}
-                    {% set secondary_nav = [
-                        ("/screener", "Screener", ["/screener"]),
-                        ("/picks", "Picks", ["/picks"]),
-                        ("/earnings", "Earnings", ["/earnings"]),
-                        ("/tracker", "Tracker", ["/tracker"]),
-                        ("/info", "Info", ["/info"]),
-                    ] %}
-                    {% set nav_keys = ['1', '2', '3', '4', '5', '6', '7'] %}
-                    {# Primary nav — larger, bold, pill-styled #}
-                    {% for href, label, paths in primary_nav %}
-                        {% set is_active = request.path in paths %}
-                        <a href="{{ href }}" class="{{ 'bg-white/20 text-white shadow-sm' if is_active else 'text-gray-200 hover:bg-white/10 hover:text-white' }} px-3.5 py-1.5 rounded-lg text-[15px] font-bold transition" title="{{ label }} ({{ nav_keys[loop.index0] }})">
-                            <span class="hidden lg:inline-block text-[10px] font-mono opacity-50 mr-0.5 align-top">{{ nav_keys[loop.index0] }}</span>{{ label }}
-                        </a>
+            <div class="flex items-center justify-between h-14">
+                <!-- Brand + Home -->
+                <div class="flex items-center gap-4">
+                    <a href="/" class="flex items-center space-x-2">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <span class="font-bold text-lg">MarketMosaic</span>
+                    </a>
+                    <span class="hidden sm:block h-5 w-px bg-white/20"></span>
+                    <a href="/" class="hidden sm:inline-flex items-center gap-1.5 text-sm font-semibold {{ 'text-white' if request.path == '/' else 'text-gray-300 hover:text-white' }} transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4"/></svg>
+                        Home
+                    </a>
+                </div>
+
+                <!-- Desktop: Category dropdowns -->
+                <div class="hidden sm:flex items-center gap-1">
+                    {% for cat_name, items in nav_categories %}
+                    {% set cat_active = request.path in items | map(attribute=2) | sum(start=[]) %}
+                    <div class="relative group">
+                        <button class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-semibold transition {{ 'bg-white/20 text-white' if cat_active else 'text-gray-200 hover:bg-white/10 hover:text-white' }}" type="button">
+                            {{ cat_name }}
+                            <svg class="w-3.5 h-3.5 opacity-60 transition-transform group-hover:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <!-- Dropdown -->
+                        <div class="absolute hidden group-hover:block top-full left-1/2 -translate-x-1/2 pt-2" style="min-width: 220px;">
+                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1.5 overflow-hidden">
+                                {% for href, label, paths in items %}
+                                {% set is_active = request.path in paths %}
+                                <a href="{{ href }}" class="flex items-center gap-3 px-4 py-2.5 text-sm transition {{ 'bg-brand-light dark:bg-brand/20 text-brand dark:text-blue-300 font-semibold' if is_active else 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50' }}">
+                                    <span class="font-medium">{{ label }}</span>
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
                     {% endfor %}
-                    {# Divider #}
-                    <span class="mx-2 h-5 w-px bg-white/20"></span>
-                    {# Secondary nav — medium weight #}
-                    {% for href, label, paths in secondary_nav %}
-                        {% set is_active = request.path in paths %}
-                        <a href="{{ href }}" class="{{ 'text-white font-semibold' if is_active else 'text-gray-300 hover:text-white' }} px-2.5 py-1.5 text-sm font-semibold transition" title="{{ label }} ({{ nav_keys[loop.index0 + 2] }})">
-                            <span class="hidden lg:inline-block text-[10px] font-mono opacity-40 mr-0.5 align-top">{{ nav_keys[loop.index0 + 2] }}</span>{{ label }}
-                        </a>
-                    {% endfor %}
-                    <!-- Dark mode toggle (desktop) -->
-                    <button id="theme-toggle" class="p-2 rounded-lg hover:bg-brand-dark transition" aria-label="Toggle dark mode" title="Toggle dark mode">
-                        <!-- Sun icon (shown in dark mode) -->
+
+                    <!-- Dark mode toggle -->
+                    <button id="theme-toggle" class="ml-2 p-2 rounded-lg hover:bg-brand-dark transition" aria-label="Toggle dark mode" title="Toggle dark mode">
                         <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
                         </svg>
-                        <!-- Moon icon (shown in light mode) -->
                         <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
                         </svg>
                     </button>
                 </div>
-                <!-- Mobile hamburger -->
+
+                <!-- Mobile: hamburger + dark mode -->
                 <div class="sm:hidden flex items-center gap-2">
-                    <!-- Dark mode toggle (mobile) -->
                     <button id="theme-toggle-mobile" class="p-2 rounded hover:bg-brand-dark transition" aria-label="Toggle dark mode">
                         <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
@@ -105,16 +119,28 @@
                     </button>
                 </div>
             </div>
-            <!-- Mobile menu -->
-            <div id="nav-menu" class="sm:hidden hidden pb-3 space-y-1">
-                {% for href, label, paths in primary_nav %}
-                    {% set is_active = request.path in paths %}
-                    <a href="{{ href }}" class="block px-3 py-2 rounded transition font-medium {{ 'bg-brand-dark font-semibold' if is_active else 'hover:bg-brand-dark' }}">{{ label }}</a>
-                {% endfor %}
-                <div class="border-t border-white/10 my-1"></div>
-                {% for href, label, paths in secondary_nav %}
-                    {% set is_active = request.path in paths %}
-                    <a href="{{ href }}" class="block px-3 py-2 rounded transition text-sm text-gray-300 {{ 'bg-brand-dark font-semibold text-white' if is_active else 'hover:bg-brand-dark' }}">{{ label }}</a>
+
+            <!-- Mobile menu (accordion) -->
+            <div id="nav-menu" class="sm:hidden hidden pb-3">
+                <a href="/" class="flex items-center gap-2 px-3 py-2.5 rounded font-medium transition {{ 'bg-brand-dark' if request.path == '/' else 'hover:bg-brand-dark' }}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4"/></svg>
+                    Home
+                </a>
+                <div class="border-t border-white/10 my-1.5"></div>
+                {% for cat_name, items in nav_categories %}
+                {% set cat_active = request.path in items | map(attribute=2) | sum(start=[]) %}
+                <div class="mobile-cat">
+                    <button class="mobile-cat-toggle w-full flex items-center justify-between px-3 py-2 rounded font-semibold text-sm uppercase tracking-wide transition {{ 'text-white' if cat_active else 'text-gray-300' }} hover:bg-brand-dark" type="button">
+                        {{ cat_name }}
+                        <svg class="w-4 h-4 transition-transform {{ 'rotate-180' if cat_active else '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div class="mobile-cat-items pl-4 space-y-0.5 {{ '' if cat_active else 'hidden' }}">
+                        {% for href, label, paths in items %}
+                        {% set is_active = request.path in paths %}
+                        <a href="{{ href }}" class="block px-3 py-2 rounded text-sm transition {{ 'bg-brand-dark text-white font-semibold' if is_active else 'text-gray-300 hover:bg-brand-dark hover:text-white' }}">{{ label }}</a>
+                        {% endfor %}
+                    </div>
+                </div>
                 {% endfor %}
             </div>
         </div>
@@ -125,6 +151,16 @@
             var menu = document.getElementById('nav-menu');
             menu.classList.toggle('hidden');
             this.setAttribute('aria-expanded', !menu.classList.contains('hidden'));
+        });
+
+        // Mobile category accordion
+        document.querySelectorAll('.mobile-cat-toggle').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var items = this.nextElementSibling;
+                var chevron = this.querySelector('svg');
+                items.classList.toggle('hidden');
+                chevron.classList.toggle('rotate-180');
+            });
         });
 
         // Dark mode toggle
@@ -156,8 +192,9 @@
 
     <!-- Footer -->
     <footer class="bg-brand-dark text-gray-300 text-sm py-4">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-            Market data from Yahoo Finance (may be delayed). For research purposes only, not investment advice.
+        <div class="max-w-7xl mx-auto px-4 flex items-center justify-center gap-4">
+            <span>Market data from Yahoo Finance (may be delayed). For research purposes only, not investment advice.</span>
+            <a href="/info" class="text-gray-400 hover:text-white transition whitespace-nowrap">How It Works</a>
         </div>
     </footer>
 
@@ -171,7 +208,6 @@
             '4': '/picks',
             '5': '/earnings',
             '6': '/tracker',
-            '7': '/info',
         };
 
         // Help overlay
@@ -187,14 +223,15 @@
                     '</button>' +
                 '</div>' +
                 '<div class="space-y-1 text-sm">' +
-                    '<p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Navigation</p>' +
-                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Mosaic Score</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">1</kbd></div>' +
-                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Portfolio</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">2</kbd></div>' +
-                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Screener</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">3</kbd></div>' +
-                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Picks</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">4</kbd></div>' +
-                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Earnings</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">5</kbd></div>' +
-                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Tracker</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">6</kbd></div>' +
-                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Info</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">7</kbd></div>' +
+                    '<p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Analysis</p>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Score a Stock</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">1</kbd></div>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Optimize My Portfolio</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">2</kbd></div>' +
+                    '<p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-2 mb-2">Discover</p>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Find My Next Stock</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">3</kbd></div>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">See Analyst Picks</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">4</kbd></div>' +
+                    '<p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mt-2 mb-2">Monitor</p>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Earnings Calendar</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">5</kbd></div>' +
+                    '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Track My Stocks</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">6</kbd></div>' +
                     '<div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>' +
                     '<p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Global</p>' +
                     '<div class="flex justify-between py-1"><span class="text-gray-600 dark:text-gray-400">Toggle dark mode</span><kbd class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-xs font-mono font-bold">D</kbd></div>' +

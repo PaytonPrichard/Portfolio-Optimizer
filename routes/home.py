@@ -9,7 +9,7 @@ home_bp = Blueprint("home", __name__)
 
 @home_bp.route("/")
 def index():
-    return redirect(url_for("alpha.score_page"))
+    return render_template("home.html", query="", candidates=[], no_results=False)
 
 
 @home_bp.route("/search")
