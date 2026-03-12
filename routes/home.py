@@ -9,14 +9,14 @@ home_bp = Blueprint("home", __name__)
 
 @home_bp.route("/")
 def index():
-    return render_template("home.html", query="", candidates=[], no_results=False)
+    return render_template("home.html")
 
 
 @home_bp.route("/search")
 def search():
     query = request.args.get("q", "").strip()
     if not query:
-        return render_template("home.html", query="", candidates=[], no_results=False)
+        return render_template("search.html", query="", candidates=[], no_results=False)
 
     result = resolve_ticker(query)
 
@@ -26,7 +26,7 @@ def search():
     # Ambiguous or no results
     no_results = result.get("no_results", False)
     return render_template(
-        "home.html",
+        "search.html",
         query=query,
         candidates=result.get("candidates", []),
         no_results=no_results,

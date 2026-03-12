@@ -3,178 +3,47 @@
 {% block title %}MarketMosaic - Company Financial Analysis{% endblock %}
 
 {% block content %}
-<!-- Loading overlay -->
-<div id="loading-overlay" class="fixed inset-0 bg-white/80 dark:bg-gray-900/80 z-50 flex flex-col items-center justify-center hidden" role="status" aria-live="polite">
-    <div class="animate-spin rounded-full h-12 w-12 border-4 border-brand border-t-transparent mb-4"></div>
-    <p class="text-brand dark:text-blue-300 font-semibold text-lg" id="loading-text">Searching...</p>
-    <p class="text-gray-400 dark:text-gray-400 text-sm mt-1" id="loading-sub">Fetching financial data from Yahoo Finance</p>
-</div>
-
-<div class="flex flex-col items-center justify-center min-h-[70vh] px-4">
-    <h1 class="text-4xl font-bold text-brand dark:text-blue-300 mb-2">MarketMosaic</h1>
-    <p class="text-gray-500 dark:text-gray-400 mb-8 text-center">Search by company name or stock ticker to get a full financial dashboard</p>
-
-    <form action="/search" method="GET" class="w-full max-w-xl" id="search-form">
-        <div class="flex shadow-lg rounded-lg overflow-hidden">
-            <input
-                type="text"
-                name="q"
-                value="{{ query or '' }}"
-                placeholder="Enter company name or ticker (e.g. Apple or AAPL)"
-                class="flex-1 px-6 py-4 text-lg border-0 focus:outline-none focus:ring-2 focus:ring-brand bg-white dark:bg-gray-800 dark:text-gray-200 dark:placeholder-gray-500"
-                autofocus
-                required
-            >
-            <button type="submit" class="bg-brand text-white px-8 py-4 font-semibold hover:bg-brand-dark transition">
-                Analyze
-            </button>
-        </div>
-    </form>
-
-    <!-- Recent Searches -->
-    <div id="recent-searches" class="w-full max-w-xl mt-4 hidden">
-        <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-medium text-gray-400 dark:text-gray-400 uppercase tracking-wide">Recent</span>
-            <button id="clear-recent" class="text-xs text-gray-400 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition">Clear</button>
-        </div>
-        <div id="recent-pills" class="flex flex-wrap gap-2"></div>
-    </div>
+<div class="flex flex-col items-center justify-center px-4 mx-auto max-w-3xl text-center" style="min-height: calc(100vh - 112px);">
+    <h1 class="text-5xl sm:text-6xl font-bold text-brand dark:text-blue-300 mb-3">MarketMosaic</h1>
+    <p class="text-gray-500 dark:text-gray-400 mb-8">Your all-in-one toolkit for smarter investing decisions</p>
 
     <!-- Feature cards -->
-    <div class="w-full max-w-2xl mt-10 grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <a href="/score" class="group bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-brand dark:hover:border-blue-400 hover:shadow-md transition text-center">
+    <div class="w-full max-w-2xl grid grid-cols-3 gap-3">
+        <a href="/score" class="group relative bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-brand dark:hover:border-blue-400 hover:shadow-md transition text-center">
+            <svg class="absolute top-2.5 right-2.5 w-4 h-4 text-brand dark:text-blue-300" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             <svg class="w-6 h-6 mx-auto mb-2 text-brand dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
             <span class="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-brand dark:group-hover:text-blue-300">Score a Stock</span>
             <p class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">13-factor analysis</p>
         </a>
-        <a href="/portfolio" class="group bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-brand dark:hover:border-blue-400 hover:shadow-md transition text-center">
+        <a href="/portfolio" class="group relative bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-brand dark:hover:border-blue-400 hover:shadow-md transition text-center">
+            <svg class="absolute top-2.5 right-2.5 w-4 h-4 text-brand dark:text-blue-300" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
             <svg class="w-6 h-6 mx-auto mb-2 text-brand dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
             <span class="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-brand dark:group-hover:text-blue-300">Optimize My Portfolio</span>
             <p class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Upload & analyze</p>
         </a>
-        <a href="/screener" class="group bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-brand dark:hover:border-blue-400 hover:shadow-md transition text-center">
+        <a href="/screener" class="group bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-brand dark:hover:border-blue-400 hover:shadow-md transition text-center">
             <svg class="w-6 h-6 mx-auto mb-2 text-brand dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
             <span class="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-brand dark:group-hover:text-blue-300">Find My Next Stock</span>
             <p class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Filter by metrics</p>
         </a>
-        <a href="/picks" class="group bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-brand dark:hover:border-blue-400 hover:shadow-md transition text-center">
+    </div>
+
+    <div class="w-full max-w-2xl mt-3 grid grid-cols-3 gap-3">
+        <a href="/picks" class="group bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-brand dark:hover:border-blue-400 hover:shadow-md transition text-center">
             <svg class="w-6 h-6 mx-auto mb-2 text-brand dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
             <span class="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-brand dark:group-hover:text-blue-300">See Analyst Picks</span>
             <p class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Top-rated by Wall Street</p>
         </a>
-        <a href="/earnings" class="group bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-brand dark:hover:border-blue-400 hover:shadow-md transition text-center">
+        <a href="/earnings" class="group bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-brand dark:hover:border-blue-400 hover:shadow-md transition text-center">
             <svg class="w-6 h-6 mx-auto mb-2 text-brand dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             <span class="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-brand dark:group-hover:text-blue-300">Earnings Calendar</span>
             <p class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Upcoming report dates</p>
         </a>
-        <a href="/tracker" class="group bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-brand dark:hover:border-blue-400 hover:shadow-md transition text-center">
+        <a href="/tracker" class="group bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-brand dark:hover:border-blue-400 hover:shadow-md transition text-center">
             <svg class="w-6 h-6 mx-auto mb-2 text-brand dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
             <span class="text-sm font-semibold text-gray-700 dark:text-gray-200 group-hover:text-brand dark:group-hover:text-blue-300">Track My Stocks</span>
             <p class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Watchlist & price alerts</p>
         </a>
     </div>
-
-    {% if no_results %}
-    <div class="w-full max-w-xl mt-6">
-        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-5 py-4">
-            <p class="text-red-700 dark:text-red-400">No results found for "<strong>{{ query }}</strong>". Try a company name (e.g. "Apple") or stock ticker (e.g. "AAPL").</p>
-        </div>
-    </div>
-    {% elif candidates %}
-    <div class="w-full max-w-xl mt-6">
-        <p class="text-gray-600 dark:text-gray-400 mb-3">Multiple matches found for "<strong class="dark:text-gray-200">{{ query }}</strong>". Select one:</p>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow divide-y dark:divide-gray-700">
-            {% for c in candidates %}
-            <a href="/dashboard/{{ c.symbol }}" class="flex items-center justify-between px-5 py-3 hover:bg-brand-light dark:hover:bg-brand/10 transition dashboard-link">
-                <div>
-                    <span class="font-semibold text-brand dark:text-blue-300">{{ c.symbol }}</span>
-                    <span class="text-gray-600 dark:text-gray-400 ml-2">{{ c.name }}</span>
-                </div>
-                <span class="text-sm text-gray-400 dark:text-gray-400">{{ c.exchange }}</span>
-            </a>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-(function() {
-    var overlay = document.getElementById('loading-overlay');
-    var loadingText = document.getElementById('loading-text');
-    var RECENT_KEY = "recent_searches";
-    var MAX_RECENT = 8;
-
-    function getRecent() {
-        try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; } catch(e) { return []; }
-    }
-
-    function saveRecent(item) {
-        var list = getRecent().filter(function(r) { return r.symbol !== item.symbol; });
-        list.unshift(item);
-        if (list.length > MAX_RECENT) list = list.slice(0, MAX_RECENT);
-        localStorage.setItem(RECENT_KEY, JSON.stringify(list));
-    }
-
-    function renderRecent() {
-        var list = getRecent();
-        var container = document.getElementById('recent-searches');
-        var pills = document.getElementById('recent-pills');
-        if (!container || !pills) return;
-        if (!list.length) { container.classList.add('hidden'); return; }
-        container.classList.remove('hidden');
-        var html = '';
-        list.forEach(function(r) {
-            html += '<a href="/dashboard/' + r.symbol + '" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-brand dark:text-blue-300 hover:bg-brand-light dark:hover:bg-brand/20 transition dashboard-recent-link">';
-            html += '<span class="font-bold">' + r.symbol + '</span>';
-            if (r.name) html += '<span class="text-gray-400 dark:text-gray-400 text-xs hidden sm:inline">' + r.name + '</span>';
-            html += '</a>';
-        });
-        pills.innerHTML = html;
-
-        // Bind overlay to recently rendered links
-        pills.querySelectorAll('.dashboard-recent-link').forEach(function(link) {
-            link.addEventListener('click', function() {
-                var sym = this.querySelector('.font-bold').textContent;
-                loadingText.textContent = 'Loading ' + sym + ' dashboard...';
-                overlay.classList.remove('hidden');
-            });
-        });
-    }
-
-    // Clear recent
-    var clearBtn = document.getElementById('clear-recent');
-    if (clearBtn) {
-        clearBtn.addEventListener('click', function() {
-            localStorage.removeItem(RECENT_KEY);
-            renderRecent();
-        });
-    }
-
-    // Show overlay on search submit + save search
-    document.getElementById('search-form').addEventListener('submit', function() {
-        var q = document.querySelector('input[name="q"]').value.trim().toUpperCase();
-        if (q) saveRecent({ symbol: q, name: '' });
-        loadingText.textContent = 'Searching...';
-        overlay.classList.remove('hidden');
-    });
-
-    // Show overlay on candidate click + save
-    document.querySelectorAll('.dashboard-link').forEach(function(link) {
-        link.addEventListener('click', function() {
-            var tickerEl = this.querySelector('.text-brand, .dark\\:text-blue-300');
-            var nameEl = this.querySelector('.text-gray-600, .dark\\:text-gray-400');
-            var ticker = tickerEl ? tickerEl.textContent.trim() : '';
-            var name = nameEl ? nameEl.textContent.trim() : '';
-            if (ticker) saveRecent({ symbol: ticker, name: name });
-            loadingText.textContent = 'Loading ' + ticker + ' dashboard...';
-            overlay.classList.remove('hidden');
-        });
-    });
-
-    renderRecent();
-})();
-</script>
 {% endblock %}
