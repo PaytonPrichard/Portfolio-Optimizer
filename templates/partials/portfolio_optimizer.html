@@ -32,7 +32,7 @@
 
     {# Rebalancing trades #}
     {% if trades %}
-    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Suggested Rebalancing Trades</h3>
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Suggested Allocation Adjustments</h3>
     <div class="overflow-x-auto mb-4">
         <table class="w-full text-sm">
             <thead class="bg-gray-50 dark:bg-gray-700/50">
@@ -50,7 +50,7 @@
                 <tr class="border-t border-gray-100 dark:border-gray-700">
                     <td class="px-3 py-2">
                         <span class="inline-block px-2 py-0.5 rounded text-xs font-bold
-                            {% if t.action == 'Buy' %}bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300
+                            {% if t.action == 'Increase' %}bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300
                             {% else %}bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300{% endif %}">
                             {{ t.action }}
                         </span>

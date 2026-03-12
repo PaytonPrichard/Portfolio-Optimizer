@@ -1,6 +1,6 @@
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 overflow-hidden">
-    <div class="bg-brand text-white px-5 py-3">
-        <h2 class="font-bold text-sm uppercase tracking-wide">Quarterly Revenue Trend</h2>
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
+    <div class="border-b border-gray-200 dark:border-gray-700 px-5 py-3">
+        <h2 class="font-bold text-sm uppercase tracking-wide text-brand dark:text-blue-300">Quarterly Revenue Trend</h2>
     </div>
     {% if revenue_trend %}
     <div class="overflow-x-auto">
@@ -24,7 +24,7 @@
                             {{ '%+.1f'|format(row.qoq) }}%
                         </span>
                     {% else %}
-                        <span class="text-gray-400 dark:text-gray-500">Baseline</span>
+                        <span class="text-gray-400 dark:text-gray-400">Baseline</span>
                     {% endif %}
                 </td>
                 <td class="px-5 py-2 text-center text-lg">
@@ -35,7 +35,7 @@
                             <span class="text-red-600 dark:text-red-400 font-bold">&#9660;</span>
                         {% endif %}
                     {% else %}
-                        <span class="text-gray-400 dark:text-gray-500">--</span>
+                        <span class="text-gray-400 dark:text-gray-400">--</span>
                     {% endif %}
                 </td>
             </tr>

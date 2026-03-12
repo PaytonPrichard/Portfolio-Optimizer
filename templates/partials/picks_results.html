@@ -17,13 +17,13 @@
 
 {% macro target_range(low, high) %}
     {% if low and high %}
-        <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Low: ${{ '%.2f' | format(low) }} / High: ${{ '%.2f' | format(high) }}</div>
+        <div class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Low: ${{ '%.2f' | format(low) }} / High: ${{ '%.2f' | format(high) }}</div>
     {% endif %}
 {% endmacro %}
 
 {% macro low_coverage_badge(is_low) %}
     {% if is_low %}
-        <span class="inline-block ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 cursor-help" title="Fewer than 3 analysts cover this stock — consensus may be unreliable">Low Coverage</span>
+        <span class="inline-block ml-1 px-1.5 py-0.5 rounded text-[11px] font-semibold bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 cursor-help" title="Fewer than 3 analysts cover this stock — consensus may be unreliable">Low Coverage</span>
     {% endif %}
 {% endmacro %}
 
@@ -81,13 +81,13 @@
 
 {% if ns.hot %}
 <div class="mb-5">
-    <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Hot Picks</h3>
+    <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Top Analyst Consensus</h3>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
         {% for h in ns.hot %}
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 border-l-4 border-l-[#1F4E79] p-4 hover:shadow-md transition-shadow">
             <div class="flex items-start justify-between mb-2">
                 <a href="/dashboard/{{ h.symbol }}" class="text-sm font-semibold text-gray-800 dark:text-gray-200 hover:text-[#1F4E79] dark:hover:text-blue-300 leading-tight">{{ h.name[:35] }}</a>
-                <span class="ml-2 shrink-0 inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-brand-light dark:bg-brand/30 text-brand dark:text-blue-300">{{ h.symbol }}</span>
+                <span class="ml-2 shrink-0 inline-block px-1.5 py-0.5 rounded text-[11px] font-bold bg-brand-light dark:bg-brand/30 text-brand dark:text-blue-300">{{ h.symbol }}</span>
             </div>
             <div class="text-2xl font-bold text-green-600 dark:text-green-400 mb-2">+{{ '%.1f' | format(h.upsidePct) }}%</div>
             <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mb-2">
@@ -96,7 +96,7 @@
             </div>
             <div class="flex items-center gap-2">
                 {{ rec_badge(h.recKey) }}
-                <span class="text-xs text-gray-400 dark:text-gray-500">{{ h.nAnalysts }} analysts</span>
+                <span class="text-xs text-gray-400 dark:text-gray-400">{{ h.nAnalysts }} analysts</span>
                 <button class="add-to-tracker ml-auto text-brand dark:text-blue-300 hover:text-green-600 dark:hover:text-green-400 transition p-1" data-ticker="{{ h.symbol }}" title="Add to Tracker watchlist">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 </button>
@@ -197,7 +197,7 @@
     Compare (<span id="compare-count">0</span>)
 </button>
 
-<p class="text-xs text-gray-400 dark:text-gray-500 italic px-4 py-2">
+<p class="text-xs text-gray-400 dark:text-gray-400 italic px-4 py-2">
     Sorted by implied upside (highest first). All data from Yahoo Finance analyst consensus.
     {% if has_finnhub %} Cross-referenced with <a href="https://finnhub.io" target="_blank" class="underline">Finnhub</a>.{% endif %}
     Not investment advice.

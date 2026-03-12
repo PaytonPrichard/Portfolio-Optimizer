@@ -9,6 +9,7 @@ import pandas as pd
 from financials.data import fetch_data, fetch_recent_news, fetch_industry_peers
 from financials.ai import generate_ai_commentary, generate_news_summaries
 from financials.formatters import fmt_money, fmt_val
+from financials.validation import validate_ticker
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -220,7 +221,11 @@ def _prepare_dashboard_data(symbol: str) -> dict:
 
 @dashboard_bp.route("/dashboard/<ticker>")
 def dashboard(ticker):
-    ticker = ticker.upper()
+    ticker = validate_ticker(ticker)
+    if not ticker:
+        return render_template("error.html",
+                               title="Invalid Ticker",
+                               message="Invalid ticker format. Use letters, numbers, dots, or hyphens (max 10 characters)."), 400
     try:
         data = _prepare_dashboard_data(ticker)
     except Exception:
@@ -239,7 +244,9 @@ def dashboard(ticker):
 @dashboard_bp.route("/api/peers/<ticker>")
 def peers_api(ticker):
     """Return server-rendered HTML fragment for peer comparison (async loaded)."""
-    ticker = ticker.upper()
+    ticker = validate_ticker(ticker)
+    if not ticker:
+        return "<p class='text-red-500 italic p-4'>Invalid ticker format.</p>", 400
     try:
         info, _qi, _hist = fetch_data(ticker)  # reuses cache from dashboard load
         peers = fetch_industry_peers(ticker, info)

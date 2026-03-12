@@ -4,7 +4,7 @@
 {% if years == 0 %}
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
     <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-2">Monte Carlo Projection</h2>
-    <p class="text-gray-400 dark:text-gray-500 text-sm">Insufficient data for Monte Carlo simulation.</p>
+    <p class="text-gray-400 dark:text-gray-400 text-sm">Insufficient data for Monte Carlo simulation.</p>
 </div>
 {% else %}
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
@@ -16,22 +16,22 @@
         <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
             <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Median Outcome</div>
             <div class="text-xl font-bold text-green-700 dark:text-green-400">{{ money(medianFinal) }}</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">50th percentile</div>
+            <div class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">50th percentile</div>
         </div>
         <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
             <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Bear Case</div>
             <div class="text-xl font-bold text-red-600 dark:text-red-400">{{ money(p10Final) }}</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">10th percentile</div>
+            <div class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">10th percentile</div>
         </div>
         <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
             <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Bull Case</div>
             <div class="text-xl font-bold text-green-700 dark:text-green-400">{{ money(p90Final) }}</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">90th percentile</div>
+            <div class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">90th percentile</div>
         </div>
         <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
             <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Loss Probability</div>
             <div class="text-xl font-bold {% if probabilityOfLoss <= 15 %}text-green-700 dark:text-green-400{% elif probabilityOfLoss <= 35 %}text-yellow-700 dark:text-yellow-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ probabilityOfLoss }}%</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Chance of losing money</div>
+            <div class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Chance of losing money</div>
         </div>
     </div>
 
@@ -104,7 +104,7 @@
     {% endif %}
 
     <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg px-4 py-3 mt-3">
-        <p class="text-xs text-yellow-700 dark:text-yellow-400">Projections assume returns follow a normal distribution based on your portfolio's historical 1-year mean ({{ meanAnnualReturn }}%) and volatility ({{ annualVolatility }}%). Real markets have fat tails — extreme events may be more likely than shown. This is not financial advice.</p>
+        <p class="text-xs text-yellow-700 dark:text-yellow-400">These projections are illustrative, not predictive. Simulations assume returns follow a normal distribution based on your portfolio's historical 1-year mean ({{ meanAnnualReturn }}%) and volatility ({{ annualVolatility }}%). Real markets exhibit fat tails and regime changes — extreme events may be more likely than shown. This is a Monte Carlo sample, not a comprehensive efficient frontier. This is not financial advice.</p>
     </div>
 </div>
 {% endif %}

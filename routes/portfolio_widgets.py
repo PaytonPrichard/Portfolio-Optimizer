@@ -64,8 +64,10 @@ def ai_commentary_widget():
         by_sector = data.get("bySector", [])
         concentration = data.get("concentration", [])
         analyst_overview = data.get("analystOverview", {})
+        holdings_news = data.get("holdingsNews", [])
         commentary = generate_portfolio_ai_commentary(
-            holdings, by_sector, concentration, analyst_overview)
+            holdings, by_sector, concentration, analyst_overview,
+            holdings_news=holdings_news)
         return render_template("partials/portfolio_ai_commentary.html",
                                commentary=commentary)
     except Exception:
@@ -184,7 +186,12 @@ def fee_analysis_widget():
     try:
         data = request.get_json(silent=True) or {}
         holdings = data.get("holdings", [])
-        result = compute_fee_analysis(holdings)
+        growth_pct = data.get("growthRate", 8)
+        try:
+            growth_pct = max(1, min(20, float(growth_pct)))
+        except (TypeError, ValueError):
+            growth_pct = 8
+        result = compute_fee_analysis(holdings, growth_rate=growth_pct / 100)
         return render_template("partials/portfolio_fee_analysis.html", **result)
     except Exception:
         return '<p class="text-red-500 text-sm italic">Fee analysis temporarily unavailable.</p>'

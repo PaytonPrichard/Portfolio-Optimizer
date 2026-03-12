@@ -611,7 +611,7 @@ def _compute_health_score(holdings, by_sector, concentration, analyst_overview):
     }
 
 
-def analyze_portfolio(holdings: list) -> dict:
+def analyze_portfolio(holdings: list, tax_rate: float = 0.24) -> dict:
     """Run full portfolio analysis on enriched holdings.
 
     Returns dict with: holdings, totalValue, totalGain, totalGainPct,
@@ -769,7 +769,7 @@ def analyze_portfolio(holdings: list) -> dict:
                     "costBasis": cost,
                     "unrealizedLoss": round(loss, 2),
                     "lossPct": round(loss_pct, 1),
-                    "estTaxSavings": round(abs(loss) * 0.24, 2),
+                    "estTaxSavings": round(abs(loss) * tax_rate, 2),
                     "nearFiftyTwoWeekLow": bool(near_low),
                 })
     tax_loss_candidates.sort(key=lambda x: x["unrealizedLoss"])
@@ -873,6 +873,7 @@ def analyze_portfolio(holdings: list) -> dict:
         "analystOverview": analyst_overview,
         "widgetMeta": widget_meta,
         "taxLossCandidates": tax_loss_candidates,
+        "taxRate": round(tax_rate * 100),
         "healthScore": health_score,
         "dividends": dividends,
     }

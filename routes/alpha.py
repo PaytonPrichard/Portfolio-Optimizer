@@ -11,12 +11,16 @@ from financials.alpha import (
     get_db_stats,
     get_stock_of_the_day_symbol,
     _compute_sector_cycles,
+    DB_PATH,
+    _get_db,
 )
 from financials.alpha_collector import (
     get_collection_status,
     run_in_background,
     run_cron_batch,
 )
+from financials.data import fetch_recent_news
+from financials.validation import validate_ticker
 
 alpha_bp = Blueprint("alpha", __name__)
 
@@ -39,7 +43,7 @@ def score_page():
 # Keep /alpha as a redirect so old bookmarks/links still work
 @alpha_bp.route("/alpha")
 def alpha_redirect():
-    ticker = request.args.get("ticker", "")
+    ticker = validate_ticker(request.args.get("ticker", ""))
     if ticker:
         return redirect(f"/score?ticker={ticker}", code=301)
     return redirect("/score", code=301)
@@ -61,7 +65,8 @@ def score_compute_api():
         result = compute_alpha_score(symbol)
         if not result:
             return f'<p class="text-red-500 text-sm italic p-4">Could not analyze {symbol}. Check the ticker and try again.</p>', 404
-        return render_template("partials/alpha_result.html", **result)
+        news = fetch_recent_news(symbol, n=6)
+        return render_template("partials/alpha_result.html", news=news, **result)
     except Exception:
         return '<p class="text-red-500 text-sm italic p-4">Something went wrong. Please try again.</p>', 500
 
@@ -69,7 +74,9 @@ def score_compute_api():
 @alpha_bp.route("/api/score/summary/<ticker>")
 def score_summary_api(ticker):
     """Return a lightweight JSON score summary for a ticker (used by SOTD card)."""
-    ticker = ticker.upper().strip()
+    ticker = validate_ticker(ticker)
+    if not ticker:
+        return jsonify({"error": "Invalid ticker format."}), 400
     try:
         result = compute_alpha_score(ticker)
         if not result:
@@ -167,6 +174,13 @@ def sector_cycles_api():
 @alpha_bp.route("/api/score/collect", methods=["POST"])
 def trigger_collection():
     """Trigger a background data collection action."""
+    cron_secret = (os.environ.get("CRON_SECRET") or "").strip()
+    if not cron_secret or len(cron_secret) < 8:
+        return jsonify({"error": "Not configured"}), 503
+    auth = request.headers.get("Authorization", "")
+    if not auth or auth != f"Bearer {cron_secret}":
+        return jsonify({"error": "Unauthorized"}), 401
+
     data = request.get_json(silent=True) or {}
     action = data.get("action", "full")
     valid = ["seed", "refresh", "backfill", "returns", "cycles", "hist-cycles", "full"]
@@ -246,11 +260,11 @@ def alpha_scores_widget_compat():
 @alpha_bp.route("/api/score/cron", methods=["GET"])
 def cron_collect():
     """Vercel Cron endpoint — runs a time-boxed batch of data collection."""
-    cron_secret = os.environ.get("CRON_SECRET")
-    if not cron_secret:
+    cron_secret = (os.environ.get("CRON_SECRET") or "").strip()
+    if not cron_secret or len(cron_secret) < 8:
         return jsonify({"error": "Not configured"}), 503
     auth = request.headers.get("Authorization", "")
-    if auth != f"Bearer {cron_secret}":
+    if not auth or auth != f"Bearer {cron_secret}":
         return jsonify({"error": "Unauthorized"}), 401
 
     try:
@@ -266,3 +280,125 @@ def cron_collect():
         })
     except Exception:
         return jsonify({"status": "error"}), 500
+
+
+# ── Stock Screener ────────────────────────────────────────────────────
+
+@alpha_bp.route("/screener")
+def screener_page():
+    """Render the stock screener page."""
+    return render_template("screener.html")
+
+
+@alpha_bp.route("/api/screener", methods=["POST"])
+def screener_api():
+    """Query metric_snapshots with user-defined filters. Returns JSON."""
+    data = request.get_json(silent=True) or {}
+    filters = data.get("filters", {})
+    sort_by = data.get("sortBy", "market_cap")
+    sort_dir = data.get("sortDir", "desc")
+    limit = min(int(data.get("limit", 50)), 100)
+
+    # Whitelist allowed columns for sorting and filtering
+    ALLOWED_COLS = {
+        "trailing_pe", "forward_pe", "peg_ratio", "debt_to_equity",
+        "roe", "current_ratio", "revenue_growth",
+        "earnings_growth", "dividend_yield", "market_cap", "beta",
+    }
+    ALLOWED_SORT = ALLOWED_COLS | {"symbol", "sector"}
+
+    if sort_by not in ALLOWED_SORT:
+        sort_by = "market_cap"
+    if sort_dir not in ("asc", "desc"):
+        sort_dir = "desc"
+
+    conn = None
+    try:
+        conn = _get_db()
+
+        # Build query -- only latest snapshot per symbol
+        where_clauses = [
+            "m.id IN (SELECT MAX(id) FROM metric_snapshots GROUP BY symbol)"
+        ]
+        params = []
+
+        # Sector filter
+        sector = filters.get("sector")
+        if sector and isinstance(sector, str) and sector != "all":
+            where_clauses.append("m.sector = ?")
+            params.append(sector)
+
+        # Numeric range filters
+        for col in ALLOWED_COLS:
+            filt = filters.get(col)
+            if not filt or not isinstance(filt, dict):
+                continue
+            min_val = filt.get("min")
+            max_val = filt.get("max")
+            if min_val is not None:
+                try:
+                    where_clauses.append(f"m.{col} >= ?")
+                    params.append(float(min_val))
+                except (TypeError, ValueError):
+                    pass
+            if max_val is not None:
+                try:
+                    where_clauses.append(f"m.{col} <= ?")
+                    params.append(float(max_val))
+                except (TypeError, ValueError):
+                    pass
+
+        where_sql = " AND ".join(where_clauses)
+        query = f"""
+            SELECT m.symbol, m.sector, m.trailing_pe, m.forward_pe, m.peg_ratio,
+                   m.debt_to_equity, m.roe, m.current_ratio,
+                   m.revenue_growth, m.earnings_growth, m.dividend_yield,
+                   m.market_cap, m.beta, m.snapshot_date
+            FROM metric_snapshots m
+            WHERE {where_sql}
+            ORDER BY m.{sort_by} {sort_dir}
+            LIMIT ?
+        """
+        params.append(limit)
+
+        rows = conn.execute(query, params).fetchall()
+
+        # Get distinct sectors for filter dropdown
+        sectors = [r[0] for r in conn.execute(
+            "SELECT DISTINCT sector FROM metric_snapshots "
+            "WHERE sector IS NOT NULL AND sector != '' ORDER BY sector"
+        ).fetchall()]
+
+        results = []
+        for r in rows:
+            results.append({
+                "symbol": r["symbol"],
+                "sector": r["sector"] or "",
+                "trailingPE": r["trailing_pe"],
+                "forwardPE": r["forward_pe"],
+                "pegRatio": r["peg_ratio"],
+                "debtToEquity": r["debt_to_equity"],
+                "roe": r["roe"],
+                "currentRatio": r["current_ratio"],
+                "revenueGrowth": r["revenue_growth"],
+                "earningsGrowth": r["earnings_growth"],
+                "dividendYield": r["dividend_yield"],
+                "marketCap": r["market_cap"],
+                "beta": r["beta"],
+                "date": r["snapshot_date"],
+            })
+
+        return jsonify({
+            "results": results,
+            "sectors": sectors,
+            "count": len(results),
+        })
+    except Exception:
+        return jsonify({
+            "error": "Screener query failed",
+            "results": [],
+            "sectors": [],
+        }), 500
+    finally:
+        if conn:
+            conn.close()

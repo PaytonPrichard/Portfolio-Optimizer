@@ -4,7 +4,7 @@
 {# Info tooltip macro #}
 {% macro info(text) %}
 <span class="relative group/tip cursor-help ml-1 inline-flex">
-    <svg class="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <svg class="w-3.5 h-3.5 text-gray-400 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
     <span class="invisible group-hover/tip:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-64 px-3 py-2 text-xs text-white bg-gray-800 dark:bg-gray-900 rounded-lg shadow-lg z-50 text-center font-normal normal-case leading-relaxed">
         {{ text }}
         <span class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800 dark:border-t-gray-900"></span>
@@ -39,7 +39,7 @@
             <div>
                 <h2 class="text-2xl font-bold text-brand dark:text-blue-300">{{ symbol }}{% if companyName %} <span class="text-lg font-semibold text-gray-600 dark:text-gray-400">{{ companyName }}</span>{% endif %}</h2>
                 <p class="text-sm text-gray-500 dark:text-gray-400">{{ sector }} / {{ industry }}</p>
-                {% if price %}<p class="text-lg font-semibold text-gray-800 dark:text-gray-200 mt-1">${{ '%.2f' | format(price) }} {% if marketCap %}<span class="text-sm text-gray-400 dark:text-gray-500 font-normal">{{ money(marketCap) }} market cap</span>{% endif %}</p>{% endif %}
+                {% if price %}<p class="text-lg font-semibold text-gray-800 dark:text-gray-200 mt-1">${{ '%.2f' | format(price) }} {% if marketCap %}<span class="text-sm text-gray-400 dark:text-gray-400 font-normal">{{ money(marketCap) }} market cap</span>{% endif %}</p>{% endif %}
                 <div class="flex items-center gap-2 mt-3">
                 <a href="/dashboard/{{ symbol }}" data-loading="Loading {{ symbol }} dashboard..." data-loading-sub="Fetching fundamentals, news, and peer data" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand text-white text-sm font-semibold rounded-lg hover:bg-[#183d5f] transition shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
@@ -68,10 +68,10 @@
                 </svg>
             </div>
             <span class="inline-block mt-1 px-4 py-1 rounded-full text-sm font-bold
-                {% if conviction == 'Strong Buy' %}bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300
-                {% elif conviction == 'Buy' %}bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400
-                {% elif conviction == 'Hold' %}bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300
-                {% elif conviction == 'Underweight' %}bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300
+                {% if conviction == 'Very Favorable' %}bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300
+                {% elif conviction == 'Favorable' %}bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400
+                {% elif conviction == 'Neutral' %}bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300
+                {% elif conviction == 'Unfavorable' %}bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300
                 {% else %}bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300{% endif %}">
                 {{ conviction }}
             </span>
@@ -99,13 +99,13 @@
         ]),
         ("Environment", [
             ("Industry Cycle", "industry_cycle", "Sector ETF momentum and cycle phase. Recovery and early expansion phases are historically the best entry points."),
-            ("Macro", "macro", "VIX (fear gauge) and yield curve (recession predictor). High VIX + inverted curve = risk-off; low VIX + normal curve = favorable."),
+            ("Macro", "macro", "VIX (fear gauge) and 10Y-3M yield spread (recession predictor). High VIX + inverted curve = risk-off; low VIX + normal curve = favorable."),
         ]),
     ] %}
 
     {% for cat_name, factors in categories %}
     <div class="{% if not loop.first %}mt-4 pt-3 border-t border-gray-100 dark:border-gray-700{% endif %}">
-        <p class="text-[10px] uppercase tracking-wider font-bold text-gray-400 dark:text-gray-500 mb-2">{{ cat_name }}</p>
+        <p class="text-xs uppercase tracking-wider font-bold text-gray-400 dark:text-gray-400 mb-2">{{ cat_name }}</p>
         <div class="grid grid-cols-2 sm:grid-cols-{{ factors | length if factors | length <= 4 else 4 }} gap-x-6 gap-y-3">
             {% for name, key, tip in factors %}
             {% set score = subScores.get(key, 50) %}
@@ -113,11 +113,11 @@
             {% set fexpl = factorExplanations.get(key, '') if factorExplanations is defined else '' %}
             <div>
                 <div class="flex justify-between text-xs mb-1">
-                    <span class="font-medium text-gray-700 dark:text-gray-300 flex items-center">{{ name }} <span class="text-gray-400 dark:text-gray-500 ml-1">({{ weight_pct }}%)</span>{{ info(tip) }}</span>
+                    <span class="font-medium text-gray-700 dark:text-gray-300 flex items-center">{{ name }} <span class="text-gray-400 dark:text-gray-400 ml-1">({{ weight_pct }}%)</span>{{ info(tip) }}</span>
                     <span class="font-bold {% if score >= 70 %}text-green-700 dark:text-green-400{% elif score >= 45 %}text-yellow-700 dark:text-yellow-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ score }}</span>
                 </div>
                 {{ scorebar(score) }}
-                {% if fexpl %}<p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 leading-snug">{{ fexpl }}</p>{% endif %}
+                {% if fexpl %}<p class="text-xs text-gray-400 dark:text-gray-400 mt-0.5 leading-snug">{{ fexpl }}</p>{% endif %}
             </div>
             {% endfor %}
         </div>
@@ -169,11 +169,11 @@
                 <div class="flex gap-3 mb-3">
                     <div class="bg-green-50 dark:bg-green-900/20 rounded-lg px-3 py-2 text-center flex-1">
                         <div class="text-lg font-bold text-green-700 dark:text-green-400">{{ ins_buys }}</div>
-                        <div class="text-[10px] text-green-600 dark:text-green-500 uppercase">Buys (6mo)</div>
+                        <div class="text-xs text-green-600 dark:text-green-500 uppercase">Buys (6mo)</div>
                     </div>
                     <div class="bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2 text-center flex-1">
                         <div class="text-lg font-bold text-red-600 dark:text-red-400">{{ ins_sells }}</div>
-                        <div class="text-[10px] text-red-500 dark:text-red-500 uppercase">Sales (6mo)</div>
+                        <div class="text-xs text-red-500 dark:text-red-500 uppercase">Sales (6mo)</div>
                     </div>
                 </div>
                 {% if ins_recent %}
@@ -181,7 +181,7 @@
                     {% for tx in ins_recent[:4] %}
                     <div class="flex justify-between text-xs">
                         <span class="text-gray-500 dark:text-gray-400 truncate mr-2" title="{{ tx.name }}">{{ tx.name[:18] }}</span>
-                        <span class="font-medium whitespace-nowrap {% if tx.type == 'Purchase' %}text-green-700 dark:text-green-400{% elif tx.type == 'Sale' %}text-red-600 dark:text-red-400{% else %}text-gray-400 dark:text-gray-500{% endif %}">{{ tx.type }}</span>
+                        <span class="font-medium whitespace-nowrap {% if tx.type == 'Purchase' %}text-green-700 dark:text-green-400{% elif tx.type == 'Sale' %}text-red-600 dark:text-red-400{% else %}text-gray-400 dark:text-gray-400{% endif %}">{{ tx.type }}</span>
                     </div>
                     {% endfor %}
                 </div>
@@ -278,13 +278,13 @@
                 <div class="text-lg font-bold {% if earn_beat >= 0.75 %}text-green-700 dark:text-green-400{% elif earn_beat >= 0.5 %}text-yellow-700 dark:text-yellow-400{% else %}text-red-600 dark:text-red-400{% endif %}">
                     {{ earn_of }}
                 </div>
-                <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Quarters Beat</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase">Quarters Beat</div>
             </div>
             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-center flex-1">
                 <div class="text-lg font-bold {% if earn_avg > 0 %}text-green-700 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">
                     {{ '%+.1f' | format(earn_avg) }}%
                 </div>
-                <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase">Avg Surprise</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase">Avg Surprise</div>
             </div>
         </div>
         {% if earn_hist %}
@@ -323,7 +323,7 @@
     <summary class="cursor-pointer px-5 py-3 text-sm font-semibold text-brand dark:text-blue-300 select-none flex items-center gap-2">
         Analyst Upgrades &amp; Downgrades
         {{ info("The direction of analyst opinion changes matters more than the current consensus. A cluster of upgrades signals improving fundamentals that the market may not have fully priced in yet.") }}
-        <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold
+        <span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold
             {% if am_dir == 'positive' %}bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300
             {% elif am_dir == 'negative' %}bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300
             {% else %}bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400{% endif %}">
@@ -335,7 +335,7 @@
         <div class="space-y-1.5">
             {% for r in am_recent[:6] %}
             <div class="flex items-center gap-3 text-xs">
-                <span class="text-gray-400 dark:text-gray-500 w-20 shrink-0">{{ r.date }}</span>
+                <span class="text-gray-400 dark:text-gray-400 w-20 shrink-0">{{ r.date }}</span>
                 <span class="text-gray-600 dark:text-gray-300 truncate flex-1">{{ r.firm }}</span>
                 <span class="font-bold whitespace-nowrap
                     {% if r.action in ['up', 'upgrade', 'init'] %}text-green-700 dark:text-green-400
@@ -371,14 +371,14 @@
             {# RSI #}
             {% if t_rsi is not none %}
             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">RSI (14)</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">RSI (14)</div>
                 <div class="text-lg font-bold
                     {% if t_rsi > 70 %}text-red-600 dark:text-red-400
                     {% elif t_rsi < 30 %}text-green-700 dark:text-green-400
                     {% else %}text-brand dark:text-blue-300{% endif %}">
                     {{ '%.1f' | format(t_rsi) }}
                 </div>
-                <div class="text-[10px]
+                <div class="text-xs
                     {% if t_rsi > 70 %}text-red-500{% elif t_rsi < 30 %}text-green-600{% else %}text-gray-400{% endif %}">
                     {% if t_rsi > 70 %}Overbought{% elif t_rsi > 55 %}Bullish{% elif t_rsi > 45 %}Neutral{% elif t_rsi > 30 %}Weak{% else %}Oversold{% endif %}
                 </div>
@@ -387,14 +387,14 @@
 
             {# MACD #}
             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">MACD</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">MACD</div>
                 <div class="text-lg font-bold
                     {% if 'bullish' in t_macd %}text-green-700 dark:text-green-400
                     {% elif 'bearish' in t_macd %}text-red-600 dark:text-red-400
                     {% else %}text-gray-500{% endif %}">
                     {% if t_macd == 'bullish_cross' %}Cross{% elif t_macd == 'bearish_cross' %}Cross{% elif t_macd == 'bullish' %}Bull{% elif t_macd == 'bearish' %}Bear{% else %}--{% endif %}
                 </div>
-                <div class="text-[10px] {% if 'bullish' in t_macd %}text-green-600{% elif 'bearish' in t_macd %}text-red-500{% else %}text-gray-400{% endif %}">
+                <div class="text-xs {% if 'bullish' in t_macd %}text-green-600{% elif 'bearish' in t_macd %}text-red-500{% else %}text-gray-400{% endif %}">
                     {% if t_macd == 'bullish_cross' %}Bullish Crossover{% elif t_macd == 'bearish_cross' %}Bearish Crossover{% elif t_macd == 'bullish' %}Bullish{% elif t_macd == 'bearish' %}Bearish{% else %}Neutral{% endif %}
                 </div>
             </div>
@@ -402,9 +402,9 @@
             {# SMA 50 #}
             {% if t_sma50 %}
             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">50-Day SMA</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">50-Day SMA</div>
                 <div class="text-lg font-bold text-brand dark:text-blue-300">${{ '%.0f' | format(t_sma50) }}</div>
-                <div class="text-[10px] {% if t_above50 %}text-green-600{% else %}text-red-500{% endif %}">
+                <div class="text-xs {% if t_above50 %}text-green-600{% else %}text-red-500{% endif %}">
                     Price {{ 'Above' if t_above50 else 'Below' }}
                 </div>
             </div>
@@ -413,9 +413,9 @@
             {# SMA 200 / Golden Cross #}
             {% if t_sma200 %}
             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">200-Day SMA</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">200-Day SMA</div>
                 <div class="text-lg font-bold text-brand dark:text-blue-300">${{ '%.0f' | format(t_sma200) }}</div>
-                <div class="text-[10px] {% if t_golden %}text-green-600{% else %}text-red-500{% endif %}">
+                <div class="text-xs {% if t_golden %}text-green-600{% else %}text-red-500{% endif %}">
                     {{ 'Golden Cross' if t_golden else 'Death Cross' }}
                 </div>
             </div>
@@ -430,9 +430,9 @@
 <details class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
     <summary class="cursor-pointer px-5 py-3 text-sm font-semibold text-brand dark:text-blue-300 select-none flex items-center gap-2">
         Market Conditions
-        {{ info("VIX measures expected market volatility (the 'fear gauge'). The yield curve (10-Year minus 2-Year Treasury) has predicted every U.S. recession when inverted. These macro factors affect all stocks and inform how aggressively to position.") }}
+        {{ info("VIX measures expected market volatility (the 'fear gauge'). The yield curve (10-Year minus 3-Month Treasury) has predicted every U.S. recession when inverted. These macro factors affect all stocks and inform how aggressively to position.") }}
         {% set vl = macroData.get('vixLevel', 'normal') %}
-        <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold
+        <span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold
             {% if vl == 'low' %}bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300
             {% elif vl == 'normal' %}bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300
             {% elif vl == 'elevated' %}bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300
@@ -443,7 +443,7 @@
     <div class="px-5 pb-5 pt-2 border-t border-gray-100 dark:border-gray-700">
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1 flex items-center">
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1 flex items-center">
                     VIX (Fear Gauge)
                     {{ info("VIX below 15 = calm markets, 15-20 = normal, 20-30 = elevated uncertainty, above 30 = high fear. Historically, buying during VIX spikes has been profitable for quality stocks.") }}
                 </div>
@@ -454,12 +454,12 @@
                     {% else %}text-red-600 dark:text-red-400{% endif %}">
                     {{ '%.1f' | format(macroData.vix) }}
                 </div>
-                <div class="text-[10px] text-gray-500">{{ macroData.get('vixLevel', 'N/A') | capitalize }}</div>
+                <div class="text-xs text-gray-500">{{ macroData.get('vixLevel', 'N/A') | capitalize }}</div>
             </div>
 
             {% if macroData.yield10y is not none %}
             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1 flex items-center">
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1 flex items-center">
                     10-Year Treasury
                     {{ info("The 10-year Treasury yield reflects long-term interest rate expectations. Rising yields can pressure growth stock valuations; falling yields tend to benefit them.") }}
                 </div>
@@ -469,8 +469,8 @@
 
             {% if macroData.yieldSpread is not none %}
             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
-                <div class="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1 flex items-center">
-                    Yield Curve (10Y - 2Y)
+                <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1 flex items-center">
+                    Yield Curve (10Y - 3M)
                     {{ info("An inverted yield curve (negative spread) has preceded every US recession since 1970. Normal (0.5-1.5%) = healthy. Steep (>1.5%) = expansion. Flat or inverted = late cycle risk.") }}
                 </div>
                 {% set ys = macroData.get('yieldSignal', 'normal') %}
@@ -481,7 +481,7 @@
                     {% else %}text-brand dark:text-blue-300{% endif %}">
                     {{ '%+.2f' | format(macroData.yieldSpread) }}%
                 </div>
-                <div class="text-[10px] text-gray-500">{{ ys | capitalize }}</div>
+                <div class="text-xs text-gray-500">{{ ys | capitalize }}</div>
             </div>
             {% endif %}
         </div>
@@ -511,7 +511,7 @@
             {% if pe_pct is not none %}
             <div class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
                 <div class="flex justify-between text-xs">
-                    <span class="text-gray-400 dark:text-gray-500">P/E vs Industry</span>
+                    <span class="text-gray-400 dark:text-gray-400">P/E vs Industry</span>
                     <span class="font-medium {% if pe_pct < 40 %}text-green-700 dark:text-green-400{% elif pe_pct > 70 %}text-red-600 dark:text-red-400{% else %}text-gray-600 dark:text-gray-400{% endif %}">
                         {{ pe_pct }}th percentile
                     </span>
@@ -646,7 +646,7 @@
                 <div class="h-full bg-gradient-to-r from-red-400 via-yellow-400 to-green-400 rounded-full" style="width: 100%"></div>
                 <div class="absolute top-0 h-full w-1 bg-brand dark:bg-blue-300 rounded" style="left: {{ r52w }}%"></div>
             </div>
-            <div class="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            <div class="flex justify-between text-xs text-gray-400 dark:text-gray-400 mt-0.5">
                 <span>52W Low</span>
                 <span>52W High</span>
             </div>
@@ -662,12 +662,38 @@
                 <div class="h-full bg-gradient-to-r from-red-400 via-yellow-400 to-green-400 rounded-full" style="width: 100%"></div>
                 <div class="absolute top-0 h-full w-1 bg-brand dark:bg-blue-300 rounded" style="left: {{ r5y }}%"></div>
             </div>
-            <div class="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            <div class="flex justify-between text-xs text-gray-400 dark:text-gray-400 mt-0.5">
                 <span>5Y Low</span>
                 <span>5Y High</span>
             </div>
         </div>
         {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{# ─── Recent Developments ─── #}
+{% if news %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
+    <div class="border-b border-gray-200 dark:border-gray-700 px-5 py-3 flex items-center justify-between">
+        <h3 class="font-bold text-sm uppercase tracking-wide text-brand dark:text-blue-300">Recent Developments</h3>
+        <span class="text-xs text-gray-400 dark:text-gray-400">Context for interpreting the score</span>
+    </div>
+    <div class="divide-y dark:divide-gray-700">
+        {% for item in news[:5] %}
+        <div class="px-5 py-3 {{ 'bg-gray-50 dark:bg-gray-700/30' if loop.index is odd else '' }}">
+            <div class="flex items-start justify-between gap-4">
+                <p class="text-sm text-gray-800 dark:text-gray-200">{{ item.title }}</p>
+                <div class="text-xs text-gray-400 dark:text-gray-400 whitespace-nowrap text-right flex-shrink-0">
+                    {% if item.date %}<span>{{ item.date }}</span><br>{% endif %}
+                    {% if item.publisher %}<span>{{ item.publisher }}</span>{% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="px-5 py-2">
+        <p class="text-xs italic text-gray-400 dark:text-gray-400">The Mosaic Score reflects historical data patterns. These headlines may highlight developments not yet captured in the score's 13 quantitative factors.</p>
     </div>
 </div>
 {% endif %}
@@ -685,4 +711,4 @@
 </div>
 
 
-<p class="text-xs text-gray-400 dark:text-gray-500 text-center mt-4">Mosaic Score is a quantitative composite of 13 factor signals. Market data from Yahoo Finance. For research purposes only, not financial advice — past patterns do not guarantee future results.</p>
+<p class="text-xs text-gray-400 dark:text-gray-400 text-center mt-4">Mosaic Score is a quantitative composite of 13 factor signals. Market data from Yahoo Finance. For research purposes only, not financial advice — past patterns do not guarantee future results.</p>

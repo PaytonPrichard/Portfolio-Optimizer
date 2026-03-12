@@ -1,6 +1,6 @@
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 overflow-hidden">
-    <div class="bg-brand text-white px-5 py-3">
-        <h2 class="font-bold text-sm uppercase tracking-wide">Analyst Price Targets (Wall Street Consensus)</h2>
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
+    <div class="border-b border-gray-200 dark:border-gray-700 px-5 py-3">
+        <h2 class="font-bold text-sm uppercase tracking-wide text-brand dark:text-blue-300">Analyst Price Targets (Wall Street Consensus)</h2>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-0">
         <div class="bg-[#5C6BC0] text-white p-4 text-center">
@@ -18,5 +18,8 @@
     </div>
     <div class="bg-brand-light dark:bg-brand/20 px-5 py-2 text-sm text-brand dark:text-blue-300 italic">
         Recommendation: {{ analyst.rec }} | {{ analyst.n_analysts }} analysts | {{ analyst.upside }}
+    </div>
+    <div class="px-5 py-2">
+        <p class="text-xs italic text-gray-400 dark:text-gray-400">Analyst price targets are forward-looking estimates that may not be achieved. Not a recommendation to buy or sell.</p>
     </div>
 </div>

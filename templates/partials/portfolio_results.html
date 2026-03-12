@@ -28,6 +28,32 @@
 </div>
 {% endmacro %}
 
+{# ── Analysis Settings (collapsible) ── #}
+<div id="analysis-settings" class="mb-6">
+    <details class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm">
+        <summary class="cursor-pointer px-4 py-2.5 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition rounded-lg select-none flex items-center gap-2">
+            <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.066z"/><circle cx="12" cy="12" r="3"/></svg>
+            Analysis Settings
+        </summary>
+        <div class="px-4 pb-4 pt-2 border-t border-gray-100 dark:border-gray-700">
+            <div class="flex flex-wrap items-end gap-6">
+                <div>
+                    <label for="setting-tax-rate" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Marginal Tax Rate (%)</label>
+                    <input type="number" id="setting-tax-rate" min="0" max="50" step="1" value="{{ taxRate | default(24) }}"
+                           class="w-20 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-1 focus:ring-brand focus:border-brand outline-none bg-white dark:bg-gray-800 dark:text-gray-200">
+                    <p class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Used for tax-loss harvesting estimates</p>
+                </div>
+                <div>
+                    <label for="setting-growth-rate" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Assumed Growth Rate (%)</label>
+                    <input type="number" id="setting-growth-rate" min="1" max="20" step="0.5" value="8"
+                           class="w-20 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-1 focus:ring-brand focus:border-brand outline-none bg-white dark:bg-gray-800 dark:text-gray-200">
+                    <p class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Used for fee drag projections</p>
+                </div>
+            </div>
+        </div>
+    </details>
+</div>
+
 {# ── 1. Portfolio Summary Cards ── #}
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
@@ -45,7 +71,7 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
         <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Holdings</div>
         <div class="text-2xl font-bold text-brand dark:text-blue-300">{{ holdings | length }}</div>
-        <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">across {{ bySector | length }} sectors</div>
+        <div class="text-xs text-gray-400 dark:text-gray-400 mt-1">across {{ bySector | length }} sectors</div>
     </div>
 </div>
 
@@ -82,7 +108,7 @@
                 {% for label, val, max_val in components %}
                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
                     <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">{{ label }}</div>
-                    <div class="text-lg font-bold text-gray-800 dark:text-gray-200">{{ val }}<span class="text-xs font-normal text-gray-400 dark:text-gray-500">/{{ max_val }}</span></div>
+                    <div class="text-lg font-bold text-gray-800 dark:text-gray-200">{{ val }}<span class="text-xs font-normal text-gray-400 dark:text-gray-400">/{{ max_val }}</span></div>
                     <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5 mt-1">
                         <div class="h-1.5 rounded-full {% if val / max_val >= 0.7 %}bg-green-500{% elif val / max_val >= 0.4 %}bg-yellow-500{% else %}bg-red-500{% endif %}" style="width: {{ (val / max_val * 100) | round }}%"></div>
                     </div>
@@ -111,7 +137,7 @@
             <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Portfolio Yield</div>
             <div class="text-2xl font-bold text-brand dark:text-blue-300">{{ '%.2f' | format(dividends.weightedYield) }}%</div>
             <div class="mt-2">
-                <div class="flex justify-between text-[10px] text-gray-400 dark:text-gray-500 mb-0.5">
+                <div class="flex justify-between text-xs text-gray-400 dark:text-gray-400 mb-0.5">
                     <span>Your Portfolio</span>
                     <span>S&amp;P 500 Avg (~1.3%)</span>
                 </div>
@@ -150,7 +176,7 @@
             </table>
         </div>
     </div>
-    <p class="text-xs text-gray-400 dark:text-gray-500 italic px-4 py-2">Based on trailing 12-month dividend yield. Actual payouts may vary. {{ dividends.payingCount }} of {{ dividends.totalCount }} individual stocks pay dividends.</p>
+    <p class="text-xs text-gray-400 dark:text-gray-400 italic px-4 py-2">Based on trailing 12-month dividend yield. Actual payouts may vary. {{ dividends.payingCount }} of {{ dividends.totalCount }} individual stocks pay dividends.</p>
 </div>
 {% endif %}
 
@@ -182,7 +208,7 @@
             </div>
         </div>
         <div id="growth-output"></div>
-        <p class="text-xs text-gray-400 dark:text-gray-500 italic mt-2">Default 10% is the S&amp;P 500 historical avg since 1926 (nominal). Does not account for inflation, taxes, contributions, or withdrawals.</p>
+        <p class="text-xs text-gray-400 dark:text-gray-400 italic mt-2">Default 10% is approximately the S&amp;P 500 long-term nominal average (source: Ibbotson/Morningstar). Does not account for inflation, taxes, contributions, or withdrawals. Past performance is not indicative of future results.</p>
     </div>
 </div>
 
@@ -201,7 +227,7 @@
                 <span class="text-sm text-gray-500 dark:text-gray-400">{{ c.name[:30] }}</span>
             </div>
             <div class="text-lg font-bold text-yellow-700 dark:text-yellow-400">{{ '%.1f' | format(c.pct) }}% of portfolio</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">{{ money(c.currentValue) }} &mdash; Consider rebalancing if >{{ c.threshold or 15 }}%{% if c.get('isFund') %} <span class="text-gray-400 dark:text-gray-500">(ETF/Fund)</span>{% endif %}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">{{ money(c.currentValue) }} &mdash; Consider rebalancing if >{{ c.threshold or 15 }}%{% if c.get('isFund') %} <span class="text-gray-400 dark:text-gray-400">(ETF/Fund)</span>{% endif %}</div>
         </div>
         {% endfor %}
     </div>
@@ -219,7 +245,7 @@
                 <a href="/dashboard/{{ t.symbol }}" class="font-bold text-brand dark:text-blue-300 hover:underline">{{ t.symbol }}</a>
                 <span class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ t.name[:25] }}</span>
                 {% if t.nearFiftyTwoWeekLow %}
-                <span class="ml-auto inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">Near 52W Low</span>
+                <span class="ml-auto inline-block px-1.5 py-0.5 rounded text-xs font-semibold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">Near 52W Low</span>
                 {% endif %}
             </div>
             <div class="text-lg font-bold text-red-600 dark:text-red-400 mb-1">
@@ -231,12 +257,12 @@
                 <span>Value: {{ money(t.currentValue) }}</span>
             </div>
             <div class="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-                Est. tax savings: ${{ '{:,.2f}'.format(t.estTaxSavings) }}
+                Est. tax savings: <span data-tax-savings="{{ t.unrealizedLoss | abs }}">${{ '{:,.2f}'.format(t.estTaxSavings) }}</span>
             </div>
         </div>
         {% endfor %}
     </div>
-    <p class="text-xs text-gray-400 dark:text-gray-500 italic mt-2 px-1">Tax savings estimated at 24% marginal rate. Consult a tax advisor before making decisions. Wash sale rules may apply.</p>
+    <p id="tax-rate-disclaimer" class="text-xs text-gray-400 dark:text-gray-400 italic mt-2 px-1">Tax savings estimated at {{ taxRate | default(24) }}% marginal rate. Consult a tax advisor before making decisions. Wash sale rules may apply.</p>
 </div>
 {% endif %}
 
@@ -353,7 +379,7 @@
         {% if bySector | length > 0 %}
         <div class="mb-5">
             <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Sector Balance vs. Target</h4>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Target ranges based on equal-weight principles. Adjust based on your outlook and goals.</p>
+            <p class="text-xs text-gray-400 dark:text-gray-400 mb-3">Target ranges based on equal-weight principles. Adjust based on your outlook and goals.</p>
             {% set target_per_sector = (100 / ([bySector | length, 11] | min)) | round(0) | int %}
             <div class="space-y-2">
                 {% for s in bySector[:10] %}
@@ -368,13 +394,13 @@
                         <div class="absolute top-0 bottom-0 w-0.5 bg-gray-400 dark:bg-gray-500" style="left: {{ [target_per_sector, 100] | min }}%" title="Target: ~{{ target_per_sector }}%"></div>
                     </div>
                     <span class="w-12 text-right text-xs font-bold {% if diff > 10 %}text-orange-600 dark:text-orange-400{% elif diff < -5 %}text-blue-600 dark:text-blue-400{% else %}text-gray-600 dark:text-gray-400{% endif %}">{{ '%.0f' | format(s.pct) }}%</span>
-                    <span class="w-16 text-right text-[11px] {% if diff > 0 %}text-orange-500{% elif diff < 0 %}text-blue-500{% else %}text-gray-400{% endif %}">
+                    <span class="w-16 text-right text-xs {% if diff > 0 %}text-orange-500{% elif diff < 0 %}text-blue-500{% else %}text-gray-400{% endif %}">
                         {% if diff > 1 %}+{{ '%.0f' | format(diff) }}% over{% elif diff < -1 %}{{ '%.0f' | format(diff) }}% under{% else %}On target{% endif %}
                     </span>
                 </div>
                 {% endfor %}
             </div>
-            <div class="flex items-center gap-4 mt-2 text-[10px] text-gray-400 dark:text-gray-500">
+            <div class="flex items-center gap-4 mt-2 text-xs text-gray-400 dark:text-gray-400">
                 <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-500"></span> Target (~{{ target_per_sector }}% each)</span>
                 <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-400"></span> Overweight</span>
                 <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-400"></span> Underweight</span>
@@ -386,7 +412,7 @@
         {% if opportunities %}
         <div>
             <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Expansion Opportunities</h4>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Industries not represented in your portfolio. Top analyst picks shown for each.</p>
+            <p class="text-xs text-gray-400 dark:text-gray-400 mb-3">Industries not represented in your portfolio. Top analyst picks shown for each.</p>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {% for opp in opportunities[:6] %}
                 <div class="bg-gray-50 dark:bg-gray-700/40 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
@@ -442,25 +468,47 @@
         {% elif gaps %}
         <div>
             <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Missing Industries</h4>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">Your portfolio doesn't have exposure to these industries:</p>
+            <p class="text-xs text-gray-400 dark:text-gray-400 mb-2">Your portfolio doesn't have exposure to these industries:</p>
             <div class="flex flex-wrap gap-1.5">
                 {% for g in gaps[:12] %}
-                <a href="/picks" class="px-2.5 py-1 text-[11px] font-medium text-brand dark:text-blue-300 bg-brand/5 dark:bg-blue-900/20 border border-brand/10 dark:border-blue-400/20 rounded-full hover:bg-brand/15 dark:hover:bg-blue-900/40 transition">
+                <a href="/picks" class="px-2.5 py-1 text-xs font-medium text-brand dark:text-blue-300 bg-brand/5 dark:bg-blue-900/20 border border-brand/10 dark:border-blue-400/20 rounded-full hover:bg-brand/15 dark:hover:bg-blue-900/40 transition">
                     {{ industryLabels.get(g, g) }}
                 </a>
                 {% endfor %}
                 {% if gaps | length > 12 %}
-                <span class="px-2.5 py-1 text-[11px] text-gray-400">+{{ gaps | length - 12 }} more</span>
+                <span class="px-2.5 py-1 text-xs text-gray-400">+{{ gaps | length - 12 }} more</span>
                 {% endif %}
             </div>
         </div>
         {% endif %}
 
         <div class="bg-gray-50 dark:bg-gray-700/30 rounded-lg px-4 py-3 mt-4">
-            <p class="text-[11px] text-gray-500 dark:text-gray-400">Diversification targets are general guidelines. Your ideal allocation depends on your age, risk tolerance, time horizon, and financial goals. Sector-equal weighting is one approach; market-cap weighting (like the S&amp;P 500) is another valid strategy. This is not financial advice.</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Diversification targets are general guidelines. Your ideal allocation depends on your age, risk tolerance, time horizon, and financial goals. Sector-equal weighting is one approach; market-cap weighting (like the S&amp;P 500) is another valid strategy. This is not financial advice.</p>
         </div>
     </div>
 </div>
+
+{# ── Widget Navigation ── #}
+<div id="widget-nav" class="mb-6">
+    <div class="flex flex-wrap gap-2 text-xs font-medium">
+        <button onclick="toggleWidgetGroup('insights')" class="widget-nav-btn px-3 py-1.5 rounded-full bg-brand/10 dark:bg-blue-900/30 text-brand dark:text-blue-300 transition" data-group="insights">
+            Insights & Allocation
+        </button>
+        <button onclick="toggleWidgetGroup('fundamentals')" class="widget-nav-btn px-3 py-1.5 rounded-full bg-brand/10 dark:bg-blue-900/30 text-brand dark:text-blue-300 transition" data-group="fundamentals">
+            Fundamentals
+        </button>
+        <button onclick="toggleWidgetGroup('risk')" class="widget-nav-btn px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition" data-group="risk">
+            Risk & Simulation
+        </button>
+        <button onclick="toggleWidgetGroup('all')" class="widget-nav-btn px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition" data-group="all">
+            Show All
+        </button>
+        <span id="widget-load-status" class="ml-auto text-xs text-gray-400 dark:text-gray-400 self-center"></span>
+    </div>
+</div>
+
+{# ── Group: Insights & Allocation ── #}
+<div class="widget-group" data-group="insights">
 
 {# ── 5. AI Commentary (async) ── #}
 <div id="widget-ai-commentary" class="mb-8" aria-live="polite" role="region" aria-label="AI portfolio commentary">
@@ -470,7 +518,7 @@
 {# ── 6. Sector Allocation ── #}
 <div class="mb-8">
     <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-3">Sector Allocation</h2>
-    <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">ETFs and mutual funds are broken down into their underlying sector weightings (look-through analysis).</p>
+    <p class="text-xs text-gray-400 dark:text-gray-400 mb-2">ETFs and mutual funds are broken down into their underlying sector weightings (look-through analysis).</p>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <table class="w-full text-sm">
             <thead>
@@ -552,7 +600,7 @@
                 <option value="upside">Highest Upside</option>
                 <option value="analyst">Analyst Favorites</option>
             </select>
-            <svg id="gaps-info-icon" class="w-4 h-4 text-gray-400 dark:text-gray-500 cursor-help shrink-0" viewBox="0 0 20 20" fill="currentColor"
+            <svg id="gaps-info-icon" class="w-4 h-4 text-gray-400 dark:text-gray-400 cursor-help shrink-0" viewBox="0 0 20 20" fill="currentColor"
                  title="Ranked by composite score: 60% analyst rating + 40% implied upside. Balances conviction with price potential.">
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
             </svg>
@@ -574,11 +622,11 @@
                 <div class="flex items-center gap-1.5 min-w-0">
                     <a href="/dashboard/{{ p.symbol }}" class="text-sm font-medium text-brand dark:text-blue-300 hover:underline shrink-0">{{ p.symbol }}</a>
                     {% if p.recKey %}{{ rec_badge(p.recKey) }}{% endif %}
-                    <span class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ p.name[:20] }}</span>
+                    <span class="text-xs text-gray-400 dark:text-gray-400 truncate">{{ p.name[:20] }}</span>
                 </div>
                 <div class="text-right shrink-0 ml-2">
                     <span class="text-sm font-bold text-green-600 dark:text-green-400">+{{ '%.1f' | format(p.upsidePct) }}%</span>
-                    <div class="text-xs text-gray-400 dark:text-gray-500">{{ p.nAnalysts }} analysts</div>
+                    <div class="text-xs text-gray-400 dark:text-gray-400">{{ p.nAnalysts }} analysts</div>
                 </div>
             </div>
             {% endfor %}
@@ -638,11 +686,11 @@
                     html += '<a href="/dashboard/' + p.symbol + '" class="text-sm font-medium text-brand dark:text-blue-300 hover:underline shrink-0">' + p.symbol + '</a>';
                     html += recBadgeHTML(p.recKey);
                     var name = (p.name || '').substring(0, 20);
-                    html += '<span class="text-xs text-gray-400 dark:text-gray-500 truncate">' + name + '</span>';
+                    html += '<span class="text-xs text-gray-400 dark:text-gray-400 truncate">' + name + '</span>';
                     html += '</div>';
                     html += '<div class="text-right shrink-0 ml-2">';
                     html += '<span class="text-sm font-bold text-green-600 dark:text-green-400">+' + p.upsidePct.toFixed(1) + '%</span>';
-                    html += '<div class="text-xs text-gray-400 dark:text-gray-500">' + p.nAnalysts + ' analysts</div>';
+                    html += '<div class="text-xs text-gray-400 dark:text-gray-400">' + p.nAnalysts + ' analysts</div>';
                     html += '</div></div>';
                 });
                 html += '</div>';
@@ -754,7 +802,7 @@
                         class="holdings-row cursor-pointer hover:bg-brand-light/30 dark:hover:bg-brand/10 transition-colors">
                         <td class="px-3 py-2">
                             <span class="inline-flex items-center gap-1">
-                                <svg class="w-3 h-3 text-gray-400 dark:text-gray-500 transition-transform holdings-chevron" viewBox="0 0 12 12" fill="currentColor"><path d="M4 2l4 4-4 4z"/></svg>
+                                <svg class="w-3 h-3 text-gray-400 dark:text-gray-400 transition-transform holdings-chevron" viewBox="0 0 12 12" fill="currentColor"><path d="M4 2l4 4-4 4z"/></svg>
                                 <a href="/dashboard/{{ h.symbol }}" class="text-brand dark:text-blue-300 font-bold hover:underline" onclick="event.stopPropagation()">{{ h.symbol }}</a>
                             </span>
                         </td>
@@ -784,7 +832,7 @@
                         </td>
                         <td class="px-3 py-2 text-gray-500 dark:text-gray-400 text-xs hidden xl:table-cell">
                             {% if h.get('isFund') %}
-                                <span class="text-gray-400 dark:text-gray-500 italic">See sector view</span>
+                                <span class="text-gray-400 dark:text-gray-400 italic">See sector view</span>
                             {% else %}
                                 {{ h.get('industry', '--') }}
                             {% endif %}
@@ -807,9 +855,9 @@
                                     {% if h.get('recommendationKey') and h.recommendationKey != 'N/A' %}
                                     <div class="mt-1">{{ rec_badge(h.recommendationKey) }}</div>
                                     {% endif %}
-                                    {% if h.get('nAnalysts') %}<div class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{{ h.nAnalysts }} analyst{{ 's' if h.nAnalysts != 1 }}</div>{% endif %}
+                                    {% if h.get('nAnalysts') %}<div class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">{{ h.nAnalysts }} analyst{{ 's' if h.nAnalysts != 1 }}</div>{% endif %}
                                     {% else %}
-                                    <div class="text-gray-400 dark:text-gray-500">N/A</div>
+                                    <div class="text-gray-400 dark:text-gray-400">N/A</div>
                                     {% endif %}
                                 </div>
                                 {# Valuation #}
@@ -831,7 +879,7 @@
                                     {% if hi and lo and cp and (hi - lo) > 0 %}
                                     {% set pos = ((cp - lo) / (hi - lo) * 100) %}
                                     {% set cpos = [0, [pos, 100] | min] | max %}
-                                    <div class="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500">
+                                    <div class="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-400">
                                         <span>${{ '%.0f' | format(lo) }}</span>
                                         <div class="relative flex-1 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full">
                                             <div class="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full {% if cpos <= 33 %}bg-green-500{% elif cpos <= 66 %}bg-yellow-500{% else %}bg-red-500{% endif %}" style="left: {{ cpos }}%; transform: translate(-50%,-50%)"></div>
@@ -839,7 +887,7 @@
                                         <span>${{ '%.0f' | format(hi) }}</span>
                                     </div>
                                     {% else %}
-                                    <div class="text-gray-400 dark:text-gray-500 text-xs">N/A</div>
+                                    <div class="text-gray-400 dark:text-gray-400 text-xs">N/A</div>
                                     {% endif %}
                                 </div>
                                 {# Dividends #}
@@ -848,7 +896,7 @@
                                     {% if h.get('dividendYield') and h.dividendYield > 0 %}
                                     <div class="font-medium text-green-700 dark:text-green-400">{{ '%.2f' | format(h.dividendYield * 100) }}% yield</div>
                                     {% else %}
-                                    <div class="text-gray-400 dark:text-gray-500 text-xs">No dividend</div>
+                                    <div class="text-gray-400 dark:text-gray-400 text-xs">No dividend</div>
                                     {% endif %}
                                 </div>
                             </div>
@@ -859,7 +907,7 @@
             </table>
         </div>
     </div>
-    <p class="text-xs text-gray-400 dark:text-gray-500 italic px-4 py-2">
+    <p class="text-xs text-gray-400 dark:text-gray-400 italic px-4 py-2">
         Sector and industry data from Yahoo Finance. Not investment advice.
     </p>
 </div>
@@ -884,39 +932,19 @@
     {{ widget_skeleton("Holdings News Digest") }}
 </div>
 
+</div>{# end widget-group: insights #}
+
+{# ── Group: Fundamentals ── #}
+<div class="widget-group" data-group="fundamentals">
+
 {# ── 14. Peer Valuation (async, phase 2) ── #}
 <div id="widget-peer-valuation" class="mb-8" aria-live="polite" role="region" aria-label="Peer valuation comparison">
     {{ widget_skeleton("Peer Valuation Check") }}
 </div>
 
-{# ── 15. Correlation Matrix (async, phase 2) ── #}
-<div id="widget-correlation" class="mb-8" aria-live="polite" role="region" aria-label="Portfolio correlation matrix">
-    {{ widget_skeleton("Correlation Matrix") }}
-</div>
-
 {# ── 16. Mosaic Scores (async, phase 3) ── #}
 <div id="widget-alpha-scores" class="mb-8" aria-live="polite" role="region" aria-label="Mosaic score analysis">
     {{ widget_skeleton("Mosaic Scores") }}
-</div>
-
-{# ── 17. Risk Dashboard (async, phase 3) ── #}
-<div id="widget-risk-dashboard" class="mb-8" aria-live="polite" role="region" aria-label="Risk metrics dashboard">
-    {{ widget_skeleton("Risk Dashboard") }}
-</div>
-
-{# ── 17. Stress Testing (async, phase 2) ── #}
-<div id="widget-stress-test" class="mb-8" aria-live="polite" role="region" aria-label="Stress testing scenarios">
-    {{ widget_skeleton("Stress Testing") }}
-</div>
-
-{# ── 18. Monte Carlo Simulation (async, phase 3) ── #}
-<div id="widget-monte-carlo" class="mb-8" aria-live="polite" role="region" aria-label="Monte Carlo simulation">
-    {{ widget_skeleton("Monte Carlo Projection") }}
-</div>
-
-{# ── 19. Portfolio Optimizer (async, phase 3) ── #}
-<div id="widget-optimizer" class="mb-8" aria-live="polite" role="region" aria-label="Portfolio optimizer">
-    {{ widget_skeleton("Portfolio Optimizer") }}
 </div>
 
 {# ── 20. Factor Exposure (async, phase 2) ── #}
@@ -933,6 +961,38 @@
 <div id="widget-fundamentals" class="mb-8" aria-live="polite" role="region" aria-label="Fundamental scorecard">
     {{ widget_skeleton("Fundamental Scorecard") }}
 </div>
+
+</div>{# end widget-group: fundamentals #}
+
+{# ── Group: Risk & Simulation ── #}
+<div class="widget-group hidden" data-group="risk">
+
+{# ── 15. Correlation Matrix (async, phase 2) ── #}
+<div id="widget-correlation" class="mb-8" aria-live="polite" role="region" aria-label="Portfolio correlation matrix">
+    {{ widget_skeleton("Correlation Matrix") }}
+</div>
+
+{# ── 17. Risk Dashboard (async, phase 3) ── #}
+<div id="widget-risk-dashboard" class="mb-8" aria-live="polite" role="region" aria-label="Risk metrics dashboard">
+    {{ widget_skeleton("Risk Dashboard") }}
+</div>
+
+{# ── 17b. Stress Testing (async, phase 2) ── #}
+<div id="widget-stress-test" class="mb-8" aria-live="polite" role="region" aria-label="Stress testing scenarios">
+    {{ widget_skeleton("Stress Testing") }}
+</div>
+
+{# ── 18. Monte Carlo Simulation (async, phase 3) ── #}
+<div id="widget-monte-carlo" class="mb-8" aria-live="polite" role="region" aria-label="Monte Carlo simulation">
+    {{ widget_skeleton("Monte Carlo Projection") }}
+</div>
+
+{# ── 19. Portfolio Optimizer (async, phase 3) ── #}
+<div id="widget-optimizer" class="mb-8" aria-live="polite" role="region" aria-label="Portfolio optimizer">
+    {{ widget_skeleton("Portfolio Optimizer") }}
+</div>
+
+</div>{# end widget-group: risk #}
 
 {# ── Expandable holdings row toggle ── #}
 <script>
@@ -952,6 +1012,104 @@
             chevron.style.transform = detail.classList.contains('hidden') ? '' : 'rotate(90deg)';
         }
     });
+})();
+</script>
+
+{# ── Widget Group Toggle ── #}
+<script>
+(function() {
+    // Widget group toggle
+    window.toggleWidgetGroup = function(group) {
+        var groups = document.querySelectorAll('.widget-group');
+        var btns = document.querySelectorAll('.widget-nav-btn');
+
+        if (group === 'all') {
+            // Show all groups
+            groups.forEach(function(g) { g.classList.remove('hidden'); });
+            btns.forEach(function(b) {
+                if (b.getAttribute('data-group') === 'all') {
+                    b.className = 'widget-nav-btn px-3 py-1.5 rounded-full bg-brand/10 dark:bg-blue-900/30 text-brand dark:text-blue-300 transition';
+                } else {
+                    b.className = 'widget-nav-btn px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition';
+                }
+            });
+            return;
+        }
+
+        // Toggle the specific group
+        var target = document.querySelector('.widget-group[data-group="' + group + '"]');
+        if (!target) return;
+
+        var isHidden = target.classList.contains('hidden');
+
+        if (isHidden) {
+            target.classList.remove('hidden');
+        } else {
+            target.classList.add('hidden');
+        }
+
+        // Update button state
+        btns.forEach(function(b) {
+            var g = b.getAttribute('data-group');
+            if (g === 'all') {
+                var allVisible = true;
+                groups.forEach(function(grp) { if (grp.classList.contains('hidden')) allVisible = false; });
+                if (allVisible) {
+                    b.className = 'widget-nav-btn px-3 py-1.5 rounded-full bg-brand/10 dark:bg-blue-900/30 text-brand dark:text-blue-300 transition';
+                } else {
+                    b.className = 'widget-nav-btn px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition';
+                }
+            } else {
+                var grpEl = document.querySelector('.widget-group[data-group="' + g + '"]');
+                if (grpEl && !grpEl.classList.contains('hidden')) {
+                    b.className = 'widget-nav-btn px-3 py-1.5 rounded-full bg-brand/10 dark:bg-blue-900/30 text-brand dark:text-blue-300 transition';
+                } else {
+                    b.className = 'widget-nav-btn px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition';
+                }
+            }
+        });
+
+        // Scroll to group if just shown
+        if (isHidden) {
+            setTimeout(function() { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+        }
+    };
+
+    // Widget loading status tracker
+    var totalWidgets = 0;
+    var loadedWidgets = 0;
+    var statusEl = document.getElementById('widget-load-status');
+
+    function countWidgets() {
+        totalWidgets = document.querySelectorAll('[id^="widget-"]').length;
+    }
+
+    function updateStatus() {
+        if (!statusEl || totalWidgets === 0) return;
+        if (loadedWidgets >= totalWidgets) {
+            statusEl.textContent = 'All widgets loaded';
+            setTimeout(function() { statusEl.style.opacity = '0'; }, 3000);
+        } else {
+            statusEl.textContent = 'Loading widgets (' + loadedWidgets + '/' + totalWidgets + ')...';
+        }
+    }
+
+    // Observe widget containers for content changes
+    countWidgets();
+    var observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(m) {
+            var el = m.target;
+            if (el.id && el.id.startsWith('widget-') && !el.querySelector('.animate-pulse')) {
+                loadedWidgets++;
+                updateStatus();
+            }
+        });
+    });
+
+    document.querySelectorAll('[id^="widget-"]').forEach(function(el) {
+        observer.observe(el, { childList: true });
+    });
+    updateStatus();
 })();
 </script>
 

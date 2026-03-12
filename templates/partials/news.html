@@ -1,6 +1,6 @@
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 overflow-hidden">
-    <div class="bg-brand text-white px-5 py-3">
-        <h2 class="font-bold text-sm uppercase tracking-wide">Recent News</h2>
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
+    <div class="border-b border-gray-200 dark:border-gray-700 px-5 py-3">
+        <h2 class="font-bold text-sm uppercase tracking-wide text-brand dark:text-blue-300">Recent News</h2>
     </div>
     {% if news %}
     <div class="divide-y dark:divide-gray-700">
@@ -13,7 +13,7 @@
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ item.summary }}</p>
                     {% endif %}
                 </div>
-                <div class="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap text-right">
+                <div class="text-xs text-gray-400 dark:text-gray-400 whitespace-nowrap text-right">
                     {% if item.date %}<span>{{ item.date }}</span><br>{% endif %}
                     {% if item.publisher %}<span>{{ item.publisher }}</span>{% endif %}
                 </div>

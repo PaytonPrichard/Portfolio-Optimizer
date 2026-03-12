@@ -1,8 +1,8 @@
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 overflow-hidden">
-    <div class="bg-brand text-white px-5 py-3 flex items-center justify-between">
-        <h2 class="font-bold text-sm uppercase tracking-wide">1-Year Price History</h2>
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
+    <div class="border-b border-gray-200 dark:border-gray-700 px-5 py-3 flex items-center justify-between">
+        <h2 class="font-bold text-sm uppercase tracking-wide text-brand dark:text-blue-300">1-Year Price History</h2>
         {% if current_price %}
-        <span class="text-lg font-bold">${{ '%.2f' | format(current_price) }}</span>
+        <span class="text-lg font-bold text-gray-800 dark:text-gray-200">${{ '%.2f' | format(current_price) }}</span>
         {% endif %}
     </div>
     <!-- Indicator toggles -->
@@ -29,7 +29,14 @@
 <script>
 (function() {
     var rawData = {{ price_history_json | safe }};
-    if (!rawData || !rawData.length) return;
+    var canvas = document.getElementById('priceChart');
+    if (!rawData || !rawData.length) {
+        var container = canvas ? canvas.parentElement : document.getElementById('price-chart');
+        if (container) {
+            container.innerHTML = '<div class="flex items-center justify-center h-full text-gray-400 dark:text-gray-400"><svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg><span>Price history not available for this ticker</span></div>';
+        }
+        return;
+    }
 
     // Keep all data for SMA calculations, but sample for display
     var fullPrices = rawData.map(function(d) { return d.close; });

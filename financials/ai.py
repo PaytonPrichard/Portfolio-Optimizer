@@ -163,9 +163,12 @@ def generate_ai_commentary(info: dict, quarterly_income: pd.DataFrame,
         "1. Company health: summarize operational performance (revenue trend, margins, profitability).\n"
         "2. Price outlook: reference the analyst consensus target and implied upside/downside.\n"
         "3. Key financial risk or opportunity evident in the numbers.\n"
-        "4. Recent company-specific development: draw on the news headlines.\n"
+        "4. Current developments: identify the most material recent event from the news headlines "
+        "and explain its potential impact on the company's business, valuation, or competitive position. "
+        "Be specific about what happened and why it matters.\n"
         "5. Broader industry or macro context relevant to this company right now.\n\n"
         "Rules: be specific and reference actual figures or news items. Keep each sentence under 50 words. "
+        "Prioritize actionable context over generic observations. "
         "No bullet points, no numbered list, no section labels. Just 5 plain sentences in a paragraph.\n\n"
         f"Financial data and news:\n{data_block}"
     )

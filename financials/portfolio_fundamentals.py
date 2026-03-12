@@ -46,6 +46,7 @@ def _fetch_fundamentals(symbol):
             "pegRatio": info.get("trailingPegRatio"),
             "payoutRatio": info.get("payoutRatio"),
             "dividendYield": info.get("dividendYield"),
+            "sector": info.get("sector", ""),
         }
 
         # Quarterly revenue and net income trends
@@ -115,14 +116,27 @@ def _score_leverage(data):
     dte = data.get("debtToEquity")
     if dte is not None:
         count += 1
-        if dte < 30:
-            score += 7
-        elif dte < 80:
-            score += 5
-        elif dte < 150:
-            score += 3
+        sector = (data.get("sector") or "").lower()
+        is_financial = sector in ("financial services", "financial")
+        if is_financial:
+            # Banks/financials naturally carry high leverage; use lenient thresholds
+            if dte < 100:
+                score += 7
+            elif dte < 200:
+                score += 5
+            elif dte < 400:
+                score += 3
+            else:
+                score += 1
         else:
-            score += 1
+            if dte < 30:
+                score += 7
+            elif dte < 80:
+                score += 5
+            elif dte < 150:
+                score += 3
+            else:
+                score += 1
 
     cr = data.get("currentRatio")
     if cr is not None:
@@ -506,9 +520,27 @@ def compute_factor_exposure(holdings):
     if weighted_pe:
         # Value: inverse of PE (lower PE = more value)
         factors["value"] = max(0, min(100, round((40 - weighted_pe) / 30 * 100)))
-        factors["growth"] = max(0, min(100, 100 - factors["value"]))
     else:
         factors["value"] = 50
+
+    # Growth: compute independently from weighted earnings/revenue growth rates
+    growth_data = []
+    for h in holdings:
+        val = h.get("currentValue", 0)
+        if val <= 0:
+            continue
+        weight = val / total_value
+        eg = h.get("earningsGrowth") or h.get("earningsQuarterlyGrowth")
+        rg = h.get("revenueGrowth")
+        rates = [r for r in [eg, rg] if r is not None]
+        if rates:
+            avg_growth = sum(rates) / len(rates)
+            growth_data.append((avg_growth, weight))
+    if growth_data:
+        weighted_growth = sum(g * w for g, w in growth_data)
+        # Map growth rate to 0-100 scale: 30%+ growth = 100, 0% = 40, -10% = 10
+        factors["growth"] = max(0, min(100, round(40 + weighted_growth * 200)))
+    else:
         factors["growth"] = 50
 
     # Yield score

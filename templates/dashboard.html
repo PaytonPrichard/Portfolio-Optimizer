@@ -3,11 +3,23 @@
 {% block title %}{{ company_name }} ({{ symbol }}) - MarketMosaic{% endblock %}
 
 {% block content %}
+<!-- Disclaimer -->
+<div class="max-w-7xl mx-auto px-4 mt-6">
+    <div class="bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-lg px-4 py-3 flex items-start gap-3">
+        <svg class="h-5 w-5 text-[#1F4E79] dark:text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd"/>
+        </svg>
+        <p class="text-sm text-slate-600 dark:text-slate-400">
+            Data shown is for informational and research purposes only. Prices may be delayed. This is not investment advice — always do your own research.
+        </p>
+    </div>
+</div>
+
 <!-- Loading overlay -->
 <div id="loading-overlay" class="fixed inset-0 bg-white/80 dark:bg-gray-900/80 z-50 flex flex-col items-center justify-center hidden" role="status" aria-live="polite">
     <div class="animate-spin rounded-full h-12 w-12 border-4 border-brand border-t-transparent mb-4"></div>
     <p class="text-brand dark:text-blue-300 font-semibold text-lg">Loading dashboard...</p>
-    <p class="text-gray-400 dark:text-gray-500 text-sm mt-1">Fetching financial data from Yahoo Finance</p>
+    <p class="text-gray-400 dark:text-gray-400 text-sm mt-1">Fetching financial data from Yahoo Finance</p>
 </div>
 
 <div class="max-w-7xl mx-auto px-4 py-6">
@@ -29,29 +41,79 @@
         </form>
     </div>
 
+    <!-- Section Navigation -->
+    <nav id="section-nav" class="sticky top-0 z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur border-b border-gray-200 dark:border-gray-700 mb-6 -mx-4 px-4 overflow-x-auto">
+        <div class="flex gap-1 py-2 text-xs font-medium whitespace-nowrap">
+            <a href="#section-kpi" class="section-link px-3 py-1.5 rounded-full bg-brand/10 dark:bg-blue-900/30 text-brand dark:text-blue-300 hover:bg-brand/20 transition">Overview</a>
+            <a href="#mosaic-score-card" class="section-link px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Mosaic</a>
+            <a href="#section-chart" class="section-link px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Chart</a>
+            <a href="#section-revenue" class="section-link px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Revenue</a>
+            <a href="#section-analyst" class="section-link px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Analyst</a>
+            <a href="#section-outlook" class="section-link px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Outlook</a>
+            <a href="#section-health" class="section-link px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Health</a>
+            <a href="#section-news" class="section-link px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition">News</a>
+            <a href="#section-peers" class="section-link px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition">Peers</a>
+            <a href="/download/{{ symbol }}" class="section-link px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Excel
+            </a>
+        </div>
+    </nav>
+
     <!-- KPI Boxes -->
+    <div id="section-kpi">
     {% include "partials/kpi_boxes.html" %}
+    </div>
+
+    <!-- Mosaic Score (async) -->
+    <div id="mosaic-score-card" class="mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center gap-3">
+                <div class="animate-pulse flex items-center gap-3 flex-1">
+                    <div class="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                    <div class="flex-1">
+                        <div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-2"></div>
+                        <div class="h-2 bg-gray-100 dark:bg-gray-700 rounded w-48"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Price Chart -->
+    <div id="section-chart">
     {% include "partials/price_chart.html" %}
+    </div>
 
     <!-- Revenue Trend -->
+    <div id="section-revenue">
     {% include "partials/revenue_table.html" %}
+    </div>
 
     <!-- Analyst Targets -->
+    <div id="section-analyst">
     {% include "partials/analyst_targets.html" %}
+    </div>
 
     <!-- Outlook -->
+    <div id="section-outlook">
     {% include "partials/outlook.html" %}
+    </div>
 
     <!-- Health Indicators -->
+    <div id="section-health">
     {% include "partials/health_indicators.html" %}
+    </div>
 
     <!-- News -->
+    <div id="section-news">
     {% include "partials/news.html" %}
+    </div>
 
     <!-- Peers (async) -->
+    <div id="section-peers">
     {% include "partials/peers.html" %}
+    </div>
 
     <!-- Download -->
     <div class="mt-6 text-center">
@@ -73,6 +135,106 @@
             document.getElementById('loading-overlay').classList.remove('hidden');
         });
     }
+})();
+</script>
+<script>
+(function() {
+    // Load Mosaic Score card
+    var card = document.getElementById('mosaic-score-card');
+    if (!card) return;
+    fetch('/api/score/summary/{{ symbol }}')
+        .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
+        .then(function(d) {
+            var score = parseInt(d.alphaScore) || 0;
+            var _esc = function(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; };
+            var conv = _esc(d.conviction || 'N/A');
+            var color = score >= 70 ? 'green' : score >= 45 ? 'yellow' : 'red';
+            var strokeMap = { green: '#22c55e', yellow: '#eab308', red: '#ef4444' };
+            var textMap = { green: 'text-green-700 dark:text-green-400', yellow: 'text-yellow-700 dark:text-yellow-400', red: 'text-red-600 dark:text-red-400' };
+            var badgeMap = { green: 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300', yellow: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300', red: 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300' };
+            var dash = Math.round(score / 100 * 251.2 * 10) / 10;
+            card.innerHTML =
+                '<a href="/score?ticker={{ symbol }}" class="block bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition group">' +
+                '<div class="flex items-center gap-4">' +
+                    '<div class="relative shrink-0">' +
+                        '<svg width="56" height="56" viewBox="0 0 120 120" class="transform -rotate-90">' +
+                            '<circle cx="60" cy="60" r="40" fill="none" stroke-width="8" class="stroke-gray-200 dark:stroke-gray-700"/>' +
+                            '<circle cx="60" cy="60" r="40" fill="none" stroke-width="8" stroke-linecap="round" stroke="' + strokeMap[color] + '" stroke-dasharray="' + dash + ' 251.2"/>' +
+                        '</svg>' +
+                        '<div class="absolute inset-0 flex flex-col items-center justify-center"><span class="text-lg font-bold leading-none ' + textMap[color] + '">' + score + '</span><span class="text-[9px] text-gray-400 dark:text-gray-400 leading-none mt-0.5">/100</span></div>' +
+                    '</div>' +
+                    '<div class="flex-1 min-w-0">' +
+                        '<div class="flex items-center gap-2 mb-1">' +
+                            '<span class="text-sm font-bold text-gray-800 dark:text-gray-200">Mosaic Score</span>' +
+                            '<span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold ' + badgeMap[color] + '">' + conv + '</span>' +
+                        '</div>' +
+                        '<p class="text-xs text-gray-500 dark:text-gray-400">Composite of 13 fundamental, momentum, and macro factors. <span class="text-brand dark:text-blue-300 group-hover:underline">View full analysis &rarr;</span></p>' +
+                    '</div>' +
+                '</div>' +
+                '</a>';
+        })
+        .catch(function() {
+            card.innerHTML =
+                '<a href="/score?ticker={{ symbol }}" class="block bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition">' +
+                '<div class="flex items-center gap-3">' +
+                    '<div class="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center"><svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div>' +
+                    '<div><span class="text-sm font-bold text-brand dark:text-blue-300">View Mosaic Score</span><p class="text-xs text-gray-500 dark:text-gray-400">13-factor composite analysis</p></div>' +
+                '</div></a>';
+        });
+})();
+</script>
+<script>
+(function() {
+    // Section nav active state
+    var links = document.querySelectorAll('.section-link[href^="#"]');
+    var sections = [];
+    links.forEach(function(link) {
+        var id = link.getAttribute('href').substring(1);
+        var el = document.getElementById(id);
+        if (el) sections.push({ el: el, link: link });
+    });
+
+    if (sections.length === 0) return;
+
+    var activeClass = 'bg-brand/10 dark:bg-blue-900/30 text-brand dark:text-blue-300';
+    var inactiveClass = 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700';
+
+    function updateActive() {
+        var scrollY = window.scrollY + 120;
+        var current = sections[0];
+        for (var i = 0; i < sections.length; i++) {
+            if (sections[i].el.offsetTop <= scrollY) current = sections[i];
+        }
+        sections.forEach(function(s) {
+            if (s === current) {
+                s.link.className = 'section-link px-3 py-1.5 rounded-full ' + activeClass + ' transition';
+            } else {
+                s.link.className = 'section-link px-3 py-1.5 rounded-full ' + inactiveClass + ' transition';
+            }
+        });
+    }
+
+    var ticking = false;
+    window.addEventListener('scroll', function() {
+        if (!ticking) {
+            requestAnimationFrame(function() { updateActive(); ticking = false; });
+            ticking = true;
+        }
+    });
+    updateActive();
+
+    // Smooth scroll
+    links.forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            var id = this.getAttribute('href').substring(1);
+            var target = document.getElementById(id);
+            if (target) {
+                e.preventDefault();
+                var offset = target.offsetTop - 100;
+                window.scrollTo({ top: offset, behavior: 'smooth' });
+            }
+        });
+    });
 })();
 </script>
 {% endblock %}

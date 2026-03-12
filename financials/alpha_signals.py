@@ -428,18 +428,26 @@ def _compute_technical(price_history):
 
 
 def _compute_rsi(closes, period=14):
+    """Wilder's RSI — matches TradingView, Bloomberg, etc."""
     if len(closes) < period + 1:
         return None
 
-    gains = []
-    losses = []
-    for i in range(len(closes) - period, len(closes)):
-        change = closes[i] - closes[i - 1]
-        gains.append(change if change > 0 else 0)
-        losses.append(-change if change < 0 else 0)
+    # Compute all price changes
+    changes = [closes[i] - closes[i - 1] for i in range(1, len(closes))]
 
-    avg_gain = sum(gains) / period
-    avg_loss = sum(losses) / period
+    # First average: simple average over the initial `period` changes
+    gains_init = [max(c, 0) for c in changes[:period]]
+    losses_init = [max(-c, 0) for c in changes[:period]]
+    avg_gain = sum(gains_init) / period
+    avg_loss = sum(losses_init) / period
+
+    # Wilder's smoothing for subsequent values
+    for c in changes[period:]:
+        gain = max(c, 0)
+        loss = max(-c, 0)
+        avg_gain = (avg_gain * (period - 1) + gain) / period
+        avg_loss = (avg_loss * (period - 1) + loss) / period
+
     if avg_loss == 0:
         return 100.0
     rs = avg_gain / avg_loss
@@ -514,8 +522,8 @@ def _fetch_macro():
 
     with ThreadPoolExecutor(max_workers=3) as pool:
         fv = pool.submit(_get_vix)
-        f10 = pool.submit(_get_yield, "^TNX")
-        f2 = pool.submit(_get_yield, "^IRX")
+        f10 = pool.submit(_get_yield, "^TNX")   # 10-year Treasury note yield
+        f3m = pool.submit(_get_yield, "^IRX")  # 3-month Treasury bill rate
 
         try:
             result["vix"] = fv.result(timeout=10)
@@ -526,9 +534,9 @@ def _fetch_macro():
         except Exception:
             result["yield10y"] = None
         try:
-            result["yield2y"] = f2.result(timeout=10)
+            result["yield3m"] = f3m.result(timeout=10)
         except Exception:
-            result["yield2y"] = None
+            result["yield3m"] = None
 
     # Classify
     vix = result.get("vix")
@@ -543,7 +551,7 @@ def _fetch_macro():
             result["vixLevel"] = "high"
 
     y10 = result.get("yield10y")
-    y2 = result.get("yield2y")
+    y2 = result.get("yield3m")
     if y10 is not None and y2 is not None:
         spread = round(y10 - y2, 3)
         result["yieldSpread"] = spread
@@ -822,7 +830,7 @@ def score_macro(data, snapshot=None):
         else:
             score -= 20
 
-    # Yield curve component
+    # Yield curve component (10Y minus 3M Treasury spread)
     spread = data.get("yieldSpread")
     if spread is not None:
         if spread > 1.5:

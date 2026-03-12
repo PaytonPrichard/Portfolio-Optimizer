@@ -3,7 +3,7 @@
 {% if scoredCount == 0 %}
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
     <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-2">Fundamental Scorecard</h2>
-    <p class="text-gray-400 dark:text-gray-500 text-sm">No fundamental data available for your holdings.</p>
+    <p class="text-gray-400 dark:text-gray-400 text-sm">No fundamental data available for your holdings.</p>
 </div>
 {% else %}
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
@@ -29,7 +29,7 @@
             <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-2">{{ label }}</div>
             <div class="flex items-end gap-1 mb-1">
                 <span class="text-xl font-bold text-brand dark:text-blue-300">{{ score }}</span>
-                <span class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">/{{ max_score }}</span>
+                <span class="text-xs text-gray-400 dark:text-gray-400 mb-0.5">/{{ max_score }}</span>
             </div>
             <div class="h-2 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
                 {% set pct = (score / max_score * 100) if max_score > 0 else 0 %}
@@ -80,7 +80,7 @@
                 <tr class="border-t border-gray-100 dark:border-gray-700 {% if loop.index0 % 2 == 0 %}bg-gray-50 dark:bg-gray-700/30{% endif %}">
                     <td class="px-3 py-2">
                         <span class="font-medium text-brand dark:text-blue-300">{{ h.symbol }}</span>
-                        <span class="text-xs text-gray-400 dark:text-gray-500 ml-1">{{ h.weight }}%</span>
+                        <span class="text-xs text-gray-400 dark:text-gray-400 ml-1">{{ h.weight }}%</span>
                     </td>
                     <td class="px-3 py-2 text-right">
                         {% if h.totalScore is not none %}
@@ -92,7 +92,7 @@
                             {{ h.totalScore }}
                         </span>
                         {% else %}
-                        <span class="text-gray-400 dark:text-gray-500 text-xs">N/A</span>
+                        <span class="text-gray-400 dark:text-gray-400 text-xs">N/A</span>
                         {% endif %}
                     </td>
                     <td class="px-3 py-2 text-center">
@@ -103,7 +103,7 @@
                         {% elif h.trend == 'stable' %}
                         <span class="text-gray-500 dark:text-gray-400 text-xs">Stable</span>
                         {% else %}
-                        <span class="text-gray-400 dark:text-gray-500 text-xs">--</span>
+                        <span class="text-gray-400 dark:text-gray-400 text-xs">--</span>
                         {% endif %}
                     </td>
                     <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ h.profitMargins | string + '%' if h.profitMargins is not none else '--' }}</td>
@@ -116,6 +116,7 @@
             </tbody>
         </table>
     </div>
-    <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">Scores: Profitability + Leverage + Cash Flow + Growth (each 0-25, total 0-100). Quarterly financial data used for trend detection.</p>
+    <p class="text-xs text-gray-400 dark:text-gray-400 mt-2">Scores: Profitability + Leverage + Cash Flow + Growth (each 0-25, total 0-100). Quarterly financial data used for trend detection.</p>
+    <p class="text-xs italic text-gray-400 dark:text-gray-400 mt-1">Scoring thresholds are general guidelines and may not apply equally to all sectors or industries.</p>
 </div>
 {% endif %}

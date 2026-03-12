@@ -7,13 +7,16 @@ from flask import Blueprint, send_file
 from financials.data import fetch_data, fetch_recent_news, fetch_industry_peers
 from financials.ai import generate_ai_commentary, generate_news_summaries
 from financials.excel import build_full_workbook
+from financials.validation import validate_ticker
 
 download_bp = Blueprint("download", __name__)
 
 
 @download_bp.route("/download/<ticker>")
 def download_excel(ticker):
-    ticker = ticker.upper()
+    ticker = validate_ticker(ticker)
+    if not ticker:
+        return "Invalid ticker format", 400
 
     info, quarterly_income, history = fetch_data(ticker)
 

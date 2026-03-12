@@ -41,8 +41,10 @@ def portfolio_analyze():
         return '<p class="text-red-500 italic p-4">No valid stock positions found in the CSV. Cash and money market positions are excluded.</p>', 400
 
     try:
+        tax_rate_pct = request.form.get("tax_rate", 24, type=float)
+        tax_rate = max(0, min(50, tax_rate_pct)) / 100
         holdings = enrich_holdings(holdings)
-        analysis = analyze_portfolio(holdings)
+        analysis = analyze_portfolio(holdings, tax_rate=tax_rate)
         return render_template("partials/portfolio_results.html", **analysis)
     except Exception:
         traceback.print_exc()
@@ -65,9 +67,15 @@ def portfolio_analyze_manual():
         return '<p class="text-red-500 italic p-4">No valid holdings found. Enter at least one ticker with shares.</p>', 400
 
     try:
+        tax_rate_pct = (data[0] if data else {}).get("_taxRate", 24) if isinstance(data, list) else 24
+        try:
+            tax_rate_pct = float(tax_rate_pct)
+        except (TypeError, ValueError):
+            tax_rate_pct = 24
+        tax_rate = max(0, min(50, tax_rate_pct)) / 100
         holdings = enrich_holdings(holdings)
         holdings = _fill_prices_from_enrichment(holdings)
-        analysis = analyze_portfolio(holdings)
+        analysis = analyze_portfolio(holdings, tax_rate=tax_rate)
         return render_template("partials/portfolio_results.html", **analysis)
     except Exception:
         traceback.print_exc()

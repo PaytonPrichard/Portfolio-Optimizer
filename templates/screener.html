@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Screener - MarketMosaic{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-brand dark:text-blue-300">Stock Screener</h1>
+        <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Filter and discover stocks from the MarketMosaic universe</p>
+    </div>
+
+    <!-- Quick Presets -->
+    <div class="mb-4">
+        <div class="flex flex-wrap gap-2">
+            <button onclick="applyPreset('value')" class="preset-btn px-3 py-1.5 rounded-full text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-brand/10 hover:border-brand hover:text-brand dark:hover:text-blue-300 transition">Value Stocks</button>
+            <button onclick="applyPreset('growth')" class="preset-btn px-3 py-1.5 rounded-full text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-brand/10 hover:border-brand hover:text-brand dark:hover:text-blue-300 transition">Growth Stocks</button>
+            <button onclick="applyPreset('dividend')" class="preset-btn px-3 py-1.5 rounded-full text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-brand/10 hover:border-brand hover:text-brand dark:hover:text-blue-300 transition">Dividend Stocks</button>
+            <button onclick="applyPreset('defensive')" class="preset-btn px-3 py-1.5 rounded-full text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-brand/10 hover:border-brand hover:text-brand dark:hover:text-blue-300 transition">Low Beta / Defensive</button>
+            <button onclick="applyPreset('quality')" class="preset-btn px-3 py-1.5 rounded-full text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-brand/10 hover:border-brand hover:text-brand dark:hover:text-blue-300 transition">Quality Stocks</button>
+        </div>
+    </div>
+
+    <!-- Filters Panel -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Sector</label>
+                <select id="f-sector" class="w-full text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 dark:text-gray-200 focus:ring-1 focus:ring-brand focus:border-brand outline-none">
+                    <option value="all">All Sectors</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">P/E Max</label>
+                <input type="number" id="f-pe-max" placeholder="e.g. 20" class="w-full text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 dark:text-gray-200 focus:ring-1 focus:ring-brand outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Div Yield Min %</label>
+                <input type="number" id="f-div-min" step="0.1" placeholder="e.g. 2" class="w-full text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 dark:text-gray-200 focus:ring-1 focus:ring-brand outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">D/E Max</label>
+                <input type="number" id="f-de-max" placeholder="e.g. 100" class="w-full text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 dark:text-gray-200 focus:ring-1 focus:ring-brand outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">ROE Min %</label>
+                <input type="number" id="f-roe-min" placeholder="e.g. 15" class="w-full text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 dark:text-gray-200 focus:ring-1 focus:ring-brand outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Rev Growth Min %</label>
+                <input type="number" id="f-revgrowth-min" placeholder="e.g. 10" class="w-full text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 dark:text-gray-200 focus:ring-1 focus:ring-brand outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Beta Max</label>
+                <input type="number" id="f-beta-max" step="0.1" placeholder="e.g. 1.0" class="w-full text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 bg-white dark:bg-gray-800 dark:text-gray-200 focus:ring-1 focus:ring-brand outline-none">
+            </div>
+        </div>
+        <div class="flex items-center gap-3 mt-3">
+            <button onclick="runScreener()" class="bg-brand text-white px-4 py-2 rounded text-sm font-semibold hover:bg-brand-dark transition">Screen Stocks</button>
+            <button onclick="clearFilters()" class="text-sm text-gray-500 dark:text-gray-400 hover:text-brand dark:hover:text-blue-300 transition">Clear All</button>
+            <span id="result-count" class="ml-auto text-xs text-gray-400 dark:text-gray-400"></span>
+        </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <p class="text-xs text-gray-400 dark:text-gray-400 italic mb-4">Screener results are for research purposes only. Filter presets use common thresholds that may not suit all market conditions. This is not investment advice.</p>
+
+    <!-- Results -->
+    <div id="screener-results">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-8 text-center text-gray-400 dark:text-gray-400">
+                <svg class="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                <p class="text-sm">Set filters above and click <strong>Screen Stocks</strong> to find matches.</p>
+                <p class="text-xs mt-1">Or try a quick preset to get started.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    var currentSort = { col: 'market_cap', dir: 'desc' };
+    var lastResults = [];
+
+    // Presets
+    var presets = {
+        value:     { 'f-pe-max': 18, 'f-roe-min': 10, 'f-de-max': 150 },
+        growth:    { 'f-revgrowth-min': 15, 'f-pe-max': '', 'f-roe-min': 10 },
+        dividend:  { 'f-div-min': 2.5, 'f-de-max': 150 },
+        defensive: { 'f-beta-max': 0.8, 'f-de-max': 100, 'f-div-min': 1 },
+        quality:   { 'f-roe-min': 20, 'f-de-max': 80 },
+    };
+
+    window.applyPreset = function(name) {
+        clearFilters();
+        var p = presets[name];
+        if (!p) return;
+        Object.keys(p).forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.value = p[id];
+        });
+        // Highlight active preset
+        document.querySelectorAll('.preset-btn').forEach(function(b) {
+            b.className = b.className.replace(/bg-brand\/10 border-brand text-brand dark:text-blue-300/g, '').replace(/\s+/g, ' ').trim();
+        });
+        var btn = event.target;
+        btn.className += ' bg-brand/10 border-brand text-brand dark:text-blue-300';
+        runScreener();
+    };
+
+    window.clearFilters = function() {
+        ['f-pe-max', 'f-div-min', 'f-de-max', 'f-roe-min', 'f-revgrowth-min', 'f-beta-max'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        var sel = document.getElementById('f-sector');
+        if (sel) sel.value = 'all';
+        document.querySelectorAll('.preset-btn').forEach(function(b) {
+            b.className = b.className.replace(/bg-brand\/10 border-brand text-brand dark:text-blue-300/g, '').replace(/\s+/g, ' ').trim();
+        });
+    };
+
+    function getVal(id) {
+        var el = document.getElementById(id);
+        if (!el || el.value === '') return null;
+        return parseFloat(el.value);
+    }
+
+    window.runScreener = function() {
+        var filters = {};
+        var sector = document.getElementById('f-sector').value;
+        if (sector !== 'all') filters.sector = sector;
+
+        var peMax = getVal('f-pe-max');
+        if (peMax !== null) filters.trailing_pe = { min: 0, max: peMax };
+
+        var divMin = getVal('f-div-min');
+        if (divMin !== null) filters.dividend_yield = { min: divMin / 100 };
+
+        var deMax = getVal('f-de-max');
+        if (deMax !== null) filters.debt_to_equity = { max: deMax };
+
+        var roeMin = getVal('f-roe-min');
+        if (roeMin !== null) filters.roe = { min: roeMin / 100 };
+
+        var revMin = getVal('f-revgrowth-min');
+        if (revMin !== null) filters.revenue_growth = { min: revMin / 100 };
+
+        var betaMax = getVal('f-beta-max');
+        if (betaMax !== null) filters.beta = { max: betaMax };
+
+        var container = document.getElementById('screener-results');
+        container.innerHTML = '<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center"><div class="animate-spin rounded-full h-8 w-8 border-4 border-brand border-t-transparent mx-auto mb-3"></div><p class="text-sm text-gray-400">Screening stocks...</p></div>';
+
+        fetch('/api/screener', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filters: filters, sortBy: currentSort.col, sortDir: currentSort.dir })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            // Populate sector dropdown if needed
+            if (data.sectors && data.sectors.length) {
+                var sel = document.getElementById('f-sector');
+                var current = sel.value;
+                sel.innerHTML = '';
+                var allOpt = document.createElement('option');
+                allOpt.value = 'all';
+                allOpt.textContent = 'All Sectors';
+                sel.appendChild(allOpt);
+                data.sectors.forEach(function(s) {
+                    var opt = document.createElement('option');
+                    opt.value = s;
+                    opt.textContent = s;
+                    if (s === current) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            }
+            lastResults = data.results || [];
+            document.getElementById('result-count').textContent = lastResults.length + ' stocks found';
+            renderTable(lastResults);
+        })
+        .catch(function() {
+            container.innerHTML = '<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center text-red-500">Screener query failed. Please try again.</div>';
+        });
+    };
+
+    function esc(s) {
+        var d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    function fmt(val, type) {
+        if (val === null || val === undefined) return '<span class="text-gray-400">&#8212;</span>';
+        if (type === 'cap') {
+            if (val >= 1e12) return '$' + (val / 1e12).toFixed(2) + 'T';
+            if (val >= 1e9) return '$' + (val / 1e9).toFixed(1) + 'B';
+            if (val >= 1e6) return '$' + (val / 1e6).toFixed(0) + 'M';
+            return '$' + val.toLocaleString();
+        }
+        if (type === 'pct') return (val * 100).toFixed(1) + '%';
+        if (type === 'ratio') return val.toFixed(1) + 'x';
+        if (type === 'num') return val.toFixed(2);
+        return val;
+    }
+
+    function renderTable(results) {
+        var container = document.getElementById('screener-results');
+        if (!results.length) {
+            container.innerHTML = '<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center text-gray-400 dark:text-gray-400"><p class="text-sm">No stocks match your criteria. Try loosening the filters.</p></div>';
+            return;
+        }
+
+        var cols = [
+            { key: 'symbol', label: 'Symbol', sort: 'symbol', align: 'left' },
+            { key: 'sector', label: 'Sector', sort: 'sector', align: 'left' },
+            { key: 'marketCap', label: 'Market Cap', sort: 'market_cap', align: 'right', fmt: 'cap' },
+            { key: 'trailingPE', label: 'P/E', sort: 'trailing_pe', align: 'right', fmt: 'ratio' },
+            { key: 'dividendYield', label: 'Div Yield', sort: 'dividend_yield', align: 'right', fmt: 'pct' },
+            { key: 'debtToEquity', label: 'D/E', sort: 'debt_to_equity', align: 'right', fmt: 'num' },
+            { key: 'roe', label: 'ROE', sort: 'roe', align: 'right', fmt: 'pct' },
+            { key: 'revenueGrowth', label: 'Rev Growth', sort: 'revenue_growth', align: 'right', fmt: 'pct' },
+            { key: 'beta', label: 'Beta', sort: 'beta', align: 'right', fmt: 'num' },
+        ];
+
+        var html = '<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"><div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="bg-brand-light dark:bg-brand/20">';
+        cols.forEach(function(c) {
+            var arrow = '';
+            if (c.sort === currentSort.col) arrow = currentSort.dir === 'asc' ? ' &#9650;' : ' &#9660;';
+            html += '<th class="px-3 py-2 text-' + c.align + ' text-brand dark:text-blue-300 font-bold text-xs uppercase cursor-pointer hover:bg-brand/20 select-none whitespace-nowrap" onclick="sortScreener(\'' + c.sort + '\')">' + c.label + arrow + '</th>';
+        });
+        html += '</tr></thead><tbody>';
+
+        results.forEach(function(r, i) {
+            var bg = i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/30' : '';
+            html += '<tr class="' + bg + ' hover:bg-brand-light/30 dark:hover:bg-brand/10 transition-colors">';
+            cols.forEach(function(c) {
+                var val = r[c.key];
+                var display;
+                if (c.key === 'symbol') {
+                    var sv = esc(val);
+                    display = '<a href="/dashboard/' + sv + '" class="text-brand dark:text-blue-300 font-bold hover:underline">' + sv + '</a>';
+                    display += ' <a href="/score?ticker=' + sv + '" class="text-xs text-gray-400 hover:text-brand" title="View Mosaic Score">Score</a>';
+                } else if (c.key === 'sector') {
+                    display = '<span class="text-xs text-gray-600 dark:text-gray-400">' + (val ? esc(val) : '&#8212;') + '</span>';
+                } else {
+                    display = fmt(val, c.fmt);
+                }
+                html += '<td class="px-3 py-2 text-' + c.align + ' dark:text-gray-300 whitespace-nowrap">' + display + '</td>';
+            });
+            html += '</tr>';
+        });
+
+        html += '</tbody></table></div></div>';
+        container.innerHTML = html;
+    }
+
+    window.sortScreener = function(col) {
+        if (currentSort.col === col) {
+            currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+            currentSort.col = col;
+            currentSort.dir = 'desc';
+        }
+        runScreener();
+    };
+
+    // Auto-load with no filters on page load to show universe
+    runScreener();
+})();
+</script>
+{% endblock %}

@@ -3,6 +3,7 @@
 from flask import Blueprint, render_template, request, jsonify
 
 from financials.data import fetch_quote
+from financials.validation import validate_ticker
 
 tracker_bp = Blueprint("tracker", __name__)
 
@@ -15,14 +16,16 @@ def tracker():
 @tracker_bp.route("/api/quote/<ticker>")
 def quote(ticker):
     """Return current quote for a single ticker (cached 1 min)."""
-    ticker = ticker.upper()
+    ticker = validate_ticker(ticker)
+    if not ticker:
+        return jsonify({"error": "Invalid ticker format."}), 400
     try:
         result = fetch_quote(ticker)
         if result is None:
             return jsonify({"error": f"No data for {ticker}"}), 404
         return jsonify(result)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        return jsonify({"error": "Failed to fetch quote."}), 500
 
 
 @tracker_bp.route("/api/quotes", methods=["POST"])
@@ -32,8 +35,8 @@ def quotes_batch():
     tickers = data.get("tickers", [])[:20]
 
     results = []
-    for ticker in tickers:
-        ticker = ticker.upper().strip()
+    for raw in tickers:
+        ticker = validate_ticker(raw)
         if not ticker:
             continue
         try:

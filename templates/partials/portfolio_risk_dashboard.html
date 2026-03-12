@@ -4,7 +4,7 @@
 {% if not holdingRisk %}
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
     <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-2">Risk Dashboard</h2>
-    <p class="text-gray-400 dark:text-gray-500 text-sm">Insufficient price history to compute risk metrics.</p>
+    <p class="text-gray-400 dark:text-gray-400 text-sm">Insufficient price history to compute risk metrics.</p>
 </div>
 {% else %}
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
@@ -25,22 +25,22 @@
         <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
             <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Sharpe Ratio</div>
             <div class="text-xl font-bold {% if sharpeRatio >= 1 %}text-green-700 dark:text-green-400{% elif sharpeRatio >= 0 %}text-yellow-700 dark:text-yellow-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ sharpeRatio }}</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{% if sharpeRatio >= 1.5 %}Excellent{% elif sharpeRatio >= 1 %}Good{% elif sharpeRatio >= 0.5 %}Fair{% else %}Poor{% endif %}</div>
+            <div class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">{% if sharpeRatio >= 1.5 %}Excellent{% elif sharpeRatio >= 1 %}Good{% elif sharpeRatio >= 0.5 %}Fair{% else %}Poor{% endif %}</div>
         </div>
         <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
             <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Sortino Ratio</div>
             <div class="text-xl font-bold {% if sortinoRatio >= 1.5 %}text-green-700 dark:text-green-400{% elif sortinoRatio >= 0 %}text-yellow-700 dark:text-yellow-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ sortinoRatio }}</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Downside risk-adjusted</div>
+            <div class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Downside risk-adjusted</div>
         </div>
         <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
             <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Max Drawdown</div>
             <div class="text-xl font-bold text-red-600 dark:text-red-400">-{{ maxDrawdown }}%</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Peak to trough</div>
+            <div class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Peak to trough</div>
         </div>
         <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
             <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Portfolio Beta</div>
             <div class="text-xl font-bold text-brand dark:text-blue-300">{{ beta if beta is not none else 'N/A' }}</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">vs S&P 500</div>
+            <div class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">vs S&P 500</div>
         </div>
     </div>
 
@@ -56,12 +56,12 @@
         <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
             <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">VaR (95%)</div>
             <div class="text-lg font-bold text-red-600 dark:text-red-400">{{ money(var95) }}</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">1-day worst case</div>
+            <div class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">1-day worst case</div>
         </div>
         <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
             <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">VaR (99%)</div>
             <div class="text-lg font-bold text-red-600 dark:text-red-400">{{ money(var99) }}</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Extreme scenario</div>
+            <div class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">Extreme scenario</div>
         </div>
     </div>
 
@@ -96,7 +96,7 @@
             </tbody>
         </table>
     </div>
-    <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">Based on 1-year daily returns. Sorted by Sharpe ratio (best risk-adjusted return first).</p>
+    <p class="text-xs text-gray-400 dark:text-gray-400 mt-2">Based on 1-year daily returns. Sorted by Sharpe ratio (best risk-adjusted return first).</p>
     {% endif %}
 </div>
 {% endif %}

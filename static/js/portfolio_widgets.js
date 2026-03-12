@@ -2,6 +2,25 @@
 // Reads widget metadata from a JSON <script> block embedded in portfolio results,
 // then fires parallel fetches for phase-1 widgets and a delayed fetch for phase-2.
 
+// ── Settings helpers ────────────────────────────────────────────────
+function _getSettingGrowthRate() {
+    var el = document.getElementById("setting-growth-rate");
+    if (el) {
+        var v = parseFloat(el.value);
+        if (!isNaN(v) && v >= 1 && v <= 20) return v;
+    }
+    return 8;
+}
+
+function _getSettingTaxRate() {
+    var el = document.getElementById("setting-tax-rate");
+    if (el) {
+        var v = parseFloat(el.value);
+        if (!isNaN(v) && v >= 0 && v <= 50) return v / 100;
+    }
+    return 0.24;
+}
+
 // ── Widget registry for retry support ────────────────────────────────
 var _widgetRegistry = {};
 
@@ -107,7 +126,7 @@ function loadPortfolioWidgets() {
         { id: "widget-correlation", url: "/api/portfolio/widget/correlation", body: { holdings: meta.holdings || [] } },
         { id: "widget-stress-test", url: "/api/portfolio/widget/stress-test", body: { holdings: meta.holdings || [] } },
         { id: "widget-factor-exposure", url: "/api/portfolio/widget/factor-exposure", body: { holdings: meta.holdings || [] } },
-        { id: "widget-fee-analysis", url: "/api/portfolio/widget/fee-analysis", body: { holdings: meta.holdings || [] } },
+        { id: "widget-fee-analysis", url: "/api/portfolio/widget/fee-analysis", body: { holdings: meta.holdings || [], growthRate: _getSettingGrowthRate() } },
     ];
     setTimeout(function () {
         phase2.forEach(function (w) {
@@ -133,6 +152,34 @@ function loadPortfolioWidgets() {
 
     // Init compound growth (client-side only, no fetch)
     initCompoundGrowth();
+
+    // Settings listeners — tax rate recalculates savings, growth rate reloads fee widget
+    var taxRateInput = document.getElementById("setting-tax-rate");
+    if (taxRateInput) {
+        taxRateInput.addEventListener("change", function () {
+            var rate = _getSettingTaxRate();
+            document.querySelectorAll("[data-tax-savings]").forEach(function (el) {
+                var loss = Math.abs(parseFloat(el.getAttribute("data-tax-savings")));
+                if (!isNaN(loss)) {
+                    el.textContent = "$" + (loss * rate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+            });
+            // Update the disclaimer text
+            var disclaimer = document.getElementById("tax-rate-disclaimer");
+            if (disclaimer) disclaimer.textContent = "Tax savings estimated at " + Math.round(rate * 100) + "% marginal rate. Consult a tax advisor before making decisions. Wash sale rules may apply.";
+        });
+    }
+
+    var growthRateInput = document.getElementById("setting-growth-rate");
+    if (growthRateInput) {
+        growthRateInput.addEventListener("change", function () {
+            var entry = _widgetRegistry["widget-fee-analysis"];
+            if (entry) {
+                entry.body.growthRate = _getSettingGrowthRate();
+                fetchWidget("widget-fee-analysis", entry.url, entry.body);
+            }
+        });
+    }
 }
 
 function fetchWidget(containerId, url, body) {
@@ -160,7 +207,7 @@ function fetchWidget(containerId, url, body) {
         .catch(function () {
             el.innerHTML =
                 '<div class="flex items-center gap-3 py-2">' +
-                '<p class="text-gray-400 dark:text-gray-500 text-sm italic">Could not load this widget.</p>' +
+                '<p class="text-gray-400 dark:text-gray-400 text-sm italic">Could not load this widget.</p>' +
                 '<button onclick="retryWidget(\'' + containerId + '\')" class="text-xs font-semibold text-brand dark:text-blue-300 hover:underline px-2 py-1 border border-brand/30 dark:border-blue-400/30 rounded">Retry</button>' +
                 '</div>';
         });

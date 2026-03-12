@@ -5,7 +5,7 @@
     <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-3">Fee Analysis</h2>
 
     {% if not holdings %}
-    <p class="text-gray-400 dark:text-gray-500 text-sm">No ETFs or funds with expense ratios detected in your portfolio. Individual stocks have no ongoing expense ratios.</p>
+    <p class="text-gray-400 dark:text-gray-400 text-sm">No ETFs or funds with expense ratios detected in your portfolio. Individual stocks have no ongoing expense ratios.</p>
     {% else %}
     <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Expense ratios for ETFs and funds in your portfolio, with projected compounding drag.</p>
 
@@ -41,7 +41,7 @@
                 <tr class="border-t border-gray-100 dark:border-gray-700 {% if loop.index0 % 2 == 0 %}bg-gray-50 dark:bg-gray-700/30{% endif %}">
                     <td class="px-3 py-2">
                         <span class="font-medium text-brand dark:text-blue-300">{{ h.symbol }}</span>
-                        {% if h.name %}<span class="text-xs text-gray-400 dark:text-gray-500 ml-1">{{ h.name | truncate(30) }}</span>{% endif %}
+                        {% if h.name %}<span class="text-xs text-gray-400 dark:text-gray-400 ml-1">{{ h.name | truncate(30) }}</span>{% endif %}
                     </td>
                     <td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{{ money(h.currentValue) }}</td>
                     <td class="px-3 py-2 text-right font-medium
@@ -59,17 +59,17 @@
 
     {# Projected fee drag #}
     {% if projectedDrag %}
-    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Compounded Fee Drag (at 8% annual growth)</h3>
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Compounded Fee Drag (at {{ growthRate | default(8) }}% annual growth)</h3>
     <div class="grid grid-cols-3 gap-3 mb-3">
         {% for period, data in projectedDrag.items() %}
         <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 text-center">
             <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">{{ period }}</div>
             <div class="text-lg font-bold text-red-600 dark:text-red-400">-{{ money(data.feeDrag) }}</div>
-            <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">lost to fees</div>
+            <div class="text-xs text-gray-400 dark:text-gray-400 mt-0.5">lost to fees</div>
         </div>
         {% endfor %}
     </div>
-    <p class="text-xs text-gray-400 dark:text-gray-500">Shows the difference between growth with and without expense ratio drag, assuming an 8% annual return on current portfolio value.</p>
+    <p class="text-xs text-gray-400 dark:text-gray-400">Shows the difference between growth with and without expense ratio drag, assuming a {{ growthRate | default(8) }}% annual return on current portfolio value. You can change the assumed growth rate in the analysis settings above.</p>
     {% endif %}
     {% endif %}
 </div>

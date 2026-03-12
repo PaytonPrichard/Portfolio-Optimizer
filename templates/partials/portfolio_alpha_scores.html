@@ -3,7 +3,7 @@
 {% if not scored %}
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
     <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-2">Mosaic Scores</h2>
-    <p class="text-gray-400 dark:text-gray-500 text-sm">Could not compute Mosaic Scores for your holdings.</p>
+    <p class="text-gray-400 dark:text-gray-400 text-sm">Could not compute Mosaic Scores for your holdings.</p>
 </div>
 {% else %}
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
@@ -51,10 +51,10 @@
                     </td>
                     <td class="px-3 py-2 text-center">
                         <span class="text-xs font-bold
-                            {% if s.conviction == 'Strong Buy' %}text-green-700 dark:text-green-400
-                            {% elif s.conviction == 'Buy' %}text-green-600 dark:text-green-400
-                            {% elif s.conviction == 'Hold' %}text-yellow-700 dark:text-yellow-400
-                            {% elif s.conviction == 'Underweight' %}text-orange-600 dark:text-orange-400
+                            {% if s.conviction == 'Very Favorable' %}text-green-700 dark:text-green-400
+                            {% elif s.conviction == 'Favorable' %}text-green-600 dark:text-green-400
+                            {% elif s.conviction == 'Neutral' %}text-yellow-700 dark:text-yellow-400
+                            {% elif s.conviction == 'Unfavorable' %}text-orange-600 dark:text-orange-400
                             {% else %}text-red-600 dark:text-red-400{% endif %}">
                             {{ s.conviction }}
                         </span>
@@ -69,6 +69,6 @@
             </tbody>
         </table>
     </div>
-    <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">{{ scoredCount }} holdings scored. Click a symbol to view full Mosaic Score breakdown. Scores stored in local intelligence database.</p>
+    <p class="text-xs text-gray-400 dark:text-gray-400 mt-2">{{ scoredCount }} holdings scored. Click a symbol to view full Mosaic Score breakdown. Scores stored in local intelligence database.</p>
 </div>
 {% endif %}

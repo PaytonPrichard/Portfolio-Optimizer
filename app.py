@@ -57,6 +57,9 @@ def create_app():
     app.json = _SafeJSONProvider(app)
     app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
 
+    # Max upload size: 10 MB
+    app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB
+
     # Secure session cookies
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
@@ -147,4 +150,4 @@ def create_app():
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=False, port=5000)

@@ -4,12 +4,23 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold text-brand dark:text-blue-300 mb-6">Information &amp; Glossary</h1>
+    <h1 class="text-3xl font-bold text-brand dark:text-blue-300 mb-4">Information &amp; Glossary</h1>
+
+    <!-- Quick navigation -->
+    <nav class="flex flex-wrap gap-2 mb-6 text-sm">
+        <a href="#section-howto" class="px-3 py-1.5 rounded-full bg-brand/5 dark:bg-blue-900/20 text-brand dark:text-blue-300 hover:bg-brand/15 dark:hover:bg-blue-900/40 transition font-medium">How to Use</a>
+        <a href="#section-portfolio" class="px-3 py-1.5 rounded-full bg-brand/5 dark:bg-blue-900/20 text-brand dark:text-blue-300 hover:bg-brand/15 dark:hover:bg-blue-900/40 transition font-medium">Portfolio Analysis</a>
+        <a href="#section-portfolio-terms" class="px-3 py-1.5 rounded-full bg-brand/5 dark:bg-blue-900/20 text-brand dark:text-blue-300 hover:bg-brand/15 dark:hover:bg-blue-900/40 transition font-medium">Portfolio Terms</a>
+        <a href="#section-dashboard" class="px-3 py-1.5 rounded-full bg-brand/5 dark:bg-blue-900/20 text-brand dark:text-blue-300 hover:bg-brand/15 dark:hover:bg-blue-900/40 transition font-medium">Dashboard</a>
+        <a href="#section-glossary" class="px-3 py-1.5 rounded-full bg-brand/5 dark:bg-blue-900/20 text-brand dark:text-blue-300 hover:bg-brand/15 dark:hover:bg-blue-900/40 transition font-medium">Glossary</a>
+        <a href="#section-ai" class="px-3 py-1.5 rounded-full bg-brand/5 dark:bg-blue-900/20 text-brand dark:text-blue-300 hover:bg-brand/15 dark:hover:bg-blue-900/40 transition font-medium">AI Commentary</a>
+        <a href="#section-sources" class="px-3 py-1.5 rounded-full bg-brand/5 dark:bg-blue-900/20 text-brand dark:text-blue-300 hover:bg-brand/15 dark:hover:bg-blue-900/40 transition font-medium">Data Sources</a>
+    </nav>
 
     <!-- How to Use -->
-    <section class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 overflow-hidden">
-        <div class="bg-brand text-white px-5 py-3">
-            <h2 class="font-bold text-sm uppercase tracking-wide">How to Use</h2>
+    <section id="section-howto" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden scroll-mt-20">
+        <div class="border-b border-gray-200 dark:border-gray-700 px-5 py-3">
+            <h2 class="font-bold text-sm uppercase tracking-wide text-brand dark:text-blue-300">How to Use</h2>
         </div>
         <div class="px-5 py-4 space-y-3 text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
             <p><strong>Search:</strong> From the home page, type a company name (e.g. "Apple") or stock ticker (e.g. "AAPL") and click Analyze. If multiple matches are found, select the correct one.</p>
@@ -20,9 +31,9 @@
     </section>
 
     <!-- Understanding Portfolio Analysis -->
-    <section class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 overflow-hidden">
-        <div class="bg-brand text-white px-5 py-3">
-            <h2 class="font-bold text-sm uppercase tracking-wide">Understanding Portfolio Analysis</h2>
+    <section id="section-portfolio" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden scroll-mt-20">
+        <div class="border-b border-gray-200 dark:border-gray-700 px-5 py-3">
+            <h2 class="font-bold text-sm uppercase tracking-wide text-brand dark:text-blue-300">Understanding Portfolio Analysis</h2>
         </div>
         <div class="px-5 py-4 space-y-3 text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
             <p><strong>Upload:</strong> Export your positions CSV from your brokerage (Fidelity, Schwab, Vanguard, E*Trade, and others are supported). Account numbers and sensitive fields are automatically stripped in your browser before upload.</p>
@@ -35,9 +46,9 @@
     </section>
 
     <!-- Portfolio Terms & Concepts -->
-    <section class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 overflow-hidden">
-        <div class="bg-brand text-white px-5 py-3">
-            <h2 class="font-bold text-sm uppercase tracking-wide">Portfolio Terms &amp; Concepts</h2>
+    <section id="section-portfolio-terms" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden scroll-mt-20">
+        <div class="border-b border-gray-200 dark:border-gray-700 px-5 py-3">
+            <h2 class="font-bold text-sm uppercase tracking-wide text-brand dark:text-blue-300">Portfolio Terms &amp; Concepts</h2>
         </div>
         <div class="px-5 py-4">
             <dl class="space-y-4 text-sm">
@@ -71,7 +82,7 @@
                 </div>
                 <div>
                     <dt class="font-bold text-brand dark:text-blue-300">Compound Growth Projection</dt>
-                    <dd class="text-gray-600 dark:text-gray-400 ml-4">Projects your portfolio's future value using compound interest. You can adjust your current age, target age, and annual return rate. The default 10% rate reflects the S&amp;P 500 historical average since 1926 (nominal, before inflation). The "growth multiple" shows how many times your money would grow (e.g. 5x means $100K becomes $500K). Milestone badges show when you'd hit 2x, 3x, 5x, and 10x your current value.</dd>
+                    <dd class="text-gray-600 dark:text-gray-400 ml-4">Projects your portfolio's future value using compound interest. You can adjust your current age, target age, and annual return rate. The default 10% rate reflects approximately the S&amp;P 500 long-term nominal average (source: Ibbotson/Morningstar, before inflation). The "growth multiple" shows how many times your money would grow (e.g. 5x means $100K becomes $500K). Milestone badges show when you'd hit 2x, 3x, 5x, and 10x your current value.</dd>
                 </div>
                 <div>
                     <dt class="font-bold text-brand dark:text-blue-300">ESG Risk Score</dt>
@@ -98,9 +109,9 @@
     </section>
 
     <!-- Understanding the Dashboard -->
-    <section class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 overflow-hidden">
-        <div class="bg-brand text-white px-5 py-3">
-            <h2 class="font-bold text-sm uppercase tracking-wide">Understanding the Dashboard</h2>
+    <section id="section-dashboard" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden scroll-mt-20">
+        <div class="border-b border-gray-200 dark:border-gray-700 px-5 py-3">
+            <h2 class="font-bold text-sm uppercase tracking-wide text-brand dark:text-blue-300">Understanding the Dashboard</h2>
         </div>
         <div class="px-5 py-4 space-y-3 text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
             <p><strong>KPI Boxes:</strong> Five key metrics at a glance — market cap, current stock price, trailing P/E ratio, gross margin, and 1-year price change.</p>
@@ -114,9 +125,9 @@
     </section>
 
     <!-- Financial Glossary -->
-    <section class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 overflow-hidden">
-        <div class="bg-brand text-white px-5 py-3">
-            <h2 class="font-bold text-sm uppercase tracking-wide">Financial Glossary</h2>
+    <section id="section-glossary" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden scroll-mt-20">
+        <div class="border-b border-gray-200 dark:border-gray-700 px-5 py-3">
+            <h2 class="font-bold text-sm uppercase tracking-wide text-brand dark:text-blue-300">Financial Glossary</h2>
         </div>
         <div class="px-5 py-4">
             <dl class="space-y-4 text-sm">
@@ -181,9 +192,9 @@
     </section>
 
     <!-- About AI Commentary -->
-    <section class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 overflow-hidden">
-        <div class="bg-brand text-white px-5 py-3">
-            <h2 class="font-bold text-sm uppercase tracking-wide">About AI Commentary</h2>
+    <section id="section-ai" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden scroll-mt-20">
+        <div class="border-b border-gray-200 dark:border-gray-700 px-5 py-3">
+            <h2 class="font-bold text-sm uppercase tracking-wide text-brand dark:text-blue-300">About AI Commentary</h2>
         </div>
         <div class="px-5 py-4 text-gray-700 dark:text-gray-300 text-sm leading-relaxed space-y-2">
             <p>The Outlook section on each dashboard is generated by <strong>Claude</strong> (Anthropic's AI assistant). It analyzes the financial data and recent news to provide a concise 5-sentence assessment covering company health, price outlook, risks, recent developments, and industry context.</p>
@@ -193,9 +204,9 @@
     </section>
 
     <!-- Data Sources -->
-    <section class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 overflow-hidden">
-        <div class="bg-brand text-white px-5 py-3">
-            <h2 class="font-bold text-sm uppercase tracking-wide">Data Sources</h2>
+    <section id="section-sources" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden scroll-mt-20">
+        <div class="border-b border-gray-200 dark:border-gray-700 px-5 py-3">
+            <h2 class="font-bold text-sm uppercase tracking-wide text-brand dark:text-blue-300">Data Sources</h2>
         </div>
         <div class="px-5 py-4 text-gray-700 dark:text-gray-300 text-sm leading-relaxed space-y-2">
             <p><strong>Yahoo Finance</strong> — All financial data, stock prices, analyst estimates, and news headlines are sourced from Yahoo Finance via the yfinance library.</p>

@@ -3,6 +3,7 @@
 from flask import Blueprint, render_template, request, jsonify
 
 from financials.data import fetch_earnings_dates
+from financials.validation import validate_ticker
 
 earnings_bp = Blueprint("earnings", __name__)
 
@@ -29,7 +30,8 @@ def earnings_api():
         if not symbols or not isinstance(symbols, list):
             symbols = _DEFAULT_SYMBOLS
         else:
-            symbols = [s.strip().upper() for s in symbols if isinstance(s, str) and s.strip()]
+            symbols = [validate_ticker(s) for s in symbols if isinstance(s, str)]
+            symbols = [s for s in symbols if s]
             if not symbols:
                 symbols = _DEFAULT_SYMBOLS
 

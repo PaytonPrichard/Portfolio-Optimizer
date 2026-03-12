@@ -26,7 +26,7 @@
         <p class="text-yellow-600 dark:text-yellow-400 text-sm">Market is currently closed — intraday data unavailable outside trading hours.</p>
         <p class="text-gray-300 dark:text-gray-600 text-xs mt-1">Try the 1M or 1Y view for historical data.</p>
         {% else %}
-        <p class="text-gray-400 dark:text-gray-500 text-sm">Insufficient price data for this period.</p>
+        <p class="text-gray-400 dark:text-gray-400 text-sm">Insufficient price data for this period.</p>
         <p class="text-gray-300 dark:text-gray-600 text-xs mt-1">Try a longer time range.</p>
         {% endif %}
     </div>
@@ -48,7 +48,7 @@
                 <span class="text-sm font-semibold {{ 'text-[#1F4E79] dark:text-blue-400' if is_positive else 'text-red-600 dark:text-red-400' }}">
                     ({{ '+' if periodReturn >= 0 }}{{ '%.2f' | format(periodReturn) }}%)
                 </span>
-                <span class="text-xs text-gray-400 dark:text-gray-500 ml-1">{{ period_full.get(period, '') }}</span>
+                <span class="text-xs text-gray-400 dark:text-gray-400 ml-1">{{ period_full.get(period, '') }}</span>
             </div>
         </div>
         <div class="flex items-center gap-2">
@@ -213,7 +213,7 @@
             <div class="text-sm font-bold text-green-700 dark:text-green-400">{{ bestPerformer.symbol }}</div>
             <div class="text-xs text-green-600 dark:text-green-500">+{{ '%.2f' | format(bestPerformer.returnPct) }}%</div>
             {% else %}
-            <div class="text-sm text-gray-400 dark:text-gray-500">--</div>
+            <div class="text-sm text-gray-400 dark:text-gray-400">--</div>
             {% endif %}
         </div>
         <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
@@ -222,7 +222,7 @@
             <div class="text-sm font-bold text-red-600 dark:text-red-400">{{ worstPerformer.symbol }}</div>
             <div class="text-xs text-red-500 dark:text-red-400">{{ '%.2f' | format(worstPerformer.returnPct) }}%</div>
             {% else %}
-            <div class="text-sm text-gray-400 dark:text-gray-500">--</div>
+            <div class="text-sm text-gray-400 dark:text-gray-400">--</div>
             {% endif %}
         </div>
         {% if benchmarkReturn is not none %}
@@ -240,7 +240,7 @@
     <details class="group">
         <summary class="cursor-pointer text-sm font-medium text-brand dark:text-blue-300 hover:underline mb-2">
             Holdings breakdown ({{ holdingReturns | length }})
-            <span class="text-gray-400 dark:text-gray-500 text-xs ml-1">click to expand</span>
+            <span class="text-gray-400 dark:text-gray-400 text-xs ml-1">click to expand</span>
         </summary>
         <div class="overflow-x-auto">
             <table class="w-full text-sm mt-2">
@@ -274,4 +274,5 @@
     {% endif %}
 
     {% endif %}{# end dates >= 2 check #}
+    <p class="text-xs italic text-gray-400 dark:text-gray-400 mt-3">Past performance is not indicative of future results. Historical returns do not guarantee future returns.</p>
 </div>

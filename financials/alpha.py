@@ -473,7 +473,10 @@ def _score_value(snapshot, context):
     scores = []
 
     pe = snapshot.get("trailing_pe")
-    if pe and pe > 0:
+    if pe is not None and pe < 0:
+        # Negative P/E means company is loss-making — low value score
+        scores.append(15)
+    elif pe and pe > 0:
         # Absolute P/E scoring
         if pe < 12:
             scores.append(90)
@@ -503,7 +506,10 @@ def _score_value(snapshot, context):
             scores.append(15)
 
     peg = snapshot.get("peg_ratio")
-    if peg and peg > 0:
+    if peg is not None and peg < 0:
+        # Negative PEG means earnings are declining — low score
+        scores.append(10)
+    elif peg and peg > 0:
         if peg < 1:
             scores.append(90)
         elif peg < 1.5:
@@ -568,14 +574,27 @@ def _score_quality(snapshot):
 
     dte = snapshot.get("debt_to_equity")
     if dte is not None:
-        if dte < 20:
-            scores.append(90)
-        elif dte < 60:
-            scores.append(70)
-        elif dte < 120:
-            scores.append(45)
+        sector = (snapshot.get("sector") or "").lower()
+        is_financial = sector in ("financial services", "financial")
+        if is_financial:
+            # Banks/financials naturally carry high leverage; use lenient thresholds
+            if dte < 100:
+                scores.append(90)
+            elif dte < 200:
+                scores.append(70)
+            elif dte < 400:
+                scores.append(45)
+            else:
+                scores.append(15)
         else:
-            scores.append(15)
+            if dte < 20:
+                scores.append(90)
+            elif dte < 60:
+                scores.append(70)
+            elif dte < 120:
+                scores.append(45)
+            else:
+                scores.append(15)
 
     cr = snapshot.get("current_ratio")
     if cr is not None:
@@ -692,13 +711,6 @@ def _score_growth(snapshot):
             scores.append(40)
         else:
             scores.append(15)
-
-    # PEG bonus (growth at reasonable price)
-    peg = snapshot.get("peg_ratio")
-    if peg and 0 < peg < 1.5:
-        scores.append(85)
-    elif peg and peg < 2.5:
-        scores.append(55)
 
     return round(sum(scores) / len(scores)) if scores else 50
 
@@ -819,15 +831,15 @@ def compute_alpha_score(symbol):
 
     # Determine conviction level
     if alpha >= 75:
-        conviction = "Strong Buy"
+        conviction = "Very Favorable"
     elif alpha >= 60:
-        conviction = "Buy"
+        conviction = "Favorable"
     elif alpha >= 45:
-        conviction = "Hold"
+        conviction = "Neutral"
     elif alpha >= 30:
-        conviction = "Underweight"
+        conviction = "Unfavorable"
     else:
-        conviction = "Avoid"
+        conviction = "Very Unfavorable"
 
     # Key insights (top 5 notable signals)
     insights = _generate_insights(snapshot, sub_scores, context, sector_cycles, signals)
@@ -837,7 +849,7 @@ def compute_alpha_score(symbol):
     cycle_data = sector_cycles.get(sector, {})
 
     _ld = snapshot.get("logo_domain", "")
-    logo_url = f"https://www.google.com/s2/favicons?domain={_ld}&sz=128" if _ld else ""
+    logo_url = f"https://logo.clearbit.com/{_ld}" if _ld else ""
 
     factor_explanations = _generate_factor_explanations(snapshot, signals, cycle_data)
 
@@ -1018,7 +1030,7 @@ def _generate_factor_explanations(snapshot, signals, sector_cycle):
     ys = mac.get("yieldSpread")
     if ys is not None:
         label = "inverted" if ys < 0 else "normal" if ys > 0.5 else "flat"
-        parts.append(f"Yield curve {label} ({'+' if ys >= 0 else ''}{ys:.2f}%)")
+        parts.append(f"10Y-3M spread {label} ({'+' if ys >= 0 else ''}{ys:.2f}%)")
     expl["macro"] = " · ".join(parts) if parts else ""
 
     return expl

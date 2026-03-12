@@ -10,7 +10,7 @@
 
 <div class="mb-8">
     <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-1">Ethical Investing / ESG Risk</h2>
-    <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Sustainalytics ESG Risk Ratings for your holdings. Lower scores = less risk (better).</p>
+    <p class="text-xs text-gray-400 dark:text-gray-400 mb-3">Sustainalytics ESG Risk Ratings for your holdings. Lower scores = less risk (better).</p>
 
     {% if portfolioEsg is not none %}
 
@@ -67,7 +67,7 @@
     </div>
 
     {# Coverage note #}
-    <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">
+    <p class="text-xs text-gray-400 dark:text-gray-400 mb-4">
         {{ coveredCount }} of {{ totalCount }} individual stock{{ 's' if totalCount != 1 }} covered by ESG data.
         {% if skippedFunds %}{{ skippedFunds | length }} fund{{ 's' if skippedFunds | length != 1 }} excluded ({{ skippedFunds | join(', ') }}).{% endif %}
     </p>
@@ -186,7 +186,7 @@
             <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300">30-40 High</span>
             <span class="inline-block px-2 py-0.5 rounded text-xs font-bold bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300">40+ Severe</span>
         </div>
-        <p class="text-xs text-gray-400 dark:text-gray-500 italic">
+        <p class="text-xs text-gray-400 dark:text-gray-400 italic">
             ESG Risk Ratings from Sustainalytics via Yahoo Finance. Lower scores indicate less unmanaged ESG risk.
             Controversial product involvement flags are binary (involved or not). This is not investment advice.
         </p>
@@ -195,7 +195,7 @@
     {% else %}
     {# Fallback: no ESG data at all #}
     <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-        <p class="text-gray-400 dark:text-gray-500 text-sm italic">
+        <p class="text-gray-400 dark:text-gray-400 text-sm italic">
             No ESG data available for your portfolio holdings.
             {% if skippedFunds %}ETFs/funds ({{ skippedFunds | join(', ') }}) do not have direct ESG ratings.{% endif %}
         </p>

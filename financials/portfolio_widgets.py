@@ -263,14 +263,19 @@ def fetch_holdings_news(holdings: list, max_stocks: int = 8,
 
 def generate_portfolio_ai_commentary(holdings: list, by_sector: list,
                                      concentration: list,
-                                     analyst_overview: dict) -> str:
-    """Generate 3-5 sentence AI commentary about portfolio composition.
+                                     analyst_overview: dict,
+                                     holdings_news: list = None) -> str:
+    """Generate 4-6 sentence AI commentary about portfolio composition.
 
     Uses Claude Haiku. Falls back to rule-based summary without API key.
     """
     # Build context for the prompt
     total_value = sum(h.get("currentValue", 0) for h in holdings)
     top_5 = holdings[:5]
+
+    # Gather recent news for context
+    if not holdings_news:
+        holdings_news = fetch_holdings_news(holdings, max_stocks=5, max_per_stock=2, max_total=10)
 
     sector_lines = []
     for s in by_sector[:6]:
@@ -289,6 +294,15 @@ def generate_portfolio_ai_commentary(holdings: list, by_sector: list,
     upside = overview.get("weightedUpside")
     upside_str = f"{'+' if upside >= 0 else ''}{upside}%" if upside is not None else "N/A"
 
+    # Format news headlines for context
+    _news_lines = []
+    for n in (holdings_news or [])[:10]:
+        sym = n.get("symbol", "")
+        title = n.get("title", "")
+        if title:
+            _news_lines.append(f"  - [{sym}] {title}")
+    _news_block = ("Recent news affecting holdings:\n" + "\n".join(_news_lines)) if _news_lines else ""
+
     data_block = "\n".join(filter(None, [
         f"Total portfolio value: ${total_value:,.0f}",
         f"Number of holdings: {len(holdings)}",
@@ -302,6 +316,7 @@ def generate_portfolio_ai_commentary(holdings: list, by_sector: list,
         f"Analyst coverage: {overview.get('totalCovered', 0)}/{overview.get('totalHoldings', 0)} holdings",
         f"Consensus: {overview.get('buys', 0)} Buy, {overview.get('holds', 0)} Hold, {overview.get('sells', 0)} Sell",
         f"Weighted implied upside: {upside_str}",
+        _news_block,
     ]))
 
     # Try AI first
@@ -312,17 +327,18 @@ def generate_portfolio_ai_commentary(holdings: list, by_sector: list,
             client = anthropic.Anthropic(api_key=api_key)
             prompt = (
                 "You are a portfolio analyst writing a brief assessment for an investor's dashboard.\n\n"
-                "Based on this portfolio data, write exactly 3-5 sentences in a single paragraph. Cover:\n"
+                "Based on this portfolio data, write exactly 4-6 sentences in a single paragraph. Cover:\n"
                 "1. Overall sector tilts and what they suggest about the investor's strategy\n"
                 "2. Any concentration risks worth noting\n"
-                "3. One forward-looking observation based on analyst consensus\n\n"
+                "3. One forward-looking observation based on analyst consensus\n"
+                "4. If recent news is provided, note 1-2 current developments that could materially impact the portfolio\n\n"
                 "Rules: be specific with numbers from the data. No bullet points, no headers. "
                 "Keep each sentence under 40 words. Be direct and professional.\n\n"
                 f"Portfolio data:\n{data_block}"
             )
             response = client.messages.create(
                 model="claude-haiku-4-5-20251001",
-                max_tokens=400,
+                max_tokens=500,
                 messages=[{"role": "user", "content": prompt}],
             )
             return response.content[0].text.strip()

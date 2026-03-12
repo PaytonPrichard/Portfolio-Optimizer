@@ -282,7 +282,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     var isBest = m.best !== null && val === m.best;
                     var highlight = isBest ? 'bg-green-50 dark:bg-green-900/20 rounded px-1' : '';
                     html += '<div class="text-center ' + highlight + '">';
-                    html += '<div class="text-[10px] text-gray-400 dark:text-gray-500 uppercase">' + m.label + '</div>';
+                    html += '<div class="text-xs text-gray-400 dark:text-gray-400 uppercase">' + m.label + '</div>';
                     html += '<div class="text-sm font-medium text-gray-800 dark:text-gray-200">' + m.fmt(val) + '</div>';
                     html += '</div>';
                 });

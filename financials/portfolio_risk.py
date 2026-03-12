@@ -9,7 +9,22 @@ import yfinance as yf
 
 from . import cache
 
-RISK_FREE_RATE = 0.045  # ~4.5% (approximate short-term Treasury rate)
+_RISK_FREE_FALLBACK = 0.045  # fallback if ^IRX fetch fails
+
+
+def _fetch_risk_free_rate():
+    """Fetch current 3-month Treasury bill rate from ^IRX."""
+    try:
+        t = yf.Ticker("^IRX")
+        price = (t.info or {}).get("regularMarketPrice") or (t.info or {}).get("previousClose")
+        if price and price > 0:
+            return round(price / 100, 4)  # ^IRX is quoted as e.g. 4.35 → 0.0435
+    except Exception:
+        pass
+    return _RISK_FREE_FALLBACK
+
+
+RISK_FREE_RATE = _fetch_risk_free_rate()
 TRADING_DAYS = 252
 RISK_TTL = 900  # 15 min cache for risk data
 
@@ -177,8 +192,8 @@ def compute_risk_metrics(holdings):
 
     # Value at Risk (parametric, 1-day)
     mean_daily = _mean(portfolio_returns)
-    var95 = -(mean_daily - 1.645 * daily_vol) * total_value
-    var99 = -(mean_daily - 2.326 * daily_vol) * total_value
+    var95 = (1.645 * daily_vol - mean_daily) * total_value
+    var99 = (2.326 * daily_vol - mean_daily) * total_value
 
     # Portfolio beta vs SPY
     beta = _compute_beta(portfolio_returns, spy_returns[:min_len])
@@ -515,7 +530,7 @@ def compute_efficient_frontier(holdings, n_portfolios=1000):
                 "optimalPct": round(optimal_pct, 1),
                 "diffPct": round(diff_pct, 1),
                 "diffDollar": round(diff_dollar, 2),
-                "action": "Buy" if diff_pct > 0 else "Sell",
+                "action": "Increase" if diff_pct > 0 else "Decrease",
             })
 
     trades.sort(key=lambda x: abs(x["diffPct"]), reverse=True)
@@ -561,12 +576,13 @@ def _fetch_expense_ratio(symbol):
         return result
 
 
-def compute_fee_analysis(holdings):
+def compute_fee_analysis(holdings, growth_rate=0.08):
     """Analyze expense ratio drag for ETFs/funds in portfolio."""
     total_value = sum(h.get("currentValue", 0) for h in holdings)
     if total_value <= 0:
         return {"holdings": [], "totalAnnualFees": 0,
-                "blendedExpenseRatio": 0, "projectedDrag": {}, "totalValue": 0}
+                "blendedExpenseRatio": 0, "projectedDrag": {}, "totalValue": 0,
+                "growthRate": round(growth_rate * 100)}
 
     # Fetch expense ratios for probable funds
     fee_data = {}
@@ -602,8 +618,7 @@ def compute_fee_analysis(holdings):
             })
     fee_holdings.sort(key=lambda x: x["annualFee"], reverse=True)
 
-    # Project fee drag over time (assuming 8% annual growth)
-    growth_rate = 0.08
+    # Project fee drag over time
     blended_er = total_annual_fees / total_value if total_value > 0 else 0
     drag = {}
     for years in [10, 20, 30]:
@@ -624,4 +639,5 @@ def compute_fee_analysis(holdings):
         "blendedExpenseRatio": round(blended_er * 100, 4),
         "projectedDrag": drag,
         "totalValue": total_value,
+        "growthRate": round(growth_rate * 100),
     }
