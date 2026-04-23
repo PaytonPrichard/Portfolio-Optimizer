@@ -17,21 +17,25 @@
 <details class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden group">
     <summary class="cursor-pointer px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2 text-sm flex-wrap">
         <span class="font-semibold text-brand dark:text-blue-300 w-14">{{ t.symbol }}</span>
-        {% if t.isEtf %}<span class="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase">ETF</span>{% endif %}
+        {% if t.isBroadEtf %}<span class="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase">ETF</span>{% elif t.isEtf %}<span class="px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase" title="Sector ETF: {{ t.etfSector }}">{{ t.etfSector }} ETF</span>{% endif %}
         <span class="text-gray-500 dark:text-gray-400 text-xs">{{ t.currentPct }}% → {{ t.optimalPct }}%</span>
         <span class="ml-auto font-medium {% if t.diffPct > 0 %}text-green-700 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ '+' if t.diffPct > 0 }}{{ t.diffPct }}% ({{ '+' if t.diffDollar > 0 else '-' }}{{ money(t.diffDollar | abs) }})</span>
         <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
     </summary>
     <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-200 dark:border-gray-700 text-xs">
-        {% if t.isEtf and t.action == 'Decrease' %}
+        {% if t.isBroadEtf and t.action == 'Decrease' %}
         <div class="mb-3 px-3 py-2 rounded bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 text-blue-800 dark:text-blue-300">
             <p class="font-semibold mb-1">Heads up: this is a broad-market ETF.</p>
             <p>The optimizer suggests trimming because individual holdings have stronger factor signals. ETFs give you broad sector exposure at low cost, so consider keeping it as a core position. To override this trade, just don't execute the sell — the optimizer rec is a suggestion, not an action.</p>
         </div>
         {% endif %}
-        {% if t.isEtf %}
+        {% if t.isBroadEtf %}
         <div class="text-gray-500 dark:text-gray-400">
-            ETFs are pinned to neutral Alpha (50) so they sit at their market-cap prior. Allocation changes come from optimizer rebalancing, not from a factor view on the ETF itself.
+            Broad-market ETFs are pinned to neutral Alpha (50) so they sit at their market-cap prior. They're modeled as evenly spread across all 11 GICS sectors for diversification and exempt from the per-sector cap.
+        </div>
+        {% elif t.isEtf %}
+        <div class="text-gray-500 dark:text-gray-400">
+            Sector ETFs (this one tracks <span class="font-semibold text-gray-700 dark:text-gray-300">{{ t.etfSector }}</span>) are pinned to neutral Alpha (50) but counted toward their sector for the cap and diversification math, just like a stock in that sector.
         </div>
         {% else %}
         {% if attr.alphaScore %}
@@ -90,6 +94,14 @@
     {% if complianceNarrative %}
     <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg px-4 py-3 mb-4 text-sm text-amber-800 dark:text-amber-300">
         {{ complianceNarrative }}
+    </div>
+    {% endif %}
+
+    {% if diagnostics.droppedShortHistory %}
+    <div class="bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-3 mb-4 text-xs text-gray-600 dark:text-gray-400">
+        <span class="font-semibold text-gray-700 dark:text-gray-300">Excluded from optimization:</span>
+        {% for d in diagnostics.droppedShortHistory %}{{ d.symbol }}{% if d.daysAvailable %} ({{ d.daysAvailable }}d){% else %} (no data){% endif %}{% if not loop.last %}, {% endif %}{% endfor %}
+        <span class="ml-1">{{ '— ' }}fewer than {{ diagnostics.minHistoryDays }} days of return history. These positions still contribute to your portfolio but were not included in the optimizer math.</span>
     </div>
     {% endif %}
 

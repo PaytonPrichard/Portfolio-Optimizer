@@ -77,9 +77,45 @@ GICS_SECTORS = [
 ]
 
 
+# Sector-specific ETF detection: match yfinance category substrings to GICS.
+# Order doesn't matter — we just need any one to match. Lowercase compare.
+_SECTOR_ETF_CATEGORY_MAP = {
+    "technology": "Technology",
+    "communication": "Communication Services",
+    "financial": "Financial Services",
+    "health": "Healthcare",
+    "energy": "Energy",
+    "industrial": "Industrials",
+    "utilit": "Utilities",
+    "consumer cyclical": "Consumer Cyclical",
+    "consumer defensive": "Consumer Defensive",
+    "real estate": "Real Estate",
+    "basic material": "Basic Materials",
+    "natural resource": "Basic Materials",
+    "precious metal": "Basic Materials",
+}
+
+
+def _classify_etf_sector(category):
+    """Match yfinance ETF category to a GICS sector name. Returns the GICS
+    sector if the category targets a single sector (e.g. XLK -> Technology),
+    or None for broad-market ETFs (Large Blend, Foreign Large Blend, etc.).
+    """
+    if not category:
+        return None
+    cat_lower = category.lower()
+    for needle, gics in _SECTOR_ETF_CATEGORY_MAP.items():
+        if needle in cat_lower:
+            return gics
+    return None
+
+
 def _fetch_classification(symbol):
-    """Return (sector, is_etf_like) for a symbol. ETFs and mutual funds get
-    sector=ETF_SECTOR_KEY so the cap layer can exempt them.
+    """Return (sector, is_etf_like). Broad-market ETFs get sector=ETF_SECTOR_KEY
+    (exempt from cap, modeled as spread across all sectors). Sector-specific
+    ETFs get their actual GICS sector — they're treated like a stock in that
+    sector for cap and diversification purposes, but Alpha is still pinned at
+    neutral 50 since they have no factor sub-scores.
     """
     cache_key = f"classification:{symbol}"
     cached = cache.get(cache_key)
@@ -90,8 +126,9 @@ def _fetch_classification(symbol):
         info = yf.Ticker(symbol).info or {}
         qt = (info.get("quoteType") or "").upper()
         if qt in ("ETF", "MUTUALFUND"):
-            sector = ETF_SECTOR_KEY
             is_etf = True
+            sector_match = _classify_etf_sector(info.get("category"))
+            sector = sector_match if sector_match else ETF_SECTOR_KEY
         else:
             sector = info.get("sector") or "Unknown"
     except Exception:
@@ -466,7 +503,14 @@ def _alpha_views(alpha_scores, tilt=DEFAULT_VIEW_TILT, neutral=50.0):
     return [(a - neutral) / 100.0 * tilt for a in alpha_scores]
 
 
+MIN_HISTORY_DAYS = 252  # 1 trading year — covariance below this is too noisy
+
+
 def _build_return_matrix(symbols, window=DEFAULT_WINDOW):
+    """Fetch aligned daily returns. Returns (matrix, usable, dropped) where
+    dropped is a list of (symbol, days_available) tuples for holdings cut
+    from the optimization for insufficient history.
+    """
     returns_map = {}
     with ThreadPoolExecutor(max_workers=8) as pool:
         futures = {pool.submit(_fetch_daily_returns, s, window): s for s in symbols}
@@ -477,12 +521,13 @@ def _build_return_matrix(symbols, window=DEFAULT_WINDOW):
             except Exception:
                 returns_map[sym] = []
 
-    usable = [s for s in symbols if returns_map.get(s) and len(returns_map[s]) >= 60]
+    usable = [s for s in symbols if len(returns_map.get(s, [])) >= MIN_HISTORY_DAYS]
+    dropped = [(s, len(returns_map.get(s, []))) for s in symbols if s not in usable]
     if len(usable) < 2:
-        return None, usable
+        return None, usable, dropped
     min_len = min(len(returns_map[s]) for s in usable)
     matrix = np.array([returns_map[s][-min_len:] for s in usable]).T
-    return matrix, usable
+    return matrix, usable, dropped
 
 
 def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
@@ -499,7 +544,7 @@ def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
         return None
 
     all_symbols = [h["symbol"] for h in valid]
-    return_matrix, usable = _build_return_matrix(all_symbols, window)
+    return_matrix, usable, dropped_history = _build_return_matrix(all_symbols, window)
     if return_matrix is None:
         return None
 
@@ -530,6 +575,10 @@ def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
     # stocks. classifications_map populated below; precompute is_etf set here.
     classifications_map = _fetch_classifications(symbols)
     is_etf_set = {s for s, (_, is_etf) in classifications_map.items() if is_etf}
+    is_broad_etf_set = {
+        s for s, (sec, is_etf) in classifications_map.items()
+        if is_etf and sec == ETF_SECTOR_KEY
+    }
     for s in is_etf_set:
         alpha_data[s] = {"alphaScore": 50, "subScores": {}}
     alphas = [alpha_data.get(s, {}).get("alphaScore", 50.0) for s in symbols]
@@ -595,6 +644,13 @@ def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
                 "diffDollar": round(diff_dollar, 2),
                 "action": "Increase" if diff_pct > 0 else "Decrease",
                 "isEtf": h["symbol"] in is_etf_set,
+                "isBroadEtf": h["symbol"] in is_broad_etf_set,
+                # Only set for sector-specific ETFs; None for broad ETFs and stocks.
+                "etfSector": (
+                    classifications_map[h["symbol"]][0]
+                    if h["symbol"] in is_etf_set and h["symbol"] not in is_broad_etf_set
+                    else None
+                ),
             })
     trades.sort(key=lambda x: abs(x["diffPct"]), reverse=True)
 
@@ -659,6 +715,10 @@ def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
             "constraints": effective_constraints,
             "constraintReport": constraint_report,
             "sectors": dict(zip(symbols, sector_list)),
+            "droppedShortHistory": [
+                {"symbol": s, "daysAvailable": d} for s, d in dropped_history
+            ],
+            "minHistoryDays": MIN_HISTORY_DAYS,
         },
         "totalValue": usable_total,
         "improvementPct": round((opt_sharpe - cur_sharpe) / abs(cur_sharpe) * 100, 1) if cur_sharpe != 0 else 0,
