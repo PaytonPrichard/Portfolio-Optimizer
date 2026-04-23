@@ -183,3 +183,21 @@ def list_recommendations(client_id, limit=50):
         return [_row_to_dict(r) for r in rows]
     finally:
         conn.close()
+
+
+def iter_all_recommendations(min_age_days=30):
+    """Yield every rec older than min_age_days. Used by the outcome observer
+    to scan recs that might have horizons due. Default 30d filter skips recs
+    that can't possibly have any horizon ready yet (smallest horizon = 30d).
+    """
+    conn = _get_db()
+    try:
+        rows = conn.execute("""
+            SELECT * FROM portfolio_recommendations
+            WHERE julianday('now') - julianday(created_at) >= ?
+            ORDER BY created_at ASC
+        """, (int(min_age_days),)).fetchall()
+        for r in rows:
+            yield _row_to_dict(r)
+    finally:
+        conn.close()
