@@ -1,0 +1,159 @@
+{# Consider Adding — Phase 1.5 new-position suggestions #}
+{% macro money(val) %}{% if val is none %}N/A{% elif val >= 1000000000 %}${{ '%.1f' | format(val / 1000000000) }}B{% elif val >= 1000000 %}${{ '%.1f' | format(val / 1000000) }}M{% elif val >= 1000 %}${{ '{:,.0f}'.format(val) }}{% else %}${{ '%.0f' | format(val) }}{% endif %}{% endmacro %}
+
+{% macro conviction_badge(s) %}{% if s.highConviction %}<span class="px-1.5 py-0.5 rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-[10px] font-bold uppercase" title="Appears in multiple methods — multiple signals agree this is worth considering">★ High Conviction</span>{% endif %}{% endmacro %}
+
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <div class="flex items-start justify-between mb-2 gap-3 flex-wrap">
+        <h2 class="text-lg font-semibold text-brand dark:text-blue-300">Consider Adding</h2>
+        <span class="text-xs text-gray-400 dark:text-gray-500">{{ candidatesScreened }} candidates screened</span>
+    </div>
+
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        New positions to complement your existing holdings. Each tab uses a different method. A name appearing in multiple tabs is higher conviction.
+    </p>
+
+    {% if rateLimited %}
+    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg px-4 py-3 mb-4 text-sm text-amber-800 dark:text-amber-300">
+        <p class="font-semibold mb-1">Suggestions paused: data source rate-limited.</p>
+        <p>Yahoo Finance throttles requests after batch jobs (like a fresh universe seed). Reload this page in 30-60 minutes to see suggestions.</p>
+    </div>
+    {% endif %}
+
+    {# Sub-tabs #}
+    <div class="border-b border-gray-200 dark:border-gray-700 mb-4 flex gap-1 text-sm font-medium">
+        <button type="button" data-suggest-tab="gaps"
+                class="px-3 py-2 border-b-2 border-amber-500 dark:border-amber-400 text-amber-700 dark:text-amber-300">
+            Sector Gaps <span class="text-xs text-gray-400 dark:text-gray-500">({{ gaps | length }})</span>
+        </button>
+        <button type="button" data-suggest-tab="marginal"
+                class="px-3 py-2 border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+            Marginal Improvers <span class="text-xs text-gray-400 dark:text-gray-500">({{ marginal | length }})</span>
+        </button>
+        <button type="button" data-suggest-tab="holistic"
+                class="px-3 py-2 border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+            Holistic <span class="text-xs text-gray-400 dark:text-gray-500">({{ holistic | length }})</span>
+        </button>
+    </div>
+
+    {# ============ GAPS TAB ============ #}
+    <div data-suggest-content="gaps">
+        {% if gaps %}
+        <div class="space-y-2">
+            {% for g in gaps %}
+            <details class="border border-amber-200 dark:border-amber-700/50 rounded-lg overflow-hidden group bg-amber-50/30 dark:bg-amber-900/10">
+                <summary class="cursor-pointer px-4 py-3 hover:bg-amber-50 dark:hover:bg-amber-900/20 flex items-center gap-3 text-sm flex-wrap">
+                    <span class="font-semibold text-brand dark:text-blue-300 w-14">{{ g.symbol }}</span>
+                    <span class="px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase">{{ g.sector }} ETF</span>
+                    {{ conviction_badge(g) }}
+                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ g.reason }}</span>
+                    <span class="ml-auto font-medium text-amber-800 dark:text-amber-300 text-sm">Add ~{{ money(g.suggestedDollar) }} ({{ g.suggestedWeightPct }}%)</span>
+                    <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="px-4 py-3 bg-white dark:bg-gray-800 border-t border-amber-200 dark:border-amber-700/50 text-xs">
+                    <p class="text-gray-500 dark:text-gray-400 mb-2">Your current sector exposure (effective, including ETF spread):</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-gray-700 dark:text-gray-300">
+                        {% for sec, pct in currentSectorBreakdown.items() | sort(attribute=1, reverse=true) %}
+                        <div class="flex justify-between">
+                            <span class="truncate">{{ sec }}</span>
+                            <span class="font-medium {% if sec == g.sector %}text-amber-700 dark:text-amber-400{% endif %}">{{ pct }}%</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <p class="text-gray-400 dark:text-gray-500 mt-3">{{ g.symbol }} is the standard SPDR sector ETF for {{ g.sector }}.</p>
+                </div>
+            </details>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500 dark:text-gray-400 italic">Your effective sector exposure clears the 5% floor across all 11 GICS sectors. No diversification gaps to fill.</p>
+        {% endif %}
+    </div>
+
+    {# ============ MARGINAL TAB ============ #}
+    <div data-suggest-content="marginal" hidden>
+        {% if marginal %}
+        <div class="space-y-2">
+            {% for m in marginal %}
+            <details class="border border-green-200 dark:border-green-700/50 rounded-lg overflow-hidden group bg-green-50/30 dark:bg-green-900/10">
+                <summary class="cursor-pointer px-4 py-3 hover:bg-green-50 dark:hover:bg-green-900/20 flex items-center gap-3 text-sm flex-wrap">
+                    <span class="font-semibold text-brand dark:text-blue-300 w-14">{{ m.symbol }}</span>
+                    {% if m.source == 'broad_etf' %}<span class="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase">ETF</span>
+                    {% elif m.source == 'sector_etf' %}<span class="px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase">Sector ETF</span>
+                    {% else %}<span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-[10px] font-bold uppercase">Stock</span>
+                    {% endif %}
+                    {{ conviction_badge(m) }}
+                    {% if m.alphaScore %}<span class="text-xs text-gray-500 dark:text-gray-400">Alpha {{ m.alphaScore }}/100</span>{% endif %}
+                    <span class="ml-auto font-medium text-green-800 dark:text-green-300 text-sm">+{{ '%.4f'|format(m.sharpeDelta) }} Sharpe (~{{ money(m.suggestedDollar) }})</span>
+                    <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="px-4 py-3 bg-white dark:bg-gray-800 border-t border-green-200 dark:border-green-700/50 text-xs">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-gray-700 dark:text-gray-300 mb-2">
+                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Suggested slice</span><span class="font-medium">{{ m.suggestedWeightPct }}% (~{{ money(m.suggestedDollar) }})</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Annualized vol</span><span class="font-medium">{{ m.annualizedVolPct }}%</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Avg correlation</span><span class="font-medium {% if m.avgCorrelation < 0.3 %}text-green-700 dark:text-green-400{% elif m.avgCorrelation > 0.7 %}text-amber-700 dark:text-amber-400{% endif %}">{{ '%+.2f'|format(m.avgCorrelation) }}</span></div>
+                        {% if m.alphaScore %}
+                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Alpha score</span><span class="font-medium">{{ m.alphaScore }}/100</span></div>
+                        {% endif %}
+                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Sharpe delta</span><span class="font-medium text-green-700 dark:text-green-400">+{{ '%.4f'|format(m.sharpeDelta) }}</span></div>
+                    </div>
+                    <p class="text-gray-400 dark:text-gray-500">
+                        Sharpe contribution measured by adding a {{ m.suggestedWeightPct }}% slice and recomputing portfolio Sharpe.
+                        {% if m.avgCorrelation < 0.3 %}Low correlation with your current holdings is the main driver — diversification benefit.{% elif m.alphaScore and m.alphaScore >= 70 %}High Alpha Score is the main driver — strong factor signals.{% endif %}
+                    </p>
+                </div>
+            </details>
+            {% endfor %}
+        </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-3">Top {{ marginal | length }} candidates ranked by Sharpe delta from a 2% slice. Negative-delta candidates filtered out.</p>
+        {% else %}
+        <p class="text-sm text-gray-500 dark:text-gray-400 italic">No candidates would meaningfully improve your portfolio Sharpe at the margin. Either your current holdings are already well-positioned for our signal mix, or the data source is rate-limited (try again in 30 min).</p>
+        {% endif %}
+    </div>
+
+    {# ============ HOLISTIC TAB ============ #}
+    <div data-suggest-content="holistic" hidden>
+        {% if holistic %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+            What your portfolio would look like if rebuilt from scratch over the full universe. New positions earning ≥5% weight and ≥$500 are shown. Existing rebalance trades are in the Portfolio Optimizer above.
+        </p>
+        <div class="space-y-2">
+            {% for h in holistic %}
+            <details class="border border-blue-200 dark:border-blue-700/50 rounded-lg overflow-hidden group bg-blue-50/30 dark:bg-blue-900/10">
+                <summary class="cursor-pointer px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-3 text-sm flex-wrap">
+                    <span class="font-semibold text-brand dark:text-blue-300 w-14">{{ h.symbol }}</span>
+                    {% if h.source == 'broad_etf' %}<span class="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase">ETF</span>
+                    {% elif h.source == 'sector_etf' %}<span class="px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase">Sector ETF</span>
+                    {% else %}<span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-[10px] font-bold uppercase">Stock</span>
+                    {% endif %}
+                    {{ conviction_badge(h) }}
+                    {% if h.sector %}<span class="text-xs text-gray-500 dark:text-gray-400">{{ h.sector }}</span>{% endif %}
+                    {% if h.alphaScore %}<span class="text-xs text-gray-500 dark:text-gray-400">Alpha {{ h.alphaScore }}/100</span>{% endif %}
+                    <span class="ml-auto font-medium text-blue-800 dark:text-blue-300 text-sm">{{ h.suggestedWeightPct }}% (~{{ money(h.suggestedDollar) }})</span>
+                    <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </summary>
+                <div class="px-4 py-3 bg-white dark:bg-gray-800 border-t border-blue-200 dark:border-blue-700/50 text-xs">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-gray-700 dark:text-gray-300 mb-2">
+                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Optimal weight</span><span class="font-medium">{{ h.suggestedWeightPct }}%</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Dollar value</span><span class="font-medium">~{{ money(h.suggestedDollar) }}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Expected return</span><span class="font-medium">{{ h.expectedReturnPct }}%</span></div>
+                        <div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Annualized vol</span><span class="font-medium">{{ h.annualizedVolPct }}%</span></div>
+                        {% if h.alphaScore %}<div class="flex justify-between"><span class="text-gray-500 dark:text-gray-400">Alpha score</span><span class="font-medium">{{ h.alphaScore }}/100</span></div>{% endif %}
+                    </div>
+                    <p class="text-gray-400 dark:text-gray-500">
+                        Position size from B-L over the full ~200-name universe with the same constraint layer (2-25% per position, 40% sector cap). Doesn't account for tax cost of fully rebuilding your portfolio from scratch.
+                    </p>
+                </div>
+            </details>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500 dark:text-gray-400 italic">No new positions earned ≥5% weight in the full-universe optimal portfolio. Your current holdings are already filling the high-conviction slots.</p>
+        {% endif %}
+    </div>
+
+    {# ============ FOOTER ============ #}
+    {% if dataFreshness %}
+    <p class="text-xs text-gray-400 dark:text-gray-500 mt-4 italic">Suggestions based on Alpha snapshots from {{ dataFreshness }}.</p>
+    {% endif %}
+</div>

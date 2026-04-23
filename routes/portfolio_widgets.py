@@ -23,6 +23,7 @@ from financials.portfolio_risk import (
 )
 from financials.portfolio_optimizer import black_litterman_optimize, ETF_SECTOR_KEY
 from financials.recommendations import insert_recommendation
+from financials.suggestions import compute_suggestions
 from financials.portfolio_fundamentals import (
     analyze_portfolio_fundamentals,
     compute_factor_exposure,
@@ -226,6 +227,20 @@ def _build_rec_payload(client_id, holdings, result, mode):
         "attribution": result.get("attribution", {}),
         "confidence_score": result.get("confidenceScore"),
     }
+
+
+@portfolio_widgets_bp.route("/api/portfolio/widget/suggestions", methods=["POST"])
+def suggestions_widget():
+    """Phase 1.5 new-position recommendations (gaps, marginal, holistic placeholder)."""
+    try:
+        data = request.get_json(silent=True) or {}
+        holdings = data.get("holdings", [])
+        result = compute_suggestions(holdings)
+        if not result or (not result.get("gaps") and not result.get("marginal")):
+            return '<p class="text-gray-400 text-sm italic">No additional position suggestions at this time.</p>'
+        return render_template("partials/portfolio_suggestions.html", **result)
+    except Exception:
+        return '<p class="text-red-500 text-sm italic">Suggestions temporarily unavailable.</p>'
 
 
 @portfolio_widgets_bp.route("/api/portfolio/widget/optimizer", methods=["POST"])

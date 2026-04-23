@@ -140,6 +140,7 @@ function loadPortfolioWidgets() {
         { id: "widget-risk-dashboard", url: "/api/portfolio/widget/risk-dashboard", body: { holdings: meta.holdings || [] } },
         { id: "widget-monte-carlo", url: "/api/portfolio/widget/monte-carlo", body: { holdings: meta.holdings || [], years: 10 } },
         { id: "widget-optimizer", url: "/api/portfolio/widget/optimizer", body: { holdings: meta.holdings || [], mode: "diversification", clientId: window.__clientId || "" } },
+        { id: "widget-suggestions", url: "/api/portfolio/widget/suggestions", body: { holdings: meta.holdings || [] } },
         { id: "widget-fundamentals", url: "/api/portfolio/widget/fundamentals", body: { holdings: meta.holdings || [] } },
         { id: "widget-alpha-scores", url: "/api/portfolio/widget/mosaic-scores", body: { holdings: meta.holdings || [] } },
     ];
@@ -178,6 +179,33 @@ function loadPortfolioWidgets() {
                 entry.body.growthRate = _getSettingGrowthRate();
                 fetchWidget("widget-fee-analysis", entry.url, entry.body);
             }
+        });
+    }
+
+    // Suggestions sub-tab toggle — delegated listener.
+    var suggestionsEl = document.getElementById("widget-suggestions");
+    if (suggestionsEl) {
+        suggestionsEl.addEventListener("click", function (e) {
+            var btn = e.target.closest("[data-suggest-tab]");
+            if (!btn || btn.disabled) return;
+            var tab = btn.getAttribute("data-suggest-tab");
+            // Update button styles
+            suggestionsEl.querySelectorAll("[data-suggest-tab]").forEach(function (b) {
+                if (b.disabled) return;
+                if (b === btn) {
+                    b.className = "px-3 py-2 border-b-2 border-brand dark:border-blue-400 text-brand dark:text-blue-300";
+                } else {
+                    b.className = "px-3 py-2 border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200";
+                }
+            });
+            // Show selected content, hide others
+            suggestionsEl.querySelectorAll("[data-suggest-content]").forEach(function (c) {
+                if (c.getAttribute("data-suggest-content") === tab) {
+                    c.removeAttribute("hidden");
+                } else {
+                    c.setAttribute("hidden", "");
+                }
+            });
         });
     }
 
