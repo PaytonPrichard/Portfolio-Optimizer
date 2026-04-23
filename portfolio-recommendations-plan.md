@@ -162,12 +162,7 @@ obvious bugs in attribution math.
 
 - Tax lot awareness (recommend based on lot-level cost basis to realize
   losses, avoid realizing gains). Add when product intent firms up.
-- Ticker discovery (recommend adding/removing names from a broader universe).
 - Real user accounts and multi-portfolio tracking per user.
-- **Portfolio page pruning.** Results page is too long. Too many widgets
-  across Insights / Fundamentals / Risk tabs, much less useful after
-  optimizer rebuild. Optimizer itself is buried at the bottom of the Risk
-  tab. Audit and reorganize once Phase 2 outcome history view is ready.
 
 ## Changelog
 
@@ -189,3 +184,30 @@ obvious bugs in attribution math.
   cap. Optimizer pulled out of Risk tab to top of results page.
   Improved loading state with spinner and explanatory text. Added
   Phase 1.5 (new-position recs) to the plan.
+- 2026-04-23: Phase 1.5 complete. Three suggestion methods shipped:
+  Sector Gaps (recommend SPDR sector ETF for under-weighted GICS
+  sectors), Marginal Sharpe (top 8 candidates from ~206-name universe
+  by Sharpe contribution from a 2% slice), Holistic (full-universe
+  B-L re-optimization with position/sector caps, surfaces NEW positions
+  >=5% weight and >=$500). High Conviction badge for cross-method
+  matches. Data freshness footer. Rate-limit banner. Stock/ETF/Sector
+  ETF pills.
+- 2026-04-23: Page restructure. Removed 4 redundant sections (Dividend
+  Income Projector, Compound Growth Projection, Mosaic Scores widget,
+  server-side Diversification Gaps). Removed 3 pill nav tabs and the
+  toggleWidgetGroup JS. Reordered to decision-flow hierarchy: TOP =
+  Summary, Health, AI Commentary, Optimizer, Consider Adding; MIDDLE
+  = Diversification Insights, Concentration Alerts, Historical, Risk
+  Dashboard, All Holdings; EXPANDABLE behind one button = 14 advanced
+  widgets. Page went from ~28 sections / 1046 lines to 11 visible
+  sections / 663 lines.
+- 2026-04-23: Phase 2 complete. Outcome data layer
+  (recommendation_outcomes table with INSERT OR REPLACE for idempotent
+  re-measurement). Outcome observer (financials/outcome_observer.py
+  with CLI: realized return, do-nothing counterfactual, SPY benchmark,
+  equal-weight benchmark, per-factor linear Brinson-style attribution,
+  graceful yfinance gap handling). Portfolio history view at
+  /portfolio/history with per-rec collapsible cards showing outcome
+  table per horizon plus the "Rec - Counterfactual" learning signal
+  column. Phase 3 (passive accumulation) starts now; Phase 4 (weight
+  learner) waits for sufficient sample size.
