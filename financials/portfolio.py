@@ -44,6 +44,35 @@ _SKIP_SYMBOLS = {
 }
 _SKIP_PATTERN = re.compile(r"\*")
 
+# Yahoo uses dash-class notation (BRK-B, BF-B, RDS-A). Brokerages export the
+# same tickers in many shapes: dot (BRK.B), slash (BRK/B), space (BRK B), or
+# no separator at all (BRKB). The no-separator case can't be auto-corrected
+# safely (BRKA could be a different stock entirely), so we keep an allowlist
+# of widely-held no-separator collapses. Dot/slash/space are converted via rule.
+_NO_SEPARATOR_OVERRIDES = {
+    "BRKA": "BRK-A",   # Berkshire Hathaway A
+    "BRKB": "BRK-B",   # Berkshire Hathaway B
+    "BFA":  "BF-A",    # Brown-Forman A
+    "BFB":  "BF-B",    # Brown-Forman B
+    "RDSA": "RDS-A",   # Royal Dutch Shell A
+    "RDSB": "RDS-B",   # Royal Dutch Shell B
+    "GOOGL": "GOOGL",  # explicit no-op so we don't accidentally collapse
+    "GOOG": "GOOG",
+}
+
+
+def _normalize_ticker(symbol):
+    """Map common ticker variants to Yahoo's canonical form."""
+    if not symbol:
+        return symbol
+    s = symbol.strip().upper()
+    if s in _NO_SEPARATOR_OVERRIDES:
+        return _NO_SEPARATOR_OVERRIDES[s]
+    # Convert non-Yahoo separators to dash. Yahoo uses dash for share class.
+    if "." in s or "/" in s or " " in s:
+        s = s.replace(".", "-").replace("/", "-").replace(" ", "-")
+    return s
+
 
 def _clean_money(val):
     """Strip $, +, %, commas, parens (negative) from a value and convert to float."""
@@ -238,6 +267,8 @@ def parse_portfolio_csv(file_stream) -> list:
 
         # Clean common symbol artifacts from various brokers
         symbol = symbol.replace("*", "").replace("+", "").strip()
+        # Normalize variants like BRKB / BRK.B / BRK/B to canonical BRK-B
+        symbol = _normalize_ticker(symbol)
 
         # Skip empty, cash, money market, pending, totals
         if not symbol or symbol in _SKIP_SYMBOLS:
@@ -331,7 +362,10 @@ def build_holdings_from_manual(entries: list) -> list:
     raw = []
     for entry in entries:
         symbol = str(entry.get("symbol", "")).strip().upper()
-        if not symbol or not re.match(r"^[A-Z]{1,10}$", symbol):
+        symbol = _normalize_ticker(symbol)
+        # Allow letters, digits, dashes (post-normalization). 1-12 chars to fit
+        # share-class suffixes like BRK-B and longer mutual fund tickers.
+        if not symbol or not re.match(r"^[A-Z][A-Z0-9-]{0,11}$", symbol):
             continue
         if symbol in _SKIP_SYMBOLS:
             continue
