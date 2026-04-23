@@ -9,6 +9,8 @@ dist/
 build/
 .DS_Store
 inputs/
+Inputs - Ignore/
 data/*.db
+.claude/
 
 .vercel

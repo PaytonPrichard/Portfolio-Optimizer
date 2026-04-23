@@ -31,6 +31,21 @@
             }
         })();
     </script>
+    {# Persistent client id. No auth, no cookie. Used to link recommendations
+       to the same browser over time for the portfolio-optimizer feedback loop. #}
+    <script>
+        (function() {
+            var key = 'mm-client-id';
+            var id = localStorage.getItem(key);
+            if (!id) {
+                id = (window.crypto && window.crypto.randomUUID)
+                    ? window.crypto.randomUUID()
+                    : 'fb-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+                localStorage.setItem(key, id);
+            }
+            window.__clientId = id;
+        })();
+    </script>
 </head>
 <body class="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col transition-colors">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-brand focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg">Skip to content</a>

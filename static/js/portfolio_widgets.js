@@ -139,7 +139,7 @@ function loadPortfolioWidgets() {
     var phase3 = [
         { id: "widget-risk-dashboard", url: "/api/portfolio/widget/risk-dashboard", body: { holdings: meta.holdings || [] } },
         { id: "widget-monte-carlo", url: "/api/portfolio/widget/monte-carlo", body: { holdings: meta.holdings || [], years: 10 } },
-        { id: "widget-optimizer", url: "/api/portfolio/widget/optimizer", body: { holdings: meta.holdings || [] } },
+        { id: "widget-optimizer", url: "/api/portfolio/widget/optimizer", body: { holdings: meta.holdings || [], mode: "diversification", clientId: window.__clientId || "" } },
         { id: "widget-fundamentals", url: "/api/portfolio/widget/fundamentals", body: { holdings: meta.holdings || [] } },
         { id: "widget-alpha-scores", url: "/api/portfolio/widget/mosaic-scores", body: { holdings: meta.holdings || [] } },
     ];
@@ -178,6 +178,30 @@ function loadPortfolioWidgets() {
                 entry.body.growthRate = _getSettingGrowthRate();
                 fetchWidget("widget-fee-analysis", entry.url, entry.body);
             }
+        });
+    }
+
+    // Optimizer mode toggle — delegated listener since the template is async-loaded.
+    var optimizerEl = document.getElementById("widget-optimizer");
+    if (optimizerEl) {
+        optimizerEl.addEventListener("click", function (e) {
+            var btn = e.target.closest("[data-opt-mode]");
+            if (!btn) return;
+            var mode = btn.getAttribute("data-opt-mode");
+            var entry = _widgetRegistry["widget-optimizer"];
+            if (!entry || entry.body.mode === mode) return;
+            entry.body.mode = mode;
+            // Show the same spinner/loader used on first render.
+            var modeLabel = mode === "return_max" ? "Return-Max" : "Diversification";
+            optimizerEl.innerHTML =
+                '<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">' +
+                '<h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-4">Portfolio Optimizer</h2>' +
+                '<div class="flex flex-col items-center justify-center py-8">' +
+                '<div class="animate-spin rounded-full h-10 w-10 border-4 border-brand dark:border-blue-400 border-t-transparent mb-4"></div>' +
+                '<p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Recomputing for ' + modeLabel + ' mode</p>' +
+                '<p class="text-xs text-gray-500 dark:text-gray-400 text-center max-w-md">Re-running Black-Litterman with updated constraints. This can take 30 to 60 seconds.</p>' +
+                "</div></div>";
+            fetchWidget("widget-optimizer", entry.url, entry.body);
         });
     }
 }

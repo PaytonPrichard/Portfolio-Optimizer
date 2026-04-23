@@ -488,6 +488,18 @@
     </div>
 </div>
 
+{# ── Portfolio Optimizer (pulled out of Risk tab — primary action widget) ── #}
+<div id="widget-optimizer" class="mb-8" aria-live="polite" role="region" aria-label="Portfolio optimizer">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-4">Portfolio Optimizer</h2>
+        <div class="flex flex-col items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-10 w-10 border-4 border-brand dark:border-blue-400 border-t-transparent mb-4"></div>
+            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Building your optimal allocation</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center max-w-md">Computing Alpha Scores, covariance, and factor views for each holding. This can take 30 to 60 seconds depending on portfolio size.</p>
+        </div>
+    </div>
+</div>
+
 {# ── Widget Navigation ── #}
 <div id="widget-nav" class="mb-6">
     <div class="flex flex-wrap gap-2 text-xs font-medium">
@@ -985,11 +997,6 @@
 {# ── 18. Monte Carlo Simulation (async, phase 3) ── #}
 <div id="widget-monte-carlo" class="mb-8" aria-live="polite" role="region" aria-label="Monte Carlo simulation">
     {{ widget_skeleton("Monte Carlo Projection") }}
-</div>
-
-{# ── 19. Portfolio Optimizer (async, phase 3) ── #}
-<div id="widget-optimizer" class="mb-8" aria-live="polite" role="region" aria-label="Portfolio optimizer">
-    {{ widget_skeleton("Portfolio Optimizer") }}
 </div>
 
 </div>{# end widget-group: risk #}

@@ -21,6 +21,8 @@ from financials.portfolio_risk import (
     compute_efficient_frontier,
     compute_fee_analysis,
 )
+from financials.portfolio_optimizer import black_litterman_optimize, ETF_SECTOR_KEY
+from financials.recommendations import insert_recommendation
 from financials.portfolio_fundamentals import (
     analyze_portfolio_fundamentals,
     compute_factor_exposure,
@@ -166,15 +168,94 @@ def stress_test_widget():
         return '<p class="text-red-500 text-sm italic">Stress test temporarily unavailable.</p>'
 
 
+MODE_CONSTRAINTS = {
+    "diversification": {},  # use optimizer defaults (tight)
+    "return_max": {
+        "max_sector": 0.50,
+        "max_turnover": 0.40,
+    },
+}
+
+
+def _compliance_narrative(result):
+    """If the rebalance is driven by bringing current back into constraint
+    compliance (not by Alpha signals), generate a plain-English explanation.
+    """
+    report = result.get("diagnostics", {}).get("constraintReport", {})
+    forced = report.get("min_turnover_forced", 0) or 0
+    if forced <= 0.02:
+        return None
+    sectors = result.get("diagnostics", {}).get("sectors", {})
+    cur_weights = {w["symbol"]: w["weight"] / 100 for w in result["current"]["weights"]}
+    cur_sector_totals = {}
+    for sym, sec in sectors.items():
+        if sec == ETF_SECTOR_KEY:
+            continue  # ETF bucket is exempt from sector cap
+        cur_sector_totals[sec] = cur_sector_totals.get(sec, 0) + cur_weights.get(sym, 0)
+    max_sector_cap = result["diagnostics"]["constraints"]["max_sector"]
+    over = [(s, v) for s, v in cur_sector_totals.items() if v > max_sector_cap + 0.005]
+    if not over:
+        return None
+    over.sort(key=lambda x: -x[1])
+    sec, val = over[0]
+    excess_pp = round((val - max_sector_cap) * 100, 1)
+    return (
+        f"Your {sec} allocation is {excess_pp} percentage points above the "
+        f"{int(max_sector_cap * 100)}% target. Most of this rebalance is "
+        f"bringing sector exposure back into range."
+    )
+
+
+def _build_rec_payload(client_id, holdings, result, mode):
+    return {
+        "client_id": client_id,
+        "total_value": result["totalValue"],
+        "holdings": holdings,
+        "suggested_weights": result["optimal"]["weights"],
+        "current_return_pct": result["current"]["return"],
+        "current_volatility_pct": result["current"]["volatility"],
+        "current_sharpe": result["current"]["sharpe"],
+        "expected_return_pct": result["optimal"]["return"],
+        "expected_volatility_pct": result["optimal"]["volatility"],
+        "expected_sharpe": result["optimal"]["sharpe"],
+        "constraint_params": {**result["diagnostics"]["constraints"], "mode": mode},
+        "factor_weights": result.get("factorWeights", {}),
+        "regime_vix": (result.get("regime") or {}).get("vix"),
+        "regime_yield_curve": (result.get("regime") or {}).get("yield_curve_10y_3m"),
+        "regime_snapshot": result.get("regime"),
+        "attribution": result.get("attribution", {}),
+        "confidence_score": result.get("confidenceScore"),
+    }
+
+
 @portfolio_widgets_bp.route("/api/portfolio/widget/optimizer", methods=["POST"])
 def optimizer_widget():
-    """Return portfolio optimizer / rebalancing HTML fragment."""
+    """Portfolio optimizer / rebalancing HTML fragment. Uses Black-Litterman
+    with Alpha Score views, applies constraint layer, persists recommendation.
+    """
     try:
         data = request.get_json(silent=True) or {}
         holdings = data.get("holdings", [])
-        result = compute_efficient_frontier(holdings)
+        mode = data.get("mode", "diversification")
+        if mode not in MODE_CONSTRAINTS:
+            mode = "diversification"
+        client_id = (data.get("clientId") or "").strip() or "anonymous"
+
+        constraints_override = MODE_CONSTRAINTS[mode]
+        result = black_litterman_optimize(holdings, constraints=constraints_override)
         if result is None:
             return '<p class="text-gray-400 text-sm italic">Need at least 2 holdings for portfolio optimization.</p>'
+
+        # Persist the recommendation. Failure here should not break the UI.
+        try:
+            rec_id = insert_recommendation(_build_rec_payload(client_id, holdings, result, mode))
+            result["recId"] = rec_id
+        except Exception:
+            result["recId"] = None
+
+        result["mode"] = mode
+        result["complianceNarrative"] = _compliance_narrative(result)
+
         return render_template("partials/portfolio_optimizer.html", **result)
     except Exception:
         return '<p class="text-red-500 text-sm italic">Optimizer temporarily unavailable.</p>'
