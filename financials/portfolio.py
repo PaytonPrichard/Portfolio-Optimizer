@@ -704,47 +704,12 @@ def analyze_portfolio(holdings: list, tax_rate: float = 0.24) -> dict:
         if ind_key not in portfolio_industry_keys:
             gap_industries.append(ind_key)
 
-    # Opportunities: for each gap, fetch top picks (parallelized)
-    _MAX_GAP_FETCHES = 12  # cap to keep response time reasonable
-
-    def _fetch_gap_opportunity(ind_key):
-        picks = fetch_industry_picks(ind_key)
-        # Filter to qualifying picks: sufficient coverage, positive upside
-        qualified = []
-        for p in picks:
-            if (p.get("nAnalysts", 0) >= 5
-                    and p.get("upsidePct", 0) > 0
-                    and not p.get("lowCoverage", False)):
-                # Add composite score: 60% analyst rating + 40% upside
-                rating_num = _RATING_SCORES.get(
-                    (p.get("recKey") or "").lower(), 3)
-                norm_rating = (rating_num - 1) / 4.0
-                norm_upside = min(p.get("upsidePct", 0), 100) / 100.0
-                p["score"] = round(0.6 * norm_rating + 0.4 * norm_upside, 3)
-                qualified.append(p)
-        if not qualified:
-            return None
-        # Default sort by composite score descending
-        qualified.sort(key=lambda x: x.get("score", 0), reverse=True)
-        return {
-            "industryKey": ind_key,
-            "industryLabel": INDUSTRY_LABELS.get(ind_key, ind_key),
-            "picks": qualified[:3],
-            "allPicks": qualified[:6],
-        }
-
+    # The previous "opportunities" fetch (analyst picks per gap industry) is no
+    # longer rendered after the page restructure removed the Diversification Gaps
+    # widget — Consider Adding > Sector Gaps and Holistic now cover the same
+    # intent. Skip the heavy parallel yfinance fetch; "Missing Industries" pill
+    # list in Diversification Insights still renders from gap_industries.
     opportunities = []
-    fetch_gaps = gap_industries[:_MAX_GAP_FETCHES]
-    with ThreadPoolExecutor(max_workers=6) as pool:
-        futures = {pool.submit(_fetch_gap_opportunity, k): k for k in fetch_gaps}
-        for future in as_completed(futures, timeout=30):
-            try:
-                result = future.result(timeout=10)
-                if result:
-                    opportunities.append(result)
-            except Exception:
-                pass
-    opportunities.sort(key=lambda o: o["industryLabel"])
 
     # Widget 2: Analyst Consensus Overview (inline, no extra API calls)
     analyst_overview = compute_analyst_overview(holdings)

@@ -120,151 +120,35 @@
 </div>
 {% endif %}
 
-{# ── 1c. Dividend Income Projector ── #}
-{% if dividends and dividends.payingCount > 0 %}
-<div class="mb-8">
-    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-3">Dividend Income Projector</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Annual Income</div>
-            <div class="text-2xl font-bold text-green-700 dark:text-green-400">${{ '{:,.2f}'.format(dividends.totalAnnual) }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Monthly Income</div>
-            <div class="text-2xl font-bold text-green-700 dark:text-green-400">${{ '{:,.2f}'.format(dividends.totalMonthly) }}</div>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Portfolio Yield</div>
-            <div class="text-2xl font-bold text-brand dark:text-blue-300">{{ '%.2f' | format(dividends.weightedYield) }}%</div>
-            <div class="mt-2">
-                <div class="flex justify-between text-xs text-gray-400 dark:text-gray-400 mb-0.5">
-                    <span>Your Portfolio</span>
-                    <span>S&amp;P 500 Avg (~1.3%)</span>
-                </div>
-                <div class="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2 relative">
-                    <div class="h-2 rounded-full bg-brand" style="width: {{ [(dividends.weightedYield / 5 * 100), 100] | min }}%"></div>
-                    <div class="absolute top-0 h-2 w-0.5 bg-red-400" style="left: {{ 1.3 / 5 * 100 }}%" title="S&P 500 Average: 1.3%"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="bg-brand-light dark:bg-brand/20 text-brand dark:text-blue-300 font-bold text-xs uppercase">
-                        <th class="px-3 py-2 text-left">Symbol</th>
-                        <th class="px-3 py-2 text-left">Name</th>
-                        <th class="px-3 py-2 text-right">Value</th>
-                        <th class="px-3 py-2 text-right">Yield %</th>
-                        <th class="px-3 py-2 text-right">Annual $</th>
-                        <th class="px-3 py-2 text-right">Monthly $</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for d in dividends.holdings %}
-                    <tr class="{{ 'bg-gray-50 dark:bg-gray-700/30' if loop.index is odd else '' }} hover:bg-brand-light/30 dark:hover:bg-brand/10 transition-colors">
-                        <td class="px-3 py-2"><a href="/dashboard/{{ d.symbol }}" class="text-brand dark:text-blue-300 font-bold hover:underline">{{ d.symbol }}</a></td>
-                        <td class="px-3 py-2 text-gray-700 dark:text-gray-300 truncate max-w-[200px]">{{ d.name[:40] }}</td>
-                        <td class="px-3 py-2 text-right dark:text-gray-300">{{ money(d.currentValue) }}</td>
-                        <td class="px-3 py-2 text-right font-medium text-green-700 dark:text-green-400">{{ '%.2f' | format(d.dividendYield) }}%</td>
-                        <td class="px-3 py-2 text-right font-medium dark:text-gray-200">${{ '{:,.2f}'.format(d.annualIncome) }}</td>
-                        <td class="px-3 py-2 text-right text-gray-500 dark:text-gray-400">${{ '{:,.2f}'.format(d.monthlyIncome) }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    <p class="text-xs text-gray-400 dark:text-gray-400 italic px-4 py-2">Based on trailing 12-month dividend yield. Actual payouts may vary. {{ dividends.payingCount }} of {{ dividends.totalCount }} individual stocks pay dividends.</p>
-</div>
-{% endif %}
-
-{# ── 2. Portfolio Performance (async) ── #}
-<div id="widget-historical-performance" class="mb-8" aria-live="polite" role="region" aria-label="Portfolio historical performance">
-    {{ widget_skeleton("Portfolio Performance") }}
+{# ── AI Commentary (top of analysis) ── #}
+{# ── 5. AI Commentary (async) ── #}
+<div id="widget-ai-commentary" class="mb-8" aria-live="polite" role="region" aria-label="AI portfolio commentary">
+    {{ widget_skeleton("Portfolio Commentary") }}
 </div>
 
-{# ── 3. Compound Growth Projection (client-side) ── #}
-<div id="compound-growth-widget" class="mb-8" data-total-value="{{ totalValue }}">
-    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-3">Compound Growth Projection</h2>
+{# ── Portfolio Optimizer (pulled out of Risk tab — primary action widget) ── #}
+<div id="widget-optimizer" class="mb-8" aria-live="polite" role="region" aria-label="Portfolio optimizer">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">See how your portfolio could grow over time with compound returns.</p>
-        <div class="flex flex-wrap items-end gap-4 mb-4">
-            <div>
-                <label for="growth-age-input" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Your Current Age</label>
-                <input type="number" id="growth-age-input" min="1" max="99" placeholder="e.g. 30"
-                       class="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-1 focus:ring-[#1F4E79] focus:border-[#1F4E79] outline-none bg-white dark:bg-gray-800 dark:text-gray-200">
-            </div>
-            <div>
-                <label for="growth-target-age" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Target Age</label>
-                <input type="number" id="growth-target-age" min="2" max="100" value="65"
-                       class="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-1 focus:ring-[#1F4E79] focus:border-[#1F4E79] outline-none bg-white dark:bg-gray-800 dark:text-gray-200">
-            </div>
-            <div>
-                <label for="growth-rate-input" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Annual Return %</label>
-                <input type="number" id="growth-rate-input" min="0" max="50" step="0.5" value="10"
-                       class="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-1 focus:ring-[#1F4E79] focus:border-[#1F4E79] outline-none bg-white dark:bg-gray-800 dark:text-gray-200">
-            </div>
+        <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-4">Portfolio Optimizer</h2>
+        <div class="flex flex-col items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-10 w-10 border-4 border-brand dark:border-blue-400 border-t-transparent mb-4"></div>
+            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Building your optimal allocation</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center max-w-md">Computing Alpha Scores, covariance, and factor views for each holding. This can take 30 to 60 seconds depending on portfolio size.</p>
         </div>
-        <div id="growth-output"></div>
-        <p class="text-xs text-gray-400 dark:text-gray-400 italic mt-2">Default 10% is approximately the S&amp;P 500 long-term nominal average (source: Ibbotson/Morningstar). Does not account for inflation, taxes, contributions, or withdrawals. Past performance is not indicative of future results.</p>
     </div>
 </div>
 
-{# ── 4. Concentration Alerts ── #}
-{% if concentration %}
-<div class="mb-8">
-    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-3">Concentration Alerts</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {% for c in concentration %}
-        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 border-l-4 border-l-yellow-400 dark:border-l-yellow-500 rounded-r-lg p-4">
-            <div class="flex items-center gap-2 mb-1">
-                <svg class="w-5 h-5 text-yellow-500 shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                </svg>
-                <a href="/dashboard/{{ c.symbol }}" class="font-bold text-gray-800 dark:text-gray-200 hover:text-brand dark:hover:text-blue-300">{{ c.symbol }}</a>
-                <span class="text-sm text-gray-500 dark:text-gray-400">{{ c.name[:30] }}</span>
-            </div>
-            <div class="text-lg font-bold text-yellow-700 dark:text-yellow-400">{{ '%.1f' | format(c.pct) }}% of portfolio</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">{{ money(c.currentValue) }} &mdash; Consider rebalancing if >{{ c.threshold or 15 }}%{% if c.get('isFund') %} <span class="text-gray-400 dark:text-gray-400">(ETF/Fund)</span>{% endif %}</div>
+{# ── Consider Adding (Phase 1.5: new-position suggestions) ── #}
+<div id="widget-suggestions" class="mb-8" aria-live="polite" role="region" aria-label="Consider adding">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+        <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-4">Consider Adding</h2>
+        <div class="flex flex-col items-center justify-center py-6">
+            <div class="animate-spin rounded-full h-8 w-8 border-4 border-brand dark:border-blue-400 border-t-transparent mb-3"></div>
+            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Screening candidate universe</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center max-w-md">Checking ~200 candidates for sector gaps and marginal Sharpe contribution. Loads after the optimizer.</p>
         </div>
-        {% endfor %}
     </div>
 </div>
-{% endif %}
-
-{# ── 4b. Tax-Loss Harvesting Candidates ── #}
-{% if taxLossCandidates %}
-<div class="mb-8">
-    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-3">Tax-Loss Harvesting Candidates</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {% for t in taxLossCandidates %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 border-l-4 border-l-indigo-500 p-4">
-            <div class="flex items-center gap-2 mb-2">
-                <a href="/dashboard/{{ t.symbol }}" class="font-bold text-brand dark:text-blue-300 hover:underline">{{ t.symbol }}</a>
-                <span class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ t.name[:25] }}</span>
-                {% if t.nearFiftyTwoWeekLow %}
-                <span class="ml-auto inline-block px-1.5 py-0.5 rounded text-xs font-semibold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">Near 52W Low</span>
-                {% endif %}
-            </div>
-            <div class="text-lg font-bold text-red-600 dark:text-red-400 mb-1">
-                <svg class="inline w-3 h-3 mr-0.5" viewBox="0 0 12 12" fill="currentColor"><path d="M6 10L2 5h8z"/></svg>
-                ${{ '{:,.2f}'.format(t.unrealizedLoss | abs) }} ({{ '%.1f' | format(t.lossPct) }}%)
-            </div>
-            <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-                <span>Cost: {{ money(t.costBasis) }}</span>
-                <span>Value: {{ money(t.currentValue) }}</span>
-            </div>
-            <div class="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
-                Est. tax savings: <span data-tax-savings="{{ t.unrealizedLoss | abs }}">${{ '{:,.2f}'.format(t.estTaxSavings) }}</span>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    <p id="tax-rate-disclaimer" class="text-xs text-gray-400 dark:text-gray-400 italic mt-2 px-1">Tax savings estimated at {{ taxRate | default(24) }}% marginal rate. Consult a tax advisor before making decisions. Wash sale rules may apply.</p>
-</div>
-{% endif %}
 
 {# ── 4c. Diversification Insights ── #}
 <div class="mb-8">
@@ -488,294 +372,38 @@
     </div>
 </div>
 
-{# ── Portfolio Optimizer (pulled out of Risk tab — primary action widget) ── #}
-<div id="widget-optimizer" class="mb-8" aria-live="polite" role="region" aria-label="Portfolio optimizer">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-        <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-4">Portfolio Optimizer</h2>
-        <div class="flex flex-col items-center justify-center py-8">
-            <div class="animate-spin rounded-full h-10 w-10 border-4 border-brand dark:border-blue-400 border-t-transparent mb-4"></div>
-            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Building your optimal allocation</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 text-center max-w-md">Computing Alpha Scores, covariance, and factor views for each holding. This can take 30 to 60 seconds depending on portfolio size.</p>
-        </div>
-    </div>
-</div>
-
-{# ── Consider Adding (Phase 1.5: new-position suggestions) ── #}
-<div id="widget-suggestions" class="mb-8" aria-live="polite" role="region" aria-label="Consider adding">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
-        <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-4">Consider Adding</h2>
-        <div class="flex flex-col items-center justify-center py-6">
-            <div class="animate-spin rounded-full h-8 w-8 border-4 border-brand dark:border-blue-400 border-t-transparent mb-3"></div>
-            <p class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Screening candidate universe</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 text-center max-w-md">Checking ~200 candidates for sector gaps and marginal Sharpe contribution. Loads after the optimizer.</p>
-        </div>
-    </div>
-</div>
-
-{# ── Widget Navigation ── #}
-<div id="widget-nav" class="mb-6">
-    <div class="flex flex-wrap gap-2 text-xs font-medium">
-        <button onclick="toggleWidgetGroup('insights')" class="widget-nav-btn px-3 py-1.5 rounded-full bg-brand/10 dark:bg-blue-900/30 text-brand dark:text-blue-300 transition" data-group="insights">
-            Insights & Allocation
-        </button>
-        <button onclick="toggleWidgetGroup('fundamentals')" class="widget-nav-btn px-3 py-1.5 rounded-full bg-brand/10 dark:bg-blue-900/30 text-brand dark:text-blue-300 transition" data-group="fundamentals">
-            Fundamentals
-        </button>
-        <button onclick="toggleWidgetGroup('risk')" class="widget-nav-btn px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition" data-group="risk">
-            Risk & Simulation
-        </button>
-        <button onclick="toggleWidgetGroup('all')" class="widget-nav-btn px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition" data-group="all">
-            Show All
-        </button>
-        <span id="widget-load-status" class="ml-auto text-xs text-gray-400 dark:text-gray-400 self-center"></span>
-    </div>
-</div>
-
-{# ── Group: Insights & Allocation ── #}
-<div class="widget-group" data-group="insights">
-
-{# ── 5. AI Commentary (async) ── #}
-<div id="widget-ai-commentary" class="mb-8" aria-live="polite" role="region" aria-label="AI portfolio commentary">
-    {{ widget_skeleton("Portfolio Commentary") }}
-</div>
-
-{# ── 6. Sector Allocation ── #}
+{# ── 4. Concentration Alerts ── #}
+{% if concentration %}
 <div class="mb-8">
-    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-3">Sector Allocation</h2>
-    <p class="text-xs text-gray-400 dark:text-gray-400 mb-2">ETFs and mutual funds are broken down into their underlying sector weightings (look-through analysis).</p>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="bg-brand-light dark:bg-brand/20 text-brand dark:text-blue-300 font-bold text-xs uppercase">
-                    <th class="px-4 py-2 text-left">Sector</th>
-                    <th class="px-4 py-2 text-right">Value</th>
-                    <th class="px-4 py-2 text-center">% of Portfolio</th>
-                    <th class="px-4 py-2 text-center hidden sm:table-cell">Holdings</th>
-                    <th class="px-4 py-2 text-left hidden md:table-cell" style="min-width:200px">Allocation</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for s in bySector %}
-                <tr class="{{ 'bg-gray-50 dark:bg-gray-700/30' if loop.index is odd else '' }} hover:bg-brand-light/30 dark:hover:bg-brand/10 transition-colors">
-                    <td class="px-4 py-2 font-medium text-gray-800 dark:text-gray-200">{{ s.sector }}</td>
-                    <td class="px-4 py-2 text-right dark:text-gray-300">{{ money(s.value) }}</td>
-                    <td class="px-4 py-2 text-center font-bold {{ 'text-red-600 dark:text-red-400' if s.pct > 30 else 'text-gray-700 dark:text-gray-300' }}">{{ '%.1f' | format(s.pct) }}%</td>
-                    <td class="px-4 py-2 text-center text-gray-500 dark:text-gray-400 hidden sm:table-cell">{{ s.count }}</td>
-                    <td class="px-4 py-2 hidden md:table-cell">
-                        <div class="w-full bg-gray-100 dark:bg-gray-600 rounded-full h-3">
-                            <div class="h-3 rounded-full {{ 'bg-red-400' if s.pct > 30 else 'bg-brand' }}" style="width: {{ [s.pct, 100] | min }}%"></div>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
-
-{# ── 7. Industry Breakdown ── #}
-<div class="mb-8">
-    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-3">Industry Breakdown</h2>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="bg-brand-light dark:bg-brand/20 text-brand dark:text-blue-300 font-bold text-xs uppercase">
-                        <th class="px-4 py-2 text-left">Industry</th>
-                        <th class="px-4 py-2 text-left hidden sm:table-cell">Sector</th>
-                        <th class="px-4 py-2 text-right">Value</th>
-                        <th class="px-4 py-2 text-center">%</th>
-                        <th class="px-4 py-2 text-center">Holdings</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for i in byIndustry %}
-                    <tr class="{{ 'bg-gray-50 dark:bg-gray-700/30' if loop.index is odd else '' }} hover:bg-brand-light/30 dark:hover:bg-brand/10 transition-colors">
-                        <td class="px-4 py-2 font-medium">
-                            {% if i.industryKey in industryLabels %}
-                                <a href="/picks" class="text-brand dark:text-blue-300 hover:underline" title="View analyst picks for this industry">{{ i.industry }}</a>
-                            {% else %}
-                                <span class="text-gray-800 dark:text-gray-200">{{ i.industry }}</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-4 py-2 text-gray-500 dark:text-gray-400 hidden sm:table-cell">{{ i.sector }}</td>
-                        <td class="px-4 py-2 text-right dark:text-gray-300">{{ money(i.value) }}</td>
-                        <td class="px-4 py-2 text-center font-bold text-gray-700 dark:text-gray-300">{{ '%.1f' | format(i.pct) }}%</td>
-                        <td class="px-4 py-2 text-center text-gray-500 dark:text-gray-400">{{ i.count }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-{# ── 8. Diversification Gaps & Opportunities ── #}
-{% if gaps %}
-<div class="mb-8">
-    <div class="flex flex-wrap items-center gap-3 mb-3">
-        <h2 class="text-lg font-semibold text-brand dark:text-blue-300">Diversification Gaps</h2>
-        {% if opportunities %}
-        <div class="flex items-center gap-2 ml-auto">
-            <label for="gaps-sort" class="text-xs text-gray-500 dark:text-gray-400">Sort by</label>
-            <select id="gaps-sort"
-                    class="text-xs border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-brand focus:border-brand">
-                <option value="recommended" selected>Recommended</option>
-                <option value="upside">Highest Upside</option>
-                <option value="analyst">Analyst Favorites</option>
-            </select>
-            <svg id="gaps-info-icon" class="w-4 h-4 text-gray-400 dark:text-gray-400 cursor-help shrink-0" viewBox="0 0 20 20" fill="currentColor"
-                 title="Ranked by composite score: 60% analyst rating + 40% implied upside. Balances conviction with price potential.">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-            </svg>
-        </div>
-        {% endif %}
-    </div>
-    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Industries tracked by our analyst picks that you have zero exposure to.</p>
-
-    {% if opportunities %}
-    <div id="gaps-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {% for opp in opportunities %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 border-l-4 border-l-[#1F4E79] p-4">
-            <div class="flex items-center justify-between mb-3">
-                <h3 class="font-semibold text-gray-800 dark:text-gray-200 text-sm">{{ opp.industryLabel }}</h3>
-                <a href="/picks" class="text-xs text-brand dark:text-blue-300 hover:underline">View all picks</a>
+    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-3">Concentration Alerts</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {% for c in concentration %}
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 border-l-4 border-l-yellow-400 dark:border-l-yellow-500 rounded-r-lg p-4">
+            <div class="flex items-center gap-2 mb-1">
+                <svg class="w-5 h-5 text-yellow-500 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <a href="/dashboard/{{ c.symbol }}" class="font-bold text-gray-800 dark:text-gray-200 hover:text-brand dark:hover:text-blue-300">{{ c.symbol }}</a>
+                <span class="text-sm text-gray-500 dark:text-gray-400">{{ c.name[:30] }}</span>
             </div>
-            {% for p in opp.picks %}
-            <div class="flex items-center justify-between py-1.5 {{ 'border-t border-gray-100 dark:border-gray-700' if not loop.first }}">
-                <div class="flex items-center gap-1.5 min-w-0">
-                    <a href="/dashboard/{{ p.symbol }}" class="text-sm font-medium text-brand dark:text-blue-300 hover:underline shrink-0">{{ p.symbol }}</a>
-                    {% if p.recKey %}{{ rec_badge(p.recKey) }}{% endif %}
-                    <span class="text-xs text-gray-400 dark:text-gray-400 truncate">{{ p.name[:20] }}</span>
-                </div>
-                <div class="text-right shrink-0 ml-2">
-                    <span class="text-sm font-bold text-green-600 dark:text-green-400">+{{ '%.1f' | format(p.upsidePct) }}%</span>
-                    <div class="text-xs text-gray-400 dark:text-gray-400">{{ p.nAnalysts }} analysts</div>
-                </div>
-            </div>
-            {% endfor %}
+            <div class="text-lg font-bold text-yellow-700 dark:text-yellow-400">{{ '%.1f' | format(c.pct) }}% of portfolio</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">{{ money(c.currentValue) }} &mdash; Consider rebalancing if >{{ c.threshold or 15 }}%{% if c.get('isFund') %} <span class="text-gray-400 dark:text-gray-400">(ETF/Fund)</span>{% endif %}</div>
         </div>
         {% endfor %}
     </div>
-
-    {# Embedded JSON data for client-side re-sorting #}
-    <script type="application/json" id="gaps-data">{{ opportunities | tojson }}</script>
-
-    {# Client-side sort logic #}
-    <script>
-    (function() {
-        var select = document.getElementById('gaps-sort');
-        var grid = document.getElementById('gaps-cards-grid');
-        var infoIcon = document.getElementById('gaps-info-icon');
-        if (!select || !grid) return;
-
-        var raw;
-        try { raw = JSON.parse(document.getElementById('gaps-data').textContent); }
-        catch(e) { return; }
-
-        var tooltips = {
-            recommended: 'Ranked by composite score: 60% analyst rating + 40% implied upside. Balances conviction with price potential.',
-            upside: 'Ranked by implied upside \u2014 the gap between current price and analyst consensus target.',
-            analyst: 'Only Buy/Strong Buy rated stocks, ranked by number of covering analysts.'
-        };
-
-        function recBadgeHTML(key) {
-            if (!key) return '';
-            var k = key.toLowerCase();
-            var cls, label = key.toUpperCase().replace(/_/g, ' ');
-            if (k === 'buy' || k === 'strong_buy')
-                cls = 'bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300';
-            else if (k === 'hold')
-                cls = 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300';
-            else if (k === 'sell' || k === 'underperform' || k === 'strong_sell')
-                cls = 'bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300';
-            else
-                cls = 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
-            return '<span class="inline-block px-2 py-0.5 rounded text-xs font-bold ' + cls + '">' + label + '</span>';
-        }
-
-        function renderCards(opps) {
-            var html = '';
-            opps.forEach(function(opp) {
-                if (!opp._visiblePicks || opp._visiblePicks.length === 0) return;
-                html += '<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 border-l-4 border-l-[#1F4E79] p-4">';
-                html += '<div class="flex items-center justify-between mb-3">';
-                html += '<h3 class="font-semibold text-gray-800 dark:text-gray-200 text-sm">' + opp.industryLabel + '</h3>';
-                html += '<a href="/picks" class="text-xs text-brand dark:text-blue-300 hover:underline">View all picks</a>';
-                html += '</div>';
-                opp._visiblePicks.forEach(function(p, i) {
-                    var border = i > 0 ? ' border-t border-gray-100 dark:border-gray-700' : '';
-                    html += '<div class="flex items-center justify-between py-1.5' + border + '">';
-                    html += '<div class="flex items-center gap-1.5 min-w-0">';
-                    html += '<a href="/dashboard/' + p.symbol + '" class="text-sm font-medium text-brand dark:text-blue-300 hover:underline shrink-0">' + p.symbol + '</a>';
-                    html += recBadgeHTML(p.recKey);
-                    var name = (p.name || '').substring(0, 20);
-                    html += '<span class="text-xs text-gray-400 dark:text-gray-400 truncate">' + name + '</span>';
-                    html += '</div>';
-                    html += '<div class="text-right shrink-0 ml-2">';
-                    html += '<span class="text-sm font-bold text-green-600 dark:text-green-400">+' + p.upsidePct.toFixed(1) + '%</span>';
-                    html += '<div class="text-xs text-gray-400 dark:text-gray-400">' + p.nAnalysts + ' analysts</div>';
-                    html += '</div></div>';
-                });
-                html += '</div>';
-            });
-            grid.innerHTML = html;
-        }
-
-        function applySort(mode) {
-            var opps = JSON.parse(JSON.stringify(raw));
-            opps.forEach(function(opp) {
-                var pool = opp.allPicks || opp.picks || [];
-                var sorted;
-                if (mode === 'upside') {
-                    sorted = pool.slice().sort(function(a, b) { return (b.upsidePct || 0) - (a.upsidePct || 0); });
-                } else if (mode === 'analyst') {
-                    sorted = pool.filter(function(p) {
-                        var k = (p.recKey || '').toLowerCase();
-                        return k === 'buy' || k === 'strong_buy';
-                    }).sort(function(a, b) { return (b.nAnalysts || 0) - (a.nAnalysts || 0); });
-                } else {
-                    sorted = pool.slice().sort(function(a, b) { return (b.score || 0) - (a.score || 0); });
-                }
-                opp._visiblePicks = sorted.slice(0, 3);
-            });
-            // Hide industries with no visible picks (analyst mode may filter all out)
-            opps = opps.filter(function(o) { return o._visiblePicks.length > 0; });
-            renderCards(opps);
-            if (infoIcon) infoIcon.setAttribute('title', tooltips[mode] || tooltips.recommended);
-        }
-
-        select.addEventListener('change', function() { applySort(this.value); });
-    })();
-    </script>
-
-    {# Show remaining gaps not fetched (beyond the 12 cap) #}
-    {% set shown_keys = opportunities | map(attribute='industryKey') | list %}
-    {% set remaining = [] %}
-    {% for g in gaps if g not in shown_keys %}
-        {% if remaining.append(g) %}{% endif %}
-    {% endfor %}
-    {% if remaining %}
-    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 mt-3">
-        <p class="text-xs text-gray-500 dark:text-gray-400">Also missing:
-            {% for g in remaining %}
-                <span class="inline-block bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded px-2 py-0.5 text-xs font-medium mr-0.5 mb-0.5">{{ industryLabels.get(g, g) }}</span>
-            {% endfor %}
-            <a href="/picks" class="text-brand dark:text-blue-300 hover:underline ml-1">Browse all on Picks page</a>
-        </p>
-    </div>
-    {% endif %}
-    {% else %}
-    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Missing industries:
-            {% for g in gaps %}
-                <span class="inline-block bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded px-2 py-0.5 text-xs font-medium mr-1 mb-1">{{ industryLabels.get(g, g) }}</span>
-            {% endfor %}
-        </p>
-    </div>
-    {% endif %}
 </div>
 {% endif %}
+
+{# ── 2. Portfolio Performance (async) ── #}
+<div id="widget-historical-performance" class="mb-8" aria-live="polite" role="region" aria-label="Portfolio historical performance">
+    {{ widget_skeleton("Portfolio Performance") }}
+</div>
+
+
+{# ── 17. Risk Dashboard (async, phase 3) ── #}
+<div id="widget-risk-dashboard" class="mb-8" aria-live="polite" role="region" aria-label="Risk metrics dashboard">
+    {{ widget_skeleton("Risk Dashboard") }}
+</div>
 
 {# ── 9. All Holdings Table ── #}
 <div class="mb-8">
@@ -936,6 +564,122 @@
     </p>
 </div>
 
+{# ── Advanced details (collapsible) ── #}
+<div class="mb-6">
+    <button type="button" id="advanced-toggle"
+            class="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+        <span id="advanced-toggle-label">Show advanced details</span>
+        <svg class="w-4 h-4 transition-transform" id="advanced-toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>
+    </button>
+</div>
+
+<div id="advanced-details" class="hidden">
+
+{# ── 6. Sector Allocation ── #}
+<div class="mb-8">
+    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-3">Sector Allocation</h2>
+    <p class="text-xs text-gray-400 dark:text-gray-400 mb-2">ETFs and mutual funds are broken down into their underlying sector weightings (look-through analysis).</p>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="bg-brand-light dark:bg-brand/20 text-brand dark:text-blue-300 font-bold text-xs uppercase">
+                    <th class="px-4 py-2 text-left">Sector</th>
+                    <th class="px-4 py-2 text-right">Value</th>
+                    <th class="px-4 py-2 text-center">% of Portfolio</th>
+                    <th class="px-4 py-2 text-center hidden sm:table-cell">Holdings</th>
+                    <th class="px-4 py-2 text-left hidden md:table-cell" style="min-width:200px">Allocation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in bySector %}
+                <tr class="{{ 'bg-gray-50 dark:bg-gray-700/30' if loop.index is odd else '' }} hover:bg-brand-light/30 dark:hover:bg-brand/10 transition-colors">
+                    <td class="px-4 py-2 font-medium text-gray-800 dark:text-gray-200">{{ s.sector }}</td>
+                    <td class="px-4 py-2 text-right dark:text-gray-300">{{ money(s.value) }}</td>
+                    <td class="px-4 py-2 text-center font-bold {{ 'text-red-600 dark:text-red-400' if s.pct > 30 else 'text-gray-700 dark:text-gray-300' }}">{{ '%.1f' | format(s.pct) }}%</td>
+                    <td class="px-4 py-2 text-center text-gray-500 dark:text-gray-400 hidden sm:table-cell">{{ s.count }}</td>
+                    <td class="px-4 py-2 hidden md:table-cell">
+                        <div class="w-full bg-gray-100 dark:bg-gray-600 rounded-full h-3">
+                            <div class="h-3 rounded-full {{ 'bg-red-400' if s.pct > 30 else 'bg-brand' }}" style="width: {{ [s.pct, 100] | min }}%"></div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# ── 7. Industry Breakdown ── #}
+<div class="mb-8">
+    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-3">Industry Breakdown</h2>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-brand-light dark:bg-brand/20 text-brand dark:text-blue-300 font-bold text-xs uppercase">
+                        <th class="px-4 py-2 text-left">Industry</th>
+                        <th class="px-4 py-2 text-left hidden sm:table-cell">Sector</th>
+                        <th class="px-4 py-2 text-right">Value</th>
+                        <th class="px-4 py-2 text-center">%</th>
+                        <th class="px-4 py-2 text-center">Holdings</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in byIndustry %}
+                    <tr class="{{ 'bg-gray-50 dark:bg-gray-700/30' if loop.index is odd else '' }} hover:bg-brand-light/30 dark:hover:bg-brand/10 transition-colors">
+                        <td class="px-4 py-2 font-medium">
+                            {% if i.industryKey in industryLabels %}
+                                <a href="/picks" class="text-brand dark:text-blue-300 hover:underline" title="View analyst picks for this industry">{{ i.industry }}</a>
+                            {% else %}
+                                <span class="text-gray-800 dark:text-gray-200">{{ i.industry }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-2 text-gray-500 dark:text-gray-400 hidden sm:table-cell">{{ i.sector }}</td>
+                        <td class="px-4 py-2 text-right dark:text-gray-300">{{ money(i.value) }}</td>
+                        <td class="px-4 py-2 text-center font-bold text-gray-700 dark:text-gray-300">{{ '%.1f' | format(i.pct) }}%</td>
+                        <td class="px-4 py-2 text-center text-gray-500 dark:text-gray-400">{{ i.count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{# ── 4b. Tax-Loss Harvesting Candidates ── #}
+{% if taxLossCandidates %}
+<div class="mb-8">
+    <h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-3">Tax-Loss Harvesting Candidates</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {% for t in taxLossCandidates %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 border-l-4 border-l-indigo-500 p-4">
+            <div class="flex items-center gap-2 mb-2">
+                <a href="/dashboard/{{ t.symbol }}" class="font-bold text-brand dark:text-blue-300 hover:underline">{{ t.symbol }}</a>
+                <span class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ t.name[:25] }}</span>
+                {% if t.nearFiftyTwoWeekLow %}
+                <span class="ml-auto inline-block px-1.5 py-0.5 rounded text-xs font-semibold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300">Near 52W Low</span>
+                {% endif %}
+            </div>
+            <div class="text-lg font-bold text-red-600 dark:text-red-400 mb-1">
+                <svg class="inline w-3 h-3 mr-0.5" viewBox="0 0 12 12" fill="currentColor"><path d="M6 10L2 5h8z"/></svg>
+                ${{ '{:,.2f}'.format(t.unrealizedLoss | abs) }} ({{ '%.1f' | format(t.lossPct) }}%)
+            </div>
+            <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                <span>Cost: {{ money(t.costBasis) }}</span>
+                <span>Value: {{ money(t.currentValue) }}</span>
+            </div>
+            <div class="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                Est. tax savings: <span data-tax-savings="{{ t.unrealizedLoss | abs }}">${{ '{:,.2f}'.format(t.estTaxSavings) }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <p id="tax-rate-disclaimer" class="text-xs text-gray-400 dark:text-gray-400 italic mt-2 px-1">Tax savings estimated at {{ taxRate | default(24) }}% marginal rate. Consult a tax advisor before making decisions. Wash sale rules may apply.</p>
+</div>
+{% endif %}
+
 {# ── 10. Analyst Consensus Overview (inline) ── #}
 {% if analystOverview and analystOverview.totalCovered > 0 %}
     {% include "partials/portfolio_analyst_overview.html" %}
@@ -956,19 +700,9 @@
     {{ widget_skeleton("Holdings News Digest") }}
 </div>
 
-</div>{# end widget-group: insights #}
-
-{# ── Group: Fundamentals ── #}
-<div class="widget-group" data-group="fundamentals">
-
 {# ── 14. Peer Valuation (async, phase 2) ── #}
 <div id="widget-peer-valuation" class="mb-8" aria-live="polite" role="region" aria-label="Peer valuation comparison">
     {{ widget_skeleton("Peer Valuation Check") }}
-</div>
-
-{# ── 16. Mosaic Scores (async, phase 3) ── #}
-<div id="widget-alpha-scores" class="mb-8" aria-live="polite" role="region" aria-label="Mosaic score analysis">
-    {{ widget_skeleton("Mosaic Scores") }}
 </div>
 
 {# ── 20. Factor Exposure (async, phase 2) ── #}
@@ -986,19 +720,9 @@
     {{ widget_skeleton("Fundamental Scorecard") }}
 </div>
 
-</div>{# end widget-group: fundamentals #}
-
-{# ── Group: Risk & Simulation ── #}
-<div class="widget-group hidden" data-group="risk">
-
 {# ── 15. Correlation Matrix (async, phase 2) ── #}
 <div id="widget-correlation" class="mb-8" aria-live="polite" role="region" aria-label="Portfolio correlation matrix">
     {{ widget_skeleton("Correlation Matrix") }}
-</div>
-
-{# ── 17. Risk Dashboard (async, phase 3) ── #}
-<div id="widget-risk-dashboard" class="mb-8" aria-live="polite" role="region" aria-label="Risk metrics dashboard">
-    {{ widget_skeleton("Risk Dashboard") }}
 </div>
 
 {# ── 17b. Stress Testing (async, phase 2) ── #}
@@ -1011,7 +735,7 @@
     {{ widget_skeleton("Monte Carlo Projection") }}
 </div>
 
-</div>{# end widget-group: risk #}
+</div>{# end advanced-details #}
 
 {# ── Expandable holdings row toggle ── #}
 <script>
@@ -1034,101 +758,20 @@
 })();
 </script>
 
-{# ── Widget Group Toggle ── #}
+{# ── Advanced-details toggle ── #}
 <script>
 (function() {
-    // Widget group toggle
-    window.toggleWidgetGroup = function(group) {
-        var groups = document.querySelectorAll('.widget-group');
-        var btns = document.querySelectorAll('.widget-nav-btn');
-
-        if (group === 'all') {
-            // Show all groups
-            groups.forEach(function(g) { g.classList.remove('hidden'); });
-            btns.forEach(function(b) {
-                if (b.getAttribute('data-group') === 'all') {
-                    b.className = 'widget-nav-btn px-3 py-1.5 rounded-full bg-brand/10 dark:bg-blue-900/30 text-brand dark:text-blue-300 transition';
-                } else {
-                    b.className = 'widget-nav-btn px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition';
-                }
-            });
-            return;
-        }
-
-        // Toggle the specific group
-        var target = document.querySelector('.widget-group[data-group="' + group + '"]');
-        if (!target) return;
-
-        var isHidden = target.classList.contains('hidden');
-
-        if (isHidden) {
-            target.classList.remove('hidden');
-        } else {
-            target.classList.add('hidden');
-        }
-
-        // Update button state
-        btns.forEach(function(b) {
-            var g = b.getAttribute('data-group');
-            if (g === 'all') {
-                var allVisible = true;
-                groups.forEach(function(grp) { if (grp.classList.contains('hidden')) allVisible = false; });
-                if (allVisible) {
-                    b.className = 'widget-nav-btn px-3 py-1.5 rounded-full bg-brand/10 dark:bg-blue-900/30 text-brand dark:text-blue-300 transition';
-                } else {
-                    b.className = 'widget-nav-btn px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition';
-                }
-            } else {
-                var grpEl = document.querySelector('.widget-group[data-group="' + g + '"]');
-                if (grpEl && !grpEl.classList.contains('hidden')) {
-                    b.className = 'widget-nav-btn px-3 py-1.5 rounded-full bg-brand/10 dark:bg-blue-900/30 text-brand dark:text-blue-300 transition';
-                } else {
-                    b.className = 'widget-nav-btn px-3 py-1.5 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition';
-                }
-            }
-        });
-
-        // Scroll to group if just shown
-        if (isHidden) {
-            setTimeout(function() { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
-        }
-    };
-
-    // Widget loading status tracker
-    var totalWidgets = 0;
-    var loadedWidgets = 0;
-    var statusEl = document.getElementById('widget-load-status');
-
-    function countWidgets() {
-        totalWidgets = document.querySelectorAll('[id^="widget-"]').length;
-    }
-
-    function updateStatus() {
-        if (!statusEl || totalWidgets === 0) return;
-        if (loadedWidgets >= totalWidgets) {
-            statusEl.textContent = 'All widgets loaded';
-            setTimeout(function() { statusEl.style.opacity = '0'; }, 3000);
-        } else {
-            statusEl.textContent = 'Loading widgets (' + loadedWidgets + '/' + totalWidgets + ')...';
-        }
-    }
-
-    // Observe widget containers for content changes
-    countWidgets();
-    var observer = new MutationObserver(function(mutations) {
-        mutations.forEach(function(m) {
-            var el = m.target;
-            if (el.id && el.id.startsWith('widget-') && !el.querySelector('.animate-pulse')) {
-                loadedWidgets++;
-                updateStatus();
-            }
-        });
+    var btn = document.getElementById('advanced-toggle');
+    var panel = document.getElementById('advanced-details');
+    var label = document.getElementById('advanced-toggle-label');
+    var icon = document.getElementById('advanced-toggle-icon');
+    if (!btn || !panel) return;
+    btn.addEventListener('click', function() {
+        var hidden = panel.classList.contains('hidden');
+        panel.classList.toggle('hidden');
+        if (label) label.textContent = hidden ? 'Hide advanced details' : 'Show advanced details';
+        if (icon) icon.classList.toggle('rotate-180', hidden);
     });
-
-    document.querySelectorAll('[id^="widget-"]').forEach(function(el) {
-        observer.observe(el, { childList: true });
-    });
-    updateStatus();
 })();
 </script>
 
