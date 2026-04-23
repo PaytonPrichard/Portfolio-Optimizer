@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Recommendation History - MarketMosaic{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-3xl font-bold text-brand dark:text-blue-300 mb-2">Recommendation History</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-6">
+        Past portfolio optimizer recommendations and their realized performance. Outcomes appear at 30, 90, 180, and 365 day horizons after each recommendation.
+    </p>
+
+    <div id="history-content" class="min-h-[200px]">
+        <div class="flex flex-col items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-10 w-10 border-4 border-brand dark:border-blue-400 border-t-transparent mb-3"></div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Loading your recommendation history...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var clientId = window.__clientId;
+    var content = document.getElementById('history-content');
+    if (!content) return;
+
+    if (!clientId) {
+        content.innerHTML = '<p class="text-gray-500 dark:text-gray-400 italic p-4">No client id available. <a href="/portfolio" class="text-brand dark:text-blue-300 hover:underline">Run the Portfolio Optimizer</a> at least once to start building your history.</p>';
+        return;
+    }
+
+    fetch('/api/portfolio/history?client_id=' + encodeURIComponent(clientId))
+        .then(function(resp) { return resp.text(); })
+        .then(function(html) { content.innerHTML = html; })
+        .catch(function() {
+            content.innerHTML = '<p class="text-red-500 italic p-4">Could not load history. Please refresh and try again.</p>';
+        });
+})();
+</script>
+{% endblock %}

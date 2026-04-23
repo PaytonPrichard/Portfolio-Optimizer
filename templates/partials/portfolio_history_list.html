@@ -1,0 +1,125 @@
+{# Portfolio recommendation history fragment #}
+{% macro money(val) %}{% if val is none %}N/A{% elif val >= 1000000000 %}${{ '%.1f' | format(val / 1000000000) }}B{% elif val >= 1000000 %}${{ '%.1f' | format(val / 1000000) }}M{% elif val >= 1000 %}${{ '{:,.0f}'.format(val) }}{% else %}${{ '%.0f' | format(val) }}{% endif %}{% endmacro %}
+
+{% macro signed_pct(val) %}{% if val is none %}N/A{% else %}{{ '+' if val > 0 }}{{ '%.2f'|format(val) }}%{% endif %}{% endmacro %}
+
+{% macro signed_class(val) %}{% if val is none %}text-gray-400{% elif val > 0 %}text-green-700 dark:text-green-400{% elif val < 0 %}text-red-600 dark:text-red-400{% else %}text-gray-500{% endif %}{% endmacro %}
+
+{% if not recs %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+    <p class="text-gray-600 dark:text-gray-400 mb-3">No recommendations yet.</p>
+    <a href="/portfolio" class="inline-block px-4 py-2 bg-brand text-white rounded-lg text-sm font-semibold hover:bg-brand-dark transition">Run the Portfolio Optimizer</a>
+    <p class="text-xs text-gray-400 dark:text-gray-500 mt-3">Outcomes appear at 30, 90, 180, and 365 day horizons after each recommendation.</p>
+</div>
+{% else %}
+
+<p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ recs | length }} recommendation{{ 's' if recs | length != 1 }} for this client. Most recent first.</p>
+
+<div class="space-y-3">
+{% for r in recs %}
+{% set mode = (r.constraint_params or {}).get('mode', 'diversification') %}
+{% set rec_date = r.created_at[:10] if r.created_at else 'unknown' %}
+{% set rec_time = r.created_at[11:16] if r.created_at and r.created_at|length >= 16 else '' %}
+
+<details class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden group">
+    <summary class="cursor-pointer px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-3 text-sm flex-wrap">
+        <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ rec_date }}{% if rec_time %} {{ rec_time }}{% endif %}</span>
+        <span class="px-2 py-0.5 rounded text-xs font-bold {% if mode == 'return_max' %}bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300{% else %}bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300{% endif %}">{{ mode | replace('_', '-') | title }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400">Sharpe {{ r.current_sharpe }} → <span class="font-semibold {% if r.expected_sharpe and r.current_sharpe and r.expected_sharpe >= r.current_sharpe %}text-green-700 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">{{ r.expected_sharpe }}</span></span>
+        <span class="text-xs text-gray-500 dark:text-gray-400">Confidence {{ r.confidence_score or 'N/A' }}</span>
+        <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">
+            {% if r.outcomes %}{{ r.outcomes | length }} outcome{{ 's' if r.outcomes | length != 1 }} measured
+            {% else %}<em>No outcomes yet (under 30 days old)</em>{% endif %}
+        </span>
+        <svg class="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+    </summary>
+
+    <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-200 dark:border-gray-700 text-xs">
+
+        {# Rec snapshot #}
+        <div class="mb-3">
+            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Recommendation snapshot</div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-gray-700 dark:text-gray-300">
+                <div>Total value: <span class="font-medium">{{ money(r.total_value) }}</span></div>
+                <div>Expected return: <span class="font-medium">{{ r.expected_return_pct }}%</span></div>
+                <div>Expected vol: <span class="font-medium">{{ r.expected_volatility_pct }}%</span></div>
+                {% if r.regime_vix %}<div>VIX at rec: <span class="font-medium">{{ r.regime_vix }}</span></div>{% endif %}
+            </div>
+        </div>
+
+        {# Top suggested trades #}
+        {% if r.suggested_weights %}
+        <div class="mb-3">
+            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Top suggested moves</div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                {% for w in r.suggested_weights[:6] %}
+                {% set diff = w.get('diffPct', 0) %}
+                <div class="flex items-center gap-2">
+                    <span class="font-mono font-semibold text-brand dark:text-blue-300 w-14">{{ w.symbol }}</span>
+                    {% if diff %}
+                    <span class="{{ 'text-green-700 dark:text-green-400' if diff > 0 else 'text-red-600 dark:text-red-400' }}">{{ '+' if diff > 0 }}{{ diff }}%</span>
+                    {% else %}
+                    <span class="text-gray-500">→ {{ w.get('optimalPct', w.get('weight', 0)) }}%</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {# Outcomes by horizon #}
+        {% if r.outcomes %}
+        <div class="mb-2">
+            <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Realized performance</div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs border border-gray-200 dark:border-gray-600 rounded">
+                    <thead class="bg-gray-100 dark:bg-gray-700">
+                        <tr>
+                            <th class="px-2 py-1.5 text-left font-medium text-gray-700 dark:text-gray-300">Horizon</th>
+                            <th class="px-2 py-1.5 text-right font-medium text-gray-700 dark:text-gray-300">Realized (rec)</th>
+                            <th class="px-2 py-1.5 text-right font-medium text-gray-700 dark:text-gray-300">Do nothing</th>
+                            <th class="px-2 py-1.5 text-right font-medium text-gray-700 dark:text-gray-300">vs SPY</th>
+                            <th class="px-2 py-1.5 text-right font-medium text-gray-700 dark:text-gray-300">vs Equal-wt</th>
+                            <th class="px-2 py-1.5 text-right font-medium text-gray-700 dark:text-gray-300">Rec - Counterfactual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in r.outcomes %}
+                        {% set rec_minus_cf = (o.realized_return_pct - o.counterfactual_return_pct) if (o.realized_return_pct is not none and o.counterfactual_return_pct is not none) else None %}
+                        <tr class="border-t border-gray-200 dark:border-gray-700">
+                            <td class="px-2 py-1.5 font-medium text-gray-700 dark:text-gray-300">{{ o.horizon_days }}d</td>
+                            <td class="px-2 py-1.5 text-right font-semibold {{ signed_class(o.realized_return_pct) }}">{{ signed_pct(o.realized_return_pct) }}</td>
+                            <td class="px-2 py-1.5 text-right {{ signed_class(o.counterfactual_return_pct) }}">{{ signed_pct(o.counterfactual_return_pct) }}</td>
+                            <td class="px-2 py-1.5 text-right {{ signed_class(o.benchmark_spy_return_pct) }}">{{ signed_pct(o.benchmark_spy_return_pct) }}</td>
+                            <td class="px-2 py-1.5 text-right {{ signed_class(o.benchmark_equalweight_return_pct) }}">{{ signed_pct(o.benchmark_equalweight_return_pct) }}</td>
+                            <td class="px-2 py-1.5 text-right font-semibold {{ signed_class(rec_minus_cf) }}">{{ signed_pct(rec_minus_cf) }}</td>
+                        </tr>
+                        {% if o.factor_attribution %}
+                        <tr class="border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+                            <td colspan="6" class="px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                <span class="font-semibold">Factor attribution:</span>
+                                {% for fname, fval in o.factor_attribution.items() | sort(attribute=1, reverse=true) %}
+                                <span class="ml-2 {{ signed_class(fval) }}">{{ fname | replace('_', ' ') }}: {{ '+' if fval > 0 }}{{ '%.2f'|format(fval) }}%</span>{% if not loop.last %},{% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if o.notes %}
+                        <tr class="border-t border-gray-100 dark:border-gray-800">
+                            <td colspan="6" class="px-2 py-1.5 text-xs text-amber-700 dark:text-amber-400 italic">{{ o.notes }}</td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 italic">Outcomes will be measured at 30, 90, 180, and 365 days after this recommendation. Background observer runs daily.</p>
+        {% endif %}
+    </div>
+</details>
+{% endfor %}
+</div>
+
+{% endif %}

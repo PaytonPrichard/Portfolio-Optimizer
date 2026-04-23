@@ -9,6 +9,7 @@ from financials.portfolio import (
     parse_portfolio_csv, enrich_holdings, analyze_portfolio,
     build_holdings_from_manual, _fill_prices_from_enrichment,
 )
+from financials.outcomes import get_recs_with_outcomes
 
 portfolio_bp = Blueprint("portfolio", __name__)
 
@@ -17,6 +18,29 @@ portfolio_bp = Blueprint("portfolio", __name__)
 def portfolio_page():
     """Render the portfolio upload page shell."""
     return render_template("portfolio.html")
+
+
+@portfolio_bp.route("/portfolio/history")
+def portfolio_history_page():
+    """Shell page for past recommendations and their outcomes. Data loads
+    async via /api/portfolio/history once the JS reads client_id from
+    localStorage.
+    """
+    return render_template("portfolio_history.html")
+
+
+@portfolio_bp.route("/api/portfolio/history", methods=["GET"])
+def portfolio_history_data():
+    """Return rendered HTML fragment of recs+outcomes for a given client_id."""
+    client_id = (request.args.get("client_id") or "").strip()
+    if not client_id:
+        return '<p class="text-gray-400 italic p-4">No client id. Try running the optimizer at least once first.</p>'
+    try:
+        recs = get_recs_with_outcomes(client_id, limit=50)
+    except Exception:
+        traceback.print_exc()
+        return '<p class="text-red-500 italic p-4">Could not load history. Try again later.</p>', 500
+    return render_template("partials/portfolio_history_list.html", recs=recs, client_id=client_id)
 
 
 @portfolio_bp.route("/api/portfolio/analyze", methods=["POST"])
