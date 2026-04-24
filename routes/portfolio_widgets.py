@@ -236,7 +236,14 @@ def suggestions_widget():
         data = request.get_json(silent=True) or {}
         holdings = data.get("holdings", [])
         result = compute_suggestions(holdings)
-        if not result or (not result.get("gaps") and not result.get("marginal")):
+        if not result:
+            return '<p class="text-gray-400 text-sm italic">No additional position suggestions at this time.</p>'
+        # If every method came back empty AND rate limiting wasn't detected,
+        # there's genuinely nothing to add. If rate limiting WAS detected, the
+        # template renders a useful banner, so always fall through to it when
+        # we have a result object (even if the lists are empty).
+        has_any = (result.get("gaps") or result.get("marginal") or result.get("holistic"))
+        if not has_any and not result.get("rateLimited"):
             return '<p class="text-gray-400 text-sm italic">No additional position suggestions at this time.</p>'
         result["holisticDefaultPct"] = int(round(HOLISTIC_MIN_WEIGHT * 100))
         return render_template("partials/portfolio_suggestions.html", **result)
