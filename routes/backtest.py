@@ -10,6 +10,7 @@ from financials.backtest import (
     summary_stats, load_cached_ic,
     BACKTEST_CLIENT_ID, PORTFOLIO_TEMPLATES,
 )
+from financials.rolling_backtest import load_cached_rolling
 from financials.outcomes import get_recs_with_outcomes
 
 backtest_bp = Blueprint("backtest", __name__)
@@ -48,6 +49,16 @@ def backtest_data():
     except Exception:
         traceback.print_exc()
         return jsonify({"error": "backtest summary failed"}), 500
+
+
+@backtest_bp.route("/api/backtest/rolling")
+def backtest_rolling():
+    """Rolling-rebalance backtest results. Reads from the on-disk cache
+    built by `python -m financials.rolling_backtest run`."""
+    data = load_cached_rolling()
+    if data is None:
+        return jsonify({"cached": False})
+    return jsonify({"cached": True, **data})
 
 
 @backtest_bp.route("/api/backtest/recs")

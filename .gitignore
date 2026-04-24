@@ -13,6 +13,7 @@ Inputs - Ignore/
 data/*.db
 data/*.db-*
 backtest_run.log
+rolling_backtest_run.log
 .claude/
 
 .vercel
