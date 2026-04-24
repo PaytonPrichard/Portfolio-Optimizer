@@ -730,38 +730,49 @@ def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
     tc_filtered = 0
 
     trades = []
+    sub_threshold_trades = []  # everything the optimizer moved but we didn't surface as a trade
+    SUB_THRESHOLD_FLOOR_PCT = 0.1  # don't bother collecting near-zero drifts
     for i, h in enumerate(usable_holdings):
         curr_pct = float(current_weights[i]) * 100
         opt_pct = float(w_opt[i]) * 100
         diff_pct = opt_pct - curr_pct
         diff_dollar = diff_pct / 100 * usable_total
+        row = {
+            "symbol": h["symbol"],
+            "name": h.get("name", ""),
+            "currentPct": round(curr_pct, 1),
+            "optimalPct": round(opt_pct, 1),
+            "diffPct": round(diff_pct, 2),
+            "diffDollar": round(diff_dollar, 2),
+            "action": "Increase" if diff_pct > 0 else ("Decrease" if diff_pct < 0 else "Hold"),
+            "isEtf": h["symbol"] in is_etf_set,
+            "isBroadEtf": h["symbol"] in is_broad_etf_set,
+            "etfSector": (
+                classifications_map[h["symbol"]][0]
+                if h["symbol"] in is_etf_set and h["symbol"] not in is_broad_etf_set
+                else None
+            ),
+        }
+
         mu_edge = abs(float(mu[i]) - RISK_FREE_RATE)
         passes_tc = mu_edge >= tc_edge_hurdle
         if not passes_tc and abs(diff_pct) < 5.0:
-            # Sub-threshold view strength AND not a forced compliance move.
+            # TC gate: weak view + small move. Keep in sub-threshold list so
+            # the UI can surface it on "see all changes", but not in headline trades.
             tc_filtered += 1
+            if abs(diff_pct) >= SUB_THRESHOLD_FLOOR_PCT:
+                row["filteredReason"] = "tc"
+                sub_threshold_trades.append(row)
             continue
-        # Tighter threshold: 2% AND $100 minimum. Sub-threshold moves are
+        # Headline threshold: 2% AND $100 minimum. Sub-threshold moves are
         # below the noise floor and not worth executing given fees / friction.
         if abs(diff_pct) >= 2.0 and abs(diff_dollar) >= 100:
-            trades.append({
-                "symbol": h["symbol"],
-                "name": h.get("name", ""),
-                "currentPct": round(curr_pct, 1),
-                "optimalPct": round(opt_pct, 1),
-                "diffPct": round(diff_pct, 1),
-                "diffDollar": round(diff_dollar, 2),
-                "action": "Increase" if diff_pct > 0 else "Decrease",
-                "isEtf": h["symbol"] in is_etf_set,
-                "isBroadEtf": h["symbol"] in is_broad_etf_set,
-                # Only set for sector-specific ETFs; None for broad ETFs and stocks.
-                "etfSector": (
-                    classifications_map[h["symbol"]][0]
-                    if h["symbol"] in is_etf_set and h["symbol"] not in is_broad_etf_set
-                    else None
-                ),
-            })
+            trades.append(row)
+        elif abs(diff_pct) >= SUB_THRESHOLD_FLOOR_PCT:
+            row["filteredReason"] = "threshold"
+            sub_threshold_trades.append(row)
     trades.sort(key=lambda x: abs(x["diffPct"]), reverse=True)
+    sub_threshold_trades.sort(key=lambda x: abs(x["diffPct"]), reverse=True)
 
     views_detail = []
     for i, sym in enumerate(symbols):
@@ -811,6 +822,7 @@ def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
         "impactLabel": impact_label,
         "regime": regime,
         "trades": trades,
+        "subThresholdTrades": sub_threshold_trades,
         "views": views_detail,
         "attribution": attribution,
         "factorWeights": factor_weights_snapshot,

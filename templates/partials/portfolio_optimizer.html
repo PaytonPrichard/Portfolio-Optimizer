@@ -171,6 +171,82 @@
     </div>
     {% endif %}
 
+    {# Full-detail trade audit. The Increases/Decreases sections above show only
+       the ≥2% / ≥$100 moves. The rest of the portfolio also shifts — small
+       reductions funding the big increases, or vice versa — but each is below
+       the noise threshold. This section shows the complete math for anyone who
+       wants to audit, and clears up the common "why are all trades Increases?"
+       confusion. #}
+    {% if subThresholdTrades %}
+    {% set sub_incs = subThresholdTrades | selectattr('diffPct', 'gt', 0) | list %}
+    {% set sub_decs = subThresholdTrades | selectattr('diffPct', 'lt', 0) | list %}
+    {% set sub_dollar_total = 0 %}
+    {% for t in subThresholdTrades %}{% set sub_dollar_total = sub_dollar_total + (t.diffDollar if t.diffDollar >= 0 else -t.diffDollar) %}{% endfor %}
+    <div class="mt-3 mb-4 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+        {% if sub_decs and increases %}
+        Funded by small reductions across {{ sub_decs | length }} other position{{ 's' if sub_decs | length != 1 }} (each below the 2% / $100 threshold).
+        {% elif sub_incs and decreases %}
+        Freed cash absorbed by small increases across {{ sub_incs | length }} other position{{ 's' if sub_incs | length != 1 }} (each below the 2% / $100 threshold).
+        {% else %}
+        {{ subThresholdTrades | length }} other position{{ 's' if subThresholdTrades | length != 1 }} shifted below the 2% / $100 threshold.
+        {% endif %}
+    </div>
+
+    <details class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden group mb-4">
+        <summary class="cursor-pointer px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2 text-xs font-semibold text-brand dark:text-blue-300">
+            See all position changes ({{ (trades + subThresholdTrades) | length }})
+            <svg class="w-3.5 h-3.5 text-gray-400 transition-transform group-open:rotate-180 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </summary>
+        <div class="px-3 py-3 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-200 dark:border-gray-700">
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                    <thead class="text-gray-600 dark:text-gray-400">
+                        <tr class="border-b border-gray-200 dark:border-gray-600">
+                            <th class="px-2 py-1.5 text-left font-medium">Symbol</th>
+                            <th class="px-2 py-1.5 text-right font-medium">Current %</th>
+                            <th class="px-2 py-1.5 text-right font-medium">Optimal %</th>
+                            <th class="px-2 py-1.5 text-right font-medium">Diff %</th>
+                            <th class="px-2 py-1.5 text-right font-medium">Diff $</th>
+                            <th class="px-2 py-1.5 text-left font-medium">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-700 dark:text-gray-300">
+                        {% for t in trades %}
+                        <tr class="border-t border-gray-100 dark:border-gray-700">
+                            <td class="px-2 py-1.5 font-mono font-semibold">{{ t.symbol }}</td>
+                            <td class="px-2 py-1.5 text-right">{{ t.currentPct }}%</td>
+                            <td class="px-2 py-1.5 text-right">{{ t.optimalPct }}%</td>
+                            <td class="px-2 py-1.5 text-right font-semibold {% if t.diffPct > 0 %}text-green-700 dark:text-green-400{% elif t.diffPct < 0 %}text-red-600 dark:text-red-400{% endif %}">{{ '+' if t.diffPct > 0 }}{{ t.diffPct }}%</td>
+                            <td class="px-2 py-1.5 text-right {% if t.diffDollar > 0 %}text-green-700 dark:text-green-400{% elif t.diffDollar < 0 %}text-red-600 dark:text-red-400{% endif %}">{{ '+' if t.diffDollar > 0 else '-' }}{{ money(t.diffDollar | abs) }}</td>
+                            <td class="px-2 py-1.5 text-xs"><span class="px-1.5 py-0.5 rounded bg-brand/10 dark:bg-blue-900/30 text-brand dark:text-blue-300 text-[10px] font-semibold uppercase">Trade</span></td>
+                        </tr>
+                        {% endfor %}
+                        {% for t in subThresholdTrades %}
+                        <tr class="border-t border-gray-100 dark:border-gray-700">
+                            <td class="px-2 py-1.5 font-mono">{{ t.symbol }}</td>
+                            <td class="px-2 py-1.5 text-right">{{ t.currentPct }}%</td>
+                            <td class="px-2 py-1.5 text-right">{{ t.optimalPct }}%</td>
+                            <td class="px-2 py-1.5 text-right {% if t.diffPct > 0 %}text-green-600 dark:text-green-500{% elif t.diffPct < 0 %}text-red-500 dark:text-red-400{% endif %}">{{ '+' if t.diffPct > 0 }}{{ t.diffPct }}%</td>
+                            <td class="px-2 py-1.5 text-right {% if t.diffDollar > 0 %}text-green-600 dark:text-green-500{% elif t.diffDollar < 0 %}text-red-500 dark:text-red-400{% endif %}">{{ '+' if t.diffDollar > 0 else '-' }}{{ money(t.diffDollar | abs) }}</td>
+                            <td class="px-2 py-1.5 text-xs">
+                                {% if t.filteredReason == 'tc' %}
+                                <span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-[10px] font-semibold uppercase" title="Expected return edge below round-trip transaction cost">Below TC</span>
+                                {% else %}
+                                <span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-[10px] font-semibold uppercase" title="Move smaller than 2% / $100 — below noise floor">Sub-threshold</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-xs text-gray-400 dark:text-gray-500 italic mt-3">
+                "Trade" rows are the big moves surfaced above. "Sub-threshold" rows moved by less than 2% or $100 each (noise floor, not worth executing). "Below TC" rows are positions the optimizer wants to adjust but the expected return edge doesn't exceed round-trip transaction cost.
+            </p>
+        </div>
+    </details>
+    {% endif %}
+
     <div class="flex items-center justify-between gap-3 mt-4 flex-wrap">
         <a href="/portfolio/history" class="text-xs font-semibold text-brand dark:text-blue-300 hover:underline">View past recommendations →</a>
         <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg px-4 py-3 flex-1 min-w-[280px]">
