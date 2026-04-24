@@ -23,7 +23,7 @@ from financials.portfolio_risk import (
 )
 from financials.portfolio_optimizer import black_litterman_optimize, ETF_SECTOR_KEY
 from financials.recommendations import insert_recommendation
-from financials.suggestions import compute_suggestions
+from financials.suggestions import compute_suggestions, HOLISTIC_MIN_WEIGHT
 from financials.portfolio_fundamentals import (
     analyze_portfolio_fundamentals,
     compute_factor_exposure,
@@ -238,6 +238,7 @@ def suggestions_widget():
         result = compute_suggestions(holdings)
         if not result or (not result.get("gaps") and not result.get("marginal")):
             return '<p class="text-gray-400 text-sm italic">No additional position suggestions at this time.</p>'
+        result["holisticDefaultPct"] = int(round(HOLISTIC_MIN_WEIGHT * 100))
         return render_template("partials/portfolio_suggestions.html", **result)
     except Exception:
         return '<p class="text-red-500 text-sm italic">Suggestions temporarily unavailable.</p>'

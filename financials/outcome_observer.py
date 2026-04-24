@@ -22,12 +22,16 @@ CLI:
 """
 
 import argparse
+import math
 import sys
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta
 
 import yfinance as yf
+
+TRADING_DAYS_PER_YEAR = 252
+MIN_DAYS_FOR_VOL = 20  # below this, annualized vol is too noisy to publish
 
 from . import cache
 from .outcomes import (
@@ -47,19 +51,21 @@ def _is_rate_limit_error(exc):
     return ("rate limit" in s) or ("too many requests" in s)
 
 
-def _fetch_period_return(symbol, start_date, end_date):
-    """Total return for symbol from start_date to end_date as a decimal
-    (0.05 = 5%). Returns None if data unavailable.
+def _fetch_period_data(symbol, start_date, end_date):
+    """Fetch both the period total return AND the daily returns series in one
+    shot. Returns dict {period_return, daily_returns} where period_return is
+    a decimal (0.05 = 5%) and daily_returns is a list of daily pct changes
+    within the [start, end] window. Either field may be None / empty list.
 
     Uses adjusted close (yfinance default), so dividends are accounted for.
     Retries once on transient failure (empty result or non-rate-limit error).
-    On rate-limit specifically, returns None WITHOUT caching MISS — the heal
-    CLI can pick it up later when throttling clears.
+    On rate-limit specifically, returns an empty payload WITHOUT caching MISS
+    so the heal CLI can pick it up later.
     """
-    cache_key = f"period_return:{symbol}:{start_date.date()}:{end_date.date()}"
+    cache_key = f"period_data:{symbol}:{start_date.date()}:{end_date.date()}"
     cached = cache.get(cache_key)
     if cached is not None:
-        return cached if cached != "MISS" else None
+        return {"period_return": None, "daily_returns": []} if cached == "MISS" else cached
 
     def _attempt():
         hist = yf.Ticker(symbol).history(
@@ -75,37 +81,40 @@ def _fetch_period_return(symbol, start_date, end_date):
             closes.index = closes.index.tz_localize(None)
         except (TypeError, AttributeError):
             pass
-        starts = closes[closes.index >= start_date]
-        if starts.empty:
+        in_window = closes[(closes.index >= start_date) & (closes.index <= end_date)]
+        if in_window.empty or len(in_window) < 2:
             return None
-        start_price = float(starts.iloc[0])
-        ends = closes[closes.index <= end_date]
-        if ends.empty:
-            return None
-        end_price = float(ends.iloc[-1])
+        start_price = float(in_window.iloc[0])
+        end_price = float(in_window.iloc[-1])
         if start_price <= 0:
             return None
-        return (end_price - start_price) / start_price
+        period_return = (end_price - start_price) / start_price
+        daily = in_window.pct_change().dropna()
+        daily_returns = [float(x) for x in daily.tolist()]
+        return {"period_return": period_return, "daily_returns": daily_returns}
 
     for attempt_num in range(2):
         try:
-            ret = _attempt()
-            if ret is not None:
-                cache.put(cache_key, ret, ttl=PERIOD_RETURN_TTL)
-                return ret
-            # Empty result. Retry once before giving up.
+            payload = _attempt()
+            if payload is not None:
+                cache.put(cache_key, payload, ttl=PERIOD_RETURN_TTL)
+                return payload
             if attempt_num == 0:
                 time.sleep(RETRY_DELAY_SECONDS)
                 continue
         except Exception as e:
             if _is_rate_limit_error(e):
-                # Don't cache and don't retry — back off entirely.
-                return None
+                return {"period_return": None, "daily_returns": []}
             if attempt_num == 0:
                 time.sleep(RETRY_DELAY_SECONDS)
                 continue
     cache.put(cache_key, "MISS", ttl=PERIOD_RETURN_TTL)
-    return None
+    return {"period_return": None, "daily_returns": []}
+
+
+def _fetch_period_return(symbol, start_date, end_date):
+    """Back-compat shim; delegates to _fetch_period_data."""
+    return _fetch_period_data(symbol, start_date, end_date)["period_return"]
 
 
 def _suggested_weight_pct(s):
@@ -124,6 +133,37 @@ def _current_weight_decimal(h, total_value):
         return 0.0
     cv = h.get("currentValue") or 0
     return float(cv) / float(total_value)
+
+
+def _portfolio_realized_volatility(weight_daily_pairs):
+    """Annualized realized vol of a portfolio defined by (weight, daily_returns)
+    pairs. Weights are renormalized over symbols with data; series are aligned
+    to the shortest available length (drops the prefix of longer series).
+    Returns None if fewer than 2 symbols or under MIN_DAYS_FOR_VOL observations.
+    """
+    usable = [(w, d) for w, d in weight_daily_pairs if w > 0 and d]
+    if len(usable) < 2:
+        return None
+    total_w = sum(w for w, _ in usable)
+    if total_w <= 0:
+        return None
+    min_len = min(len(d) for _, d in usable)
+    if min_len < MIN_DAYS_FOR_VOL:
+        return None
+
+    port_daily = []
+    for i in range(min_len):
+        r = 0.0
+        for w, d in usable:
+            # Align on the tail — the last `min_len` entries — so recent data wins
+            # if yfinance returns slightly different windows across symbols.
+            r += (w / total_w) * d[-min_len + i]
+        port_daily.append(r)
+
+    n = len(port_daily)
+    mean = sum(port_daily) / n
+    var = sum((x - mean) ** 2 for x in port_daily) / (n - 1)
+    return math.sqrt(var) * math.sqrt(TRADING_DAYS_PER_YEAR) * 100
 
 
 def compute_outcomes_for_rec(rec, horizon_days):
@@ -156,12 +196,15 @@ def compute_outcomes_for_rec(rec, horizon_days):
             symbols.add(s["symbol"])
     symbols.add("SPY")
 
-    # Fetch period returns once per symbol.
+    # Fetch period return + daily series once per symbol.
     returns = {}
+    daily_by_symbol = {}
     for sym in symbols:
-        r = _fetch_period_return(sym, rec_dt, end_dt)
-        if r is not None:
-            returns[sym] = r
+        payload = _fetch_period_data(sym, rec_dt, end_dt)
+        if payload["period_return"] is not None:
+            returns[sym] = payload["period_return"]
+        if payload["daily_returns"]:
+            daily_by_symbol[sym] = payload["daily_returns"]
 
     # Realized return: hypothetically executed rec.
     realized_total = 0.0
@@ -218,6 +261,14 @@ def compute_outcomes_for_rec(rec, horizon_days):
             share = float(contribution) / float(view_excess)
             factor_realized[name] += share * ret * weight
 
+    # Realized volatility of the rec portfolio (suggested weights) over the
+    # horizon. Apples-to-apples with expected_volatility_pct stored at rec time.
+    rec_vol_pairs = [
+        (_suggested_weight_pct(s) / 100.0, daily_by_symbol.get(s.get("symbol") or ""))
+        for s in suggested
+    ]
+    realized_vol = _portfolio_realized_volatility(rec_vol_pairs)
+
     # Notes about gaps.
     missing = [s for s in symbols if s not in returns and s != "SPY"]
     notes = None
@@ -231,7 +282,7 @@ def compute_outcomes_for_rec(rec, horizon_days):
         "horizon_days": horizon_days,
         "measured_at": datetime.now().isoformat(),
         "realized_return_pct": round(realized_total * 100, 2),
-        "realized_volatility_pct": None,  # daily-vol calc deferred to a follow-up
+        "realized_volatility_pct": round(realized_vol, 2) if realized_vol is not None else None,
         "counterfactual_return_pct": round(counterfactual_total * 100, 2),
         "benchmark_spy_return_pct": round(spy_return * 100, 2) if spy_return is not None else None,
         "benchmark_equalweight_return_pct": round(ew * 100, 2) if ew is not None else None,

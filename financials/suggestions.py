@@ -32,7 +32,8 @@ MARGINAL_EPSILON = 0.02     # 2% slice when computing marginal Sharpe
 GAP_THRESHOLD = 0.05        # sector below 5% effective is considered a gap
 MIN_MARGINAL_DELTA = 0.0    # show all positive contributors; let user filter visually
 TOP_N_MARGINAL = 8          # cap displayed marginal candidates
-HOLISTIC_MIN_WEIGHT = 0.05  # minimum weight to surface in holistic view
+HOLISTIC_MIN_WEIGHT = 0.05  # display default for the holistic slider
+HOLISTIC_MIN_WEIGHT_FLOOR = 0.02  # always-computed floor; the slider filters up from here
 HOLISTIC_MIN_DOLLAR = 500   # minimum dollar amount to surface in holistic view
 
 
@@ -395,7 +396,9 @@ def compute_suggestions(holdings, top_n_marginal=TOP_N_MARGINAL, gap_threshold=G
         top_n=top_n_marginal,
     )
 
-    holistic = holistic_optimization(holdings)
+    # Always compute with a low floor. The UI slider filters up from there so
+    # the user gets instant feedback without a round trip.
+    holistic = holistic_optimization(holdings, min_weight=HOLISTIC_MIN_WEIGHT_FLOOR)
 
     # High-conviction tagging: any symbol present in 2+ method outputs.
     gap_syms = {g["symbol"] for g in gaps}

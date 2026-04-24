@@ -205,6 +205,35 @@ function loadPortfolioWidgets() {
                 }
             });
         });
+
+        // Holistic threshold slider — filter rows client-side.
+        suggestionsEl.addEventListener("input", function (e) {
+            if (e.target.id !== "holistic-min-weight") return;
+            var threshold = parseFloat(e.target.value);
+            var label = suggestionsEl.querySelector("[data-holistic-threshold]");
+            if (label) label.textContent = threshold + "%";
+            var list = suggestionsEl.querySelector("[data-holistic-list]");
+            if (!list) return;
+            var shown = 0;
+            var total = 0;
+            list.querySelectorAll("details[data-weight-pct]").forEach(function (row) {
+                total += 1;
+                var w = parseFloat(row.getAttribute("data-weight-pct"));
+                if (!isNaN(w) && w >= threshold) {
+                    row.removeAttribute("hidden");
+                    shown += 1;
+                } else {
+                    row.setAttribute("hidden", "");
+                }
+            });
+            var counter = suggestionsEl.querySelector("[data-holistic-count]");
+            if (counter) counter.textContent = shown + " of " + total + " shown";
+            var empty = suggestionsEl.querySelector("[data-holistic-empty]");
+            if (empty) {
+                if (shown === 0 && total > 0) empty.removeAttribute("hidden");
+                else empty.setAttribute("hidden", "");
+            }
+        });
     }
 
     // Optimizer mode toggle — delegated listener since the template is async-loaded.

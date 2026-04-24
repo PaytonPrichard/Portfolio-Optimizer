@@ -115,11 +115,29 @@
     <div data-suggest-content="holistic" hidden>
         {% if holistic %}
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
-            What your portfolio would look like if rebuilt from scratch over the full universe. New positions earning ≥5% weight and ≥$500 are shown. Existing rebalance trades are in the Portfolio Optimizer above.
+            What your portfolio would look like if rebuilt from scratch over the full universe. Existing rebalance trades are in the Portfolio Optimizer above.
         </p>
-        <div class="space-y-2">
+
+        <div class="bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 mb-3">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+                <label for="holistic-min-weight" class="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    Min new position size
+                    <span class="font-normal text-gray-500 dark:text-gray-400">(below 2% gets noisy, above 10% hides useful adds)</span>
+                </label>
+                <div class="flex items-center gap-2 text-xs">
+                    <span data-holistic-count class="text-gray-500 dark:text-gray-400">{{ holistic | selectattr('suggestedWeightPct', 'ge', holisticDefaultPct) | list | length }} of {{ holistic | length }} shown</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 mt-2">
+                <input type="range" id="holistic-min-weight" min="2" max="10" step="1" value="{{ holisticDefaultPct }}"
+                       class="flex-1 accent-brand dark:accent-blue-400">
+                <span data-holistic-threshold class="text-sm font-semibold text-brand dark:text-blue-300 w-12 text-right">{{ holisticDefaultPct }}%</span>
+            </div>
+        </div>
+
+        <div class="space-y-2" data-holistic-list>
             {% for h in holistic %}
-            <details class="border border-blue-200 dark:border-blue-700/50 rounded-lg overflow-hidden group bg-blue-50/30 dark:bg-blue-900/10">
+            <details data-weight-pct="{{ h.suggestedWeightPct }}" {% if h.suggestedWeightPct < holisticDefaultPct %}hidden{% endif %} class="border border-blue-200 dark:border-blue-700/50 rounded-lg overflow-hidden group bg-blue-50/30 dark:bg-blue-900/10">
                 <summary class="cursor-pointer px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 flex items-center gap-3 text-sm flex-wrap">
                     <span class="font-semibold text-brand dark:text-blue-300 w-14">{{ h.symbol }}</span>
                     {% if h.source == 'broad_etf' %}<span class="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase">ETF</span>
@@ -147,8 +165,9 @@
             </details>
             {% endfor %}
         </div>
+        <p data-holistic-empty class="text-sm text-gray-500 dark:text-gray-400 italic mt-3" {% if holistic | selectattr('suggestedWeightPct', 'ge', holisticDefaultPct) | list | length > 0 %}hidden{% endif %}>No new positions clear the current threshold. Drag the slider down to see weaker-signal candidates.</p>
         {% else %}
-        <p class="text-sm text-gray-500 dark:text-gray-400 italic">No new positions earned ≥5% weight in the full-universe optimal portfolio. Your current holdings are already filling the high-conviction slots.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 italic">No new positions earned ≥2% weight in the full-universe optimal portfolio. Your current holdings are already filling the high-conviction slots.</p>
         {% endif %}
     </div>
 

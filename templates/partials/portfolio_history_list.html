@@ -94,13 +94,23 @@
                             <td class="px-2 py-1.5 text-right {{ signed_class(o.benchmark_equalweight_return_pct) }}">{{ signed_pct(o.benchmark_equalweight_return_pct) }}</td>
                             <td class="px-2 py-1.5 text-right font-semibold {{ signed_class(rec_minus_cf) }}">{{ signed_pct(rec_minus_cf) }}</td>
                         </tr>
-                        {% if o.factor_attribution %}
+                        {% if o.factor_attribution or o.realized_volatility_pct is not none %}
                         <tr class="border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
                             <td colspan="6" class="px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                {% if o.realized_volatility_pct is not none %}
+                                <span class="font-semibold">Realized vol:</span>
+                                <span class="text-gray-700 dark:text-gray-300">{{ '%.2f'|format(o.realized_volatility_pct) }}%</span>
+                                {% if r.expected_volatility_pct %}
+                                <span class="text-gray-400 dark:text-gray-500">(expected {{ r.expected_volatility_pct }}%)</span>
+                                {% endif %}
+                                {% if o.factor_attribution %}<span class="mx-2 text-gray-300 dark:text-gray-600">|</span>{% endif %}
+                                {% endif %}
+                                {% if o.factor_attribution %}
                                 <span class="font-semibold">Factor attribution:</span>
                                 {% for fname, fval in o.factor_attribution.items() | sort(attribute=1, reverse=true) %}
                                 <span class="ml-2 {{ signed_class(fval) }}">{{ fname | replace('_', ' ') }}: {{ '+' if fval > 0 }}{{ '%.2f'|format(fval) }}%</span>{% if not loop.last %},{% endif %}
                                 {% endfor %}
+                                {% endif %}
                             </td>
                         </tr>
                         {% endif %}
