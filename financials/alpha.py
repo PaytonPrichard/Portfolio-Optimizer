@@ -140,7 +140,11 @@ def init_db():
         except Exception:
             pass  # column already exists
 
-    # Upsert factor weights — ensures new factors are added to existing DBs
+    # Upsert factor weights — ensures new factors are added to existing DBs.
+    # macro dropped from 0.07 to 0.01 after 2026-04 backtest showed IC=-0.225
+    # (i.e., the score's directionality is inverted vs what predicts). Keeping
+    # it non-zero so it still shows in attribution; revisit after Phase 4
+    # weight learner runs on production outcomes.
     defaults = [
         ("value", 0.10),
         ("quality", 0.10),
@@ -154,7 +158,7 @@ def init_db():
         ("analyst_momentum", 0.05),
         ("institutional", 0.07),
         ("technical", 0.06),
-        ("macro", 0.07),
+        ("macro", 0.01),
     ]
     now = datetime.now().isoformat()
     for name, weight in defaults:
@@ -162,6 +166,14 @@ def init_db():
             "INSERT OR IGNORE INTO factor_weights (factor_name, weight, last_updated) VALUES (?, ?, ?)",
             (name, weight, now),
         )
+    # One-shot migration for existing DBs: if macro is at the old default of
+    # 0.07 (unmodified since install), bring it down to 0.01. Skipped if a
+    # user has deliberately set it to anything else.
+    conn.execute(
+        "UPDATE factor_weights SET weight = 0.01, last_updated = ? "
+        "WHERE factor_name = 'macro' AND weight = 0.07",
+        (now,),
+    )
     conn.commit()
     conn.close()
 

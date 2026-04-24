@@ -211,3 +211,16 @@ obvious bugs in attribution math.
   table per horizon plus the "Rec - Counterfactual" learning signal
   column. Phase 3 (passive accumulation) starts now; Phase 4 (weight
   learner) waits for sufficient sample size.
+- 2026-04-24: Backtest harness shipped (financials/backtest.py,
+  alpha_historical.py, /backtest page). Alpha-Lite point-in-time
+  reconstruction of 5 price-based factors (momentum, technical,
+  industry_cycle, macro, earnings_surprise); other 8 held at
+  neutral 50. 2020-2024 monthly over 3 portfolio templates =
+  162 recs / 648 outcomes. Hit rates 54-58% vs counterfactual AND
+  SPY across all horizons (optimizer is net-positive). Factor IC
+  at 90d: macro -0.225 (strongly inverted), industry_cycle +0.056,
+  momentum +0.017, technical -0.036, earnings_surprise null. Macro
+  downweighted from 0.07 to 0.01 (0.68% effective weight) pending
+  Phase 4 learner. Ledoit-Wolf covariance shrinkage replaces simple
+  ridge. TC gate (10bps) filters nuisance trades. Market-cap prior
+  uses median substitution instead of silent equal-weight fallback.
