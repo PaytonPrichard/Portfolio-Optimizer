@@ -111,6 +111,37 @@
             html += '<h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-1">Factor information coefficient</h2>';
             html += '<p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Spearman correlation between each reconstructed factor\'s sub-score at rec time and the subsequent forward return. Positive = factor predicts; negative = inversely predicts; near zero = no signal.</p>';
 
+            if (!data.ic_meta || !data.ic_meta.cached) {
+                html += '<div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4 text-sm text-amber-800 dark:text-amber-300">';
+                html += '<p class="font-semibold mb-1">IC cache not built yet.</p>';
+                html += '<p>Run <code class="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">python -m financials.backtest cache-ic</code> to compute IC for all 4 horizons. This takes a few minutes (thousands of yfinance calls) but only needs to be re-run when new backtest recs are generated.</p>';
+                html += '</div>';
+                html += '</div>';
+                // Skip the per-horizon render below.
+                container.innerHTML = html;
+
+                var btn2 = document.getElementById('load-recs-btn');
+                if (btn2) {
+                    btn2.addEventListener('click', function() {
+                        btn2.disabled = true;
+                        btn2.textContent = 'Loading...';
+                        fetch('/api/backtest/recs')
+                            .then(function(r) { return r.text(); })
+                            .then(function(h) {
+                                document.getElementById('backtest-recs-list').innerHTML = h;
+                                btn2.remove();
+                            })
+                            .catch(function() {
+                                btn2.disabled = false;
+                                btn2.textContent = 'Retry';
+                            });
+                    });
+                }
+                return;
+            }
+
+            html += '<p class="text-xs text-gray-400 dark:text-gray-500 mb-3 italic">IC computed at ' + (data.ic_meta.computed_at || 'unknown') + '</p>';
+
             Object.keys(data.ic).forEach(function(horizonKey) {
                 var ic = data.ic[horizonKey].ic || {};
                 html += '<div class="mb-4">';

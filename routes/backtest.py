@@ -7,7 +7,7 @@ import traceback
 from flask import Blueprint, render_template, jsonify
 
 from financials.backtest import (
-    summary_stats, compute_ic,
+    summary_stats, load_cached_ic,
     BACKTEST_CLIENT_ID, PORTFOLIO_TEMPLATES,
 )
 from financials.outcomes import get_recs_with_outcomes
@@ -23,20 +23,26 @@ def backtest_page():
 
 @backtest_bp.route("/api/backtest/data")
 def backtest_data():
-    """Return summary stats + IC for the backtest. Separated from recs list
-    to keep the initial payload small.
+    """Return summary stats + cached IC for the backtest.
+
+    IC is read from the on-disk cache built by `python -m financials.backtest
+    cache-ic`. Computing IC inline would require thousands of yfinance calls
+    in a cold Flask process cache, taking minutes to respond. If the cache
+    is missing, the UI tells the user to run the CLI.
     """
     try:
         summary = summary_stats()
-        ic = {
-            "30d": compute_ic(30),
-            "90d": compute_ic(90),
-            "180d": compute_ic(180),
-            "365d": compute_ic(365),
-        }
+        cached = load_cached_ic()
+        ic_payload = {}
+        ic_meta = {"cached": False}
+        if cached and cached.get("horizons"):
+            for horizon, payload in cached["horizons"].items():
+                ic_payload[f"{horizon}d"] = payload
+            ic_meta = {"cached": True, "computed_at": cached.get("computed_at")}
         return jsonify({
             "summary": summary,
-            "ic": ic,
+            "ic": ic_payload,
+            "ic_meta": ic_meta,
             "templates": list(PORTFOLIO_TEMPLATES.keys()),
         })
     except Exception:

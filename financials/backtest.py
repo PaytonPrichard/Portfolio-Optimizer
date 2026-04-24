@@ -26,8 +26,10 @@ Notes on fidelity:
 """
 
 import argparse
+import json
 import logging
 import math
+import os
 import sys
 import time
 import uuid
@@ -38,6 +40,12 @@ from typing import Optional
 import numpy as np
 
 from . import cache
+
+# Where we cache IC results so /backtest doesn't have to recompute (which
+# requires thousands of yfinance calls in a cold Flask process). The cache
+# is refreshed by the `cache-ic` CLI verb after each backtest run.
+_IC_CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+_IC_CACHE_PATH = os.path.join(_IC_CACHE_DIR, "backtest_ic.json")
 from .alpha_historical import (
     BacktestContext, prefetch_backtest_context, reconstruct_alpha_lite,
     _daily_closes_up_to, _value_at,
@@ -403,6 +411,35 @@ def compute_ic(horizon_days=90):
     return {"ic": ic_by_factor, "n_observations": n_obs, "horizon_days": horizon_days}
 
 
+def compute_and_cache_ic(horizons=HORIZONS_DAYS):
+    """Run compute_ic for each horizon and persist to disk. Call this once
+    after a backtest + observe run so the /backtest page can load instantly."""
+    result = {
+        "computed_at": datetime.now().isoformat(),
+        "horizons": {},
+    }
+    for h in horizons:
+        log.info(f"Computing IC at {h}d horizon…")
+        result["horizons"][str(h)] = compute_ic(h)
+    os.makedirs(_IC_CACHE_DIR, exist_ok=True)
+    with open(_IC_CACHE_PATH, "w") as f:
+        json.dump(result, f, indent=2, default=str)
+    log.info(f"IC cache written to {_IC_CACHE_PATH}")
+    return result
+
+
+def load_cached_ic():
+    """Return cached IC results or None if not yet computed. Safe to call
+    from the web request path — no yfinance calls, just a file read."""
+    if not os.path.exists(_IC_CACHE_PATH):
+        return None
+    try:
+        with open(_IC_CACHE_PATH) as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
 def summary_stats():
     """Summary metrics across all backtest outcomes. Returns dict used by
     both the CLI and the /backtest page."""
@@ -469,6 +506,7 @@ def _main():
 
     sub.add_parser("observe", help="Compute outcomes for all backtest recs")
     sub.add_parser("summary", help="Print summary stats and factor IC")
+    sub.add_parser("cache-ic", help="Recompute IC for all horizons and persist to disk (run after observe)")
 
     args = parser.parse_args()
 
@@ -488,6 +526,8 @@ def _main():
         stats = observe_backtest()
     elif args.cmd == "summary":
         stats = {"summary": summary_stats(), "ic_90d": compute_ic(90)}
+    elif args.cmd == "cache-ic":
+        stats = compute_and_cache_ic()
     else:
         parser.print_help()
         sys.exit(1)
