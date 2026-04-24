@@ -51,9 +51,13 @@
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-brand focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg">Skip to content</a>
     <!-- Navigation -->
     {% set nav_categories = [
+        ("Portfolio", [
+            ("/portfolio", "Optimize", ["/portfolio"]),
+            ("/portfolio/history", "History", ["/portfolio/history"]),
+            ("/backtest", "Backtest", ["/backtest"]),
+        ]),
         ("Analysis", [
             ("/score", "Score a Stock", ["/score"]),
-            ("/portfolio", "Optimize My Portfolio", ["/portfolio"]),
             ("/search", "Look Up a Company", ["/search", "/dashboard"]),
         ]),
         ("Discover", [
