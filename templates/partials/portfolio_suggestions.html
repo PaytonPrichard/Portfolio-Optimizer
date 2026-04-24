@@ -3,14 +3,16 @@
 
 {% macro conviction_badge(s) %}{% if s.highConviction %}<span class="px-1.5 py-0.5 rounded bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-[10px] font-bold uppercase" title="Appears in multiple methods — multiple signals agree this is worth considering">★ High Conviction</span>{% endif %}{% endmacro %}
 
+{# Watch/Pass buttons. The event listener lives in watchlist.js at document
+   level; we just need preventDefault to stop the <summary> from toggling when
+   a user clicks a button inside it. That happens in MM_Watchlist.handleClick,
+   NOT via inline onclick — stopPropagation there would kill our own listener. #}
 {% macro watchlist_buttons(symbol) %}
 <span class="inline-flex gap-1" data-watchlist-symbol="{{ symbol }}">
     <button type="button" data-watchlist-action="watching" title="Add to watchlist"
-            class="wl-btn px-1.5 py-0.5 rounded text-[10px] font-bold uppercase transition border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-300"
-            onclick="event.stopPropagation(); event.preventDefault();">Watch</button>
+            class="wl-btn px-1.5 py-0.5 rounded text-[10px] font-bold uppercase transition border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-300">Watch</button>
     <button type="button" data-watchlist-action="declined" title="Mark as declined"
-            class="wl-btn px-1.5 py-0.5 rounded text-[10px] font-bold uppercase transition border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300"
-            onclick="event.stopPropagation(); event.preventDefault();">Pass</button>
+            class="wl-btn px-1.5 py-0.5 rounded text-[10px] font-bold uppercase transition border border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300">Pass</button>
 </span>
 {% endmacro %}
 

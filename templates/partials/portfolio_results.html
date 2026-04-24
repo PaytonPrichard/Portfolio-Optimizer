@@ -322,43 +322,9 @@
                 <span class="ml-auto text-xs italic">pp = percentage points</span>
             </div>
         </div>
-        <script>
-        (function() {
-            var container = document.querySelector('[data-sector-balance]');
-            if (!container) return;
-            var buttons = container.querySelectorAll('[data-sector-bench]');
-            var desc = container.querySelector('[data-sector-bench-desc]');
-            var descText = {
-                'market-cap': "Comparing your weights to the S&P 500's cap-weighted sector mix. Sector weights drift; numbers are approximate.",
-                'equal-weight': "Comparing your weights to a naive equal-weight split (~9% per sector). Useful if you deliberately avoid the market's concentration.",
-            };
-            function fmtPp(pp) {
-                if (Math.abs(pp) < 0.5) return 'in line';
-                return (pp > 0 ? '+' : '') + pp.toFixed(1) + 'pp';
-            }
-            buttons.forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    var mode = btn.getAttribute('data-sector-bench');
-                    buttons.forEach(function(b) {
-                        if (b === btn) {
-                            b.className = 'px-2.5 py-1 rounded-md bg-white dark:bg-gray-800 text-brand dark:text-blue-300 shadow-sm transition';
-                        } else {
-                            b.className = 'px-2.5 py-1 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition';
-                        }
-                    });
-                    if (desc) desc.textContent = descText[mode];
-                    container.querySelectorAll('[data-sector-row]').forEach(function(row) {
-                        var target = parseFloat(row.getAttribute(mode === 'market-cap' ? 'data-market-target' : 'data-equal-target')) || 0;
-                        var diff = parseFloat(row.getAttribute(mode === 'market-cap' ? 'data-market-diff' : 'data-equal-diff')) || 0;
-                        var mark = row.querySelector('[data-sector-target-mark]');
-                        if (mark) mark.style.left = Math.min(target, 100) + '%';
-                        var diffEl = row.querySelector('[data-sector-diff]');
-                        if (diffEl) diffEl.textContent = fmtPp(diff);
-                    });
-                });
-            });
-        })();
-        </script>
+        {# Toggle JS lives in static/js/sector_benchmark_toggle.js (loaded on
+           this page) — inline scripts inside HTML fragments injected via
+           innerHTML don't execute. #}
         {% endif %}
 
         {# Industry gap opportunities #}

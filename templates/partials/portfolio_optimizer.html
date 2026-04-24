@@ -211,9 +211,10 @@
                         </tr>
                     </thead>
                     <tbody class="text-gray-700 dark:text-gray-300">
+                        {% macro etf_tag(t) %}{% if t.isBroadEtf %}<span class="ml-1 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase">ETF</span>{% elif t.isEtf %}<span class="ml-1 px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase" title="Sector ETF: {{ t.etfSector }}">{{ t.etfSector }} ETF</span>{% endif %}{% endmacro %}
                         {% for t in trades %}
                         <tr class="border-t border-gray-100 dark:border-gray-700">
-                            <td class="px-2 py-1.5 font-mono font-semibold">{{ t.symbol }}</td>
+                            <td class="px-2 py-1.5 font-mono font-semibold whitespace-nowrap">{{ t.symbol }}{{ etf_tag(t) }}</td>
                             <td class="px-2 py-1.5 text-right">{{ t.currentPct }}%</td>
                             <td class="px-2 py-1.5 text-right">{{ t.optimalPct }}%</td>
                             <td class="px-2 py-1.5 text-right font-semibold {% if t.diffPct > 0 %}text-green-700 dark:text-green-400{% elif t.diffPct < 0 %}text-red-600 dark:text-red-400{% endif %}">{{ '+' if t.diffPct > 0 }}{{ t.diffPct }}%</td>
@@ -223,7 +224,7 @@
                         {% endfor %}
                         {% for t in subThresholdTrades %}
                         <tr class="border-t border-gray-100 dark:border-gray-700">
-                            <td class="px-2 py-1.5 font-mono">{{ t.symbol }}</td>
+                            <td class="px-2 py-1.5 font-mono whitespace-nowrap">{{ t.symbol }}{{ etf_tag(t) }}</td>
                             <td class="px-2 py-1.5 text-right">{{ t.currentPct }}%</td>
                             <td class="px-2 py-1.5 text-right">{{ t.optimalPct }}%</td>
                             <td class="px-2 py-1.5 text-right {% if t.diffPct > 0 %}text-green-600 dark:text-green-500{% elif t.diffPct < 0 %}text-red-500 dark:text-red-400{% endif %}">{{ '+' if t.diffPct > 0 }}{{ t.diffPct }}%</td>

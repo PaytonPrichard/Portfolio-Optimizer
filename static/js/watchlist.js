@@ -57,6 +57,10 @@ var MM_Watchlist = {
     handleClick: function (e) {
         var btn = e.target.closest(".wl-btn");
         if (!btn) return;
+        // Stop the <summary> from toggling its <details> parent when the button
+        // is nested inside a summary element. Do NOT stopPropagation — we want
+        // this same handler to run via document-level delegation.
+        e.preventDefault();
         var wrap = btn.closest("[data-watchlist-symbol]");
         if (!wrap) return;
         var sym = wrap.getAttribute("data-watchlist-symbol");
