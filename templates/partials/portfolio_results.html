@@ -195,15 +195,22 @@
         <div class="space-y-3 mb-5">
             <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Key Observations</h4>
 
-            {# Sector balance check #}
-            {% if top_sector_pct > 30 and bySector %}
-            <div class="flex items-start gap-3 bg-orange-50 dark:bg-orange-900/10 rounded-lg p-3">
-                <svg class="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+            {# Sector balance check — use S&P 500 benchmark, not a naive 25-30%
+               hardcoded threshold. Flag only when meaningfully heavier than the
+               market (8+ pp) AND absolute concentration is notable (35%+). #}
+            {% if bySector %}
+            {% set top_sec = bySector[0].sector %}
+            {% set sp500_weight = {"Technology": 30, "Financial Services": 13, "Healthcare": 11, "Consumer Cyclical": 11, "Communication Services": 9, "Industrials": 8, "Consumer Defensive": 6, "Energy": 4, "Real Estate": 2.5, "Utilities": 2.5, "Basic Materials": 2}.get(top_sec, 9) %}
+            {% set top_diff = top_sector_pct - sp500_weight %}
+            {% if top_diff > 8 and top_sector_pct > 35 %}
+            <div class="flex items-start gap-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg p-3">
+                <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <div>
-                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300"><strong>{{ bySector[0].sector }}</strong> dominates at {{ '%.0f' | format(top_sector_pct) }}% of your portfolio</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">A well-diversified portfolio typically keeps each sector under 25-30%. Consider reducing exposure or adding positions in underweighted sectors.</p>
+                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300"><strong>{{ top_sec }}</strong> is {{ '%.0f' | format(top_diff) }}pp above its S&amp;P 500 weight ({{ '%.0f' | format(top_sector_pct) }}% vs ~{{ '%.0f' | format(sp500_weight) }}%)</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Not inherently bad — a deliberate overweight is a legitimate strategy. Just worth noting so you're aware of the sector concentration.</p>
                 </div>
             </div>
+            {% endif %}
             {% endif %}
 
             {# Number of holdings check #}
@@ -259,37 +266,99 @@
             {% endif %}
         </div>
 
-        {# Target allocation guidance #}
-        {% if bySector | length > 0 %}
-        <div class="mb-5">
-            <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Sector Balance vs. Target</h4>
-            <p class="text-xs text-gray-400 dark:text-gray-400 mb-3">Target ranges based on equal-weight principles. Adjust based on your outlook and goals.</p>
-            {% set target_per_sector = (100 / ([bySector | length, 11] | min)) | round(0) | int %}
+        {# Sector balance vs. a chosen benchmark. Default is S&P 500 cap-weighted
+           (realistic reference point for most investors). Toggle to equal-weight
+           for the "perfectly spread" view. Framing is pp-deviation, not alarmist
+           over/under percent, because deliberate overweights are normal. #}
+        {% if sectorBenchmarks %}
+        <div class="mb-5" data-sector-balance>
+            <div class="flex items-center justify-between gap-3 mb-2 flex-wrap">
+                <h4 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Sector Balance vs. Benchmark</h4>
+                <div class="inline-flex rounded-lg bg-gray-100 dark:bg-gray-700 p-0.5 text-xs font-medium">
+                    <button type="button" data-sector-bench="market-cap"
+                            class="px-2.5 py-1 rounded-md bg-white dark:bg-gray-800 text-brand dark:text-blue-300 shadow-sm transition">
+                        S&amp;P 500 (cap-weighted)
+                    </button>
+                    <button type="button" data-sector-bench="equal-weight"
+                            class="px-2.5 py-1 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition">
+                        Equal-weight
+                    </button>
+                </div>
+            </div>
+            <p class="text-xs text-gray-400 dark:text-gray-400 mb-3" data-sector-bench-desc>
+                Comparing your weights to the S&amp;P 500's cap-weighted sector mix. Sector weights drift; numbers are approximate.
+            </p>
             <div class="space-y-2">
-                {% for s in bySector[:10] %}
-                {% set diff = s.pct - target_per_sector %}
-                <div class="flex items-center gap-3 text-sm">
+                {% for s in sectorBenchmarks %}
+                {% if s.currentPct > 0 or s.marketCapTargetPct > 0 %}
+                <div class="flex items-center gap-3 text-sm"
+                     data-sector-row
+                     data-market-target="{{ s.marketCapTargetPct }}"
+                     data-equal-target="{{ s.equalWeightTargetPct }}"
+                     data-market-diff="{{ s.marketCapDiffPp }}"
+                     data-equal-diff="{{ s.equalWeightDiffPp }}">
                     <span class="w-28 font-medium text-gray-700 dark:text-gray-300 text-xs truncate">{{ s.sector }}</span>
                     <div class="flex-1 relative">
                         <div class="h-4 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full {% if s.pct > target_per_sector * 1.5 %}bg-orange-400{% elif s.pct < target_per_sector * 0.5 %}bg-blue-400{% else %}bg-brand{% endif %}" style="width: {{ [s.pct, 100] | min }}%"></div>
+                            <div class="h-full rounded-full bg-brand transition-all" data-sector-bar style="width: {{ [s.currentPct, 100] | min }}%"></div>
                         </div>
-                        {# Target marker #}
-                        <div class="absolute top-0 bottom-0 w-0.5 bg-gray-400 dark:bg-gray-500" style="left: {{ [target_per_sector, 100] | min }}%" title="Target: ~{{ target_per_sector }}%"></div>
+                        {# Target marker, moves with toggle #}
+                        <div class="absolute top-0 bottom-0 w-0.5 bg-gray-500 dark:bg-gray-400 transition-all"
+                             data-sector-target-mark
+                             style="left: {{ [s.marketCapTargetPct, 100] | min }}%"
+                             title="Benchmark target"></div>
                     </div>
-                    <span class="w-12 text-right text-xs font-bold {% if diff > 10 %}text-orange-600 dark:text-orange-400{% elif diff < -5 %}text-blue-600 dark:text-blue-400{% else %}text-gray-600 dark:text-gray-400{% endif %}">{{ '%.0f' | format(s.pct) }}%</span>
-                    <span class="w-16 text-right text-xs {% if diff > 0 %}text-orange-500{% elif diff < 0 %}text-blue-500{% else %}text-gray-400{% endif %}">
-                        {% if diff > 1 %}+{{ '%.0f' | format(diff) }}% over{% elif diff < -1 %}{{ '%.0f' | format(diff) }}% under{% else %}On target{% endif %}
+                    <span class="w-12 text-right text-xs font-bold text-gray-700 dark:text-gray-300">{{ '%.0f' | format(s.currentPct) }}%</span>
+                    <span class="w-20 text-right text-xs text-gray-500 dark:text-gray-400" data-sector-diff>
+                        {% if s.marketCapDiffPp > 0.5 %}+{{ '%.1f' | format(s.marketCapDiffPp) }}pp{% elif s.marketCapDiffPp < -0.5 %}{{ '%.1f' | format(s.marketCapDiffPp) }}pp{% else %}in line{% endif %}
                     </span>
                 </div>
+                {% endif %}
                 {% endfor %}
             </div>
             <div class="flex items-center gap-4 mt-2 text-xs text-gray-400 dark:text-gray-400">
-                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-gray-400 dark:bg-gray-500"></span> Target (~{{ target_per_sector }}% each)</span>
-                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-orange-400"></span> Overweight</span>
-                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-400"></span> Underweight</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-brand"></span> Your weight</span>
+                <span class="flex items-center gap-1"><span class="inline-block w-0.5 h-3 bg-gray-500 dark:bg-gray-400"></span> Benchmark target</span>
+                <span class="ml-auto text-xs italic">pp = percentage points</span>
             </div>
         </div>
+        <script>
+        (function() {
+            var container = document.querySelector('[data-sector-balance]');
+            if (!container) return;
+            var buttons = container.querySelectorAll('[data-sector-bench]');
+            var desc = container.querySelector('[data-sector-bench-desc]');
+            var descText = {
+                'market-cap': "Comparing your weights to the S&P 500's cap-weighted sector mix. Sector weights drift; numbers are approximate.",
+                'equal-weight': "Comparing your weights to a naive equal-weight split (~9% per sector). Useful if you deliberately avoid the market's concentration.",
+            };
+            function fmtPp(pp) {
+                if (Math.abs(pp) < 0.5) return 'in line';
+                return (pp > 0 ? '+' : '') + pp.toFixed(1) + 'pp';
+            }
+            buttons.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var mode = btn.getAttribute('data-sector-bench');
+                    buttons.forEach(function(b) {
+                        if (b === btn) {
+                            b.className = 'px-2.5 py-1 rounded-md bg-white dark:bg-gray-800 text-brand dark:text-blue-300 shadow-sm transition';
+                        } else {
+                            b.className = 'px-2.5 py-1 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition';
+                        }
+                    });
+                    if (desc) desc.textContent = descText[mode];
+                    container.querySelectorAll('[data-sector-row]').forEach(function(row) {
+                        var target = parseFloat(row.getAttribute(mode === 'market-cap' ? 'data-market-target' : 'data-equal-target')) || 0;
+                        var diff = parseFloat(row.getAttribute(mode === 'market-cap' ? 'data-market-diff' : 'data-equal-diff')) || 0;
+                        var mark = row.querySelector('[data-sector-target-mark]');
+                        if (mark) mark.style.left = Math.min(target, 100) + '%';
+                        var diffEl = row.querySelector('[data-sector-diff]');
+                        if (diffEl) diffEl.textContent = fmtPp(diff);
+                    });
+                });
+            });
+        })();
+        </script>
         {% endif %}
 
         {# Industry gap opportunities #}

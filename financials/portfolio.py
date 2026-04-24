@@ -25,6 +25,60 @@ _RATING_SCORES = {
 }
 
 
+# Approximate S&P 500 GICS sector weights (early 2025). Cap-weighted reality,
+# drifts over time — documented as approximate in the UI. Using this as the
+# default benchmark means "Tech 36% vs S&P 30%" reads as +6pp overweight
+# instead of the alarming "+27% over" against a naive 1/11 equal-weight target.
+SP500_SECTOR_WEIGHTS = {
+    "Technology": 30.0,
+    "Financial Services": 13.0,
+    "Healthcare": 11.0,
+    "Consumer Cyclical": 11.0,
+    "Communication Services": 9.0,
+    "Industrials": 8.0,
+    "Consumer Defensive": 6.0,
+    "Energy": 4.0,
+    "Real Estate": 2.5,
+    "Utilities": 2.5,
+    "Basic Materials": 2.0,
+}
+
+
+def _compute_sector_benchmarks(by_sector):
+    """For every sector in the user's portfolio (plus every S&P sector even if
+    missing), build a row with current weight and both benchmark targets. The
+    template renders one or the other depending on the user's toggle.
+
+    Returns list of dicts: {sector, currentPct, marketCapTargetPct,
+    equalWeightTargetPct, marketCapDiffPp, equalWeightDiffPp}.
+    """
+    current_by_sector = {s["sector"]: s["pct"] for s in by_sector}
+    # Union: sectors the user holds + all S&P sectors.
+    all_sectors = set(current_by_sector.keys()) | set(SP500_SECTOR_WEIGHTS.keys())
+    # Equal-weight target is uniform across 11 GICS sectors (not by what the
+    # user holds — that would move the target with the exposure and defeat
+    # its purpose).
+    eq_target = round(100.0 / len(SP500_SECTOR_WEIGHTS), 1)
+
+    rows = []
+    for sec in all_sectors:
+        if sec in ("Unknown", "Fund/ETF"):
+            continue
+        current = current_by_sector.get(sec, 0.0)
+        mkt_target = SP500_SECTOR_WEIGHTS.get(sec, 0.0)  # 0 if sector not in S&P list
+        rows.append({
+            "sector": sec,
+            "currentPct": round(current, 1),
+            "marketCapTargetPct": round(mkt_target, 1),
+            "equalWeightTargetPct": eq_target,
+            "marketCapDiffPp": round(current - mkt_target, 1),
+            "equalWeightDiffPp": round(current - eq_target, 1),
+        })
+    # Sort by current weight desc so the heaviest sectors show first.
+    rows.sort(key=lambda r: -r["currentPct"])
+    return rows
+
+
 def _sanitize_for_json(obj):
     """Recursively replace NaN/Inf floats with None so tojson produces valid JSON."""
     if isinstance(obj, float):
@@ -857,6 +911,8 @@ def analyze_portfolio(holdings: list, tax_rate: float = 0.24) -> dict:
         "analystOverview": analyst_overview,
     })
 
+    sector_benchmarks = _compute_sector_benchmarks(by_sector)
+
     return {
         "holdings": holdings,
         "totalValue": total_value,
@@ -864,6 +920,7 @@ def analyze_portfolio(holdings: list, tax_rate: float = 0.24) -> dict:
         "totalGain": total_gain,
         "totalGainPct": round(total_gain_pct, 2),
         "bySector": by_sector,
+        "sectorBenchmarks": sector_benchmarks,
         "byIndustry": by_industry,
         "concentration": concentration,
         "gaps": gap_industries,
