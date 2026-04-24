@@ -23,16 +23,28 @@ CLI:
 
 import argparse
 import sys
+import time
 from collections import defaultdict
 from datetime import datetime, timedelta
 
 import yfinance as yf
 
 from . import cache
-from .outcomes import insert_outcome, list_due_horizons, HORIZONS_DAYS
-from .recommendations import iter_all_recommendations
+from .outcomes import (
+    insert_outcome, list_due_horizons, HORIZONS_DAYS, get_outcomes_with_gaps,
+)
+from .recommendations import iter_all_recommendations, get_recommendation
 
 PERIOD_RETURN_TTL = 86400  # 24h cache — historical returns don't change
+RETRY_DELAY_SECONDS = 0.5  # short pause before single retry on transient failure
+
+
+def _is_rate_limit_error(exc):
+    """yfinance throws YFRateLimitError when throttled. Match by string so we
+    don't depend on the specific exception class being importable.
+    """
+    s = str(exc).lower()
+    return ("rate limit" in s) or ("too many requests" in s)
 
 
 def _fetch_period_return(symbol, start_date, end_date):
@@ -40,51 +52,60 @@ def _fetch_period_return(symbol, start_date, end_date):
     (0.05 = 5%). Returns None if data unavailable.
 
     Uses adjusted close (yfinance default), so dividends are accounted for.
+    Retries once on transient failure (empty result or non-rate-limit error).
+    On rate-limit specifically, returns None WITHOUT caching MISS — the heal
+    CLI can pick it up later when throttling clears.
     """
     cache_key = f"period_return:{symbol}:{start_date.date()}:{end_date.date()}"
     cached = cache.get(cache_key)
     if cached is not None:
         return cached if cached != "MISS" else None
-    try:
-        # Buffer the window so weekends/holidays don't lose us start/end days.
+
+    def _attempt():
         hist = yf.Ticker(symbol).history(
             start=start_date - timedelta(days=5),
             end=end_date + timedelta(days=5),
         )
         if hist is None or hist.empty:
-            cache.put(cache_key, "MISS", ttl=PERIOD_RETURN_TTL)
             return None
         closes = hist["Close"].dropna()
         if closes.empty:
-            cache.put(cache_key, "MISS", ttl=PERIOD_RETURN_TTL)
             return None
-        # Strip timezone for naive date comparison.
         try:
             closes.index = closes.index.tz_localize(None)
         except (TypeError, AttributeError):
             pass
-
-        # First close at or after start_date.
         starts = closes[closes.index >= start_date]
         if starts.empty:
-            cache.put(cache_key, "MISS", ttl=PERIOD_RETURN_TTL)
             return None
         start_price = float(starts.iloc[0])
-        # Last close at or before end_date.
         ends = closes[closes.index <= end_date]
         if ends.empty:
-            cache.put(cache_key, "MISS", ttl=PERIOD_RETURN_TTL)
             return None
         end_price = float(ends.iloc[-1])
         if start_price <= 0:
-            cache.put(cache_key, "MISS", ttl=PERIOD_RETURN_TTL)
             return None
-        ret = (end_price - start_price) / start_price
-        cache.put(cache_key, ret, ttl=PERIOD_RETURN_TTL)
-        return ret
-    except Exception:
-        cache.put(cache_key, "MISS", ttl=PERIOD_RETURN_TTL)
-        return None
+        return (end_price - start_price) / start_price
+
+    for attempt_num in range(2):
+        try:
+            ret = _attempt()
+            if ret is not None:
+                cache.put(cache_key, ret, ttl=PERIOD_RETURN_TTL)
+                return ret
+            # Empty result. Retry once before giving up.
+            if attempt_num == 0:
+                time.sleep(RETRY_DELAY_SECONDS)
+                continue
+        except Exception as e:
+            if _is_rate_limit_error(e):
+                # Don't cache and don't retry — back off entirely.
+                return None
+            if attempt_num == 0:
+                time.sleep(RETRY_DELAY_SECONDS)
+                continue
+    cache.put(cache_key, "MISS", ttl=PERIOD_RETURN_TTL)
+    return None
 
 
 def _suggested_weight_pct(s):
@@ -260,26 +281,77 @@ def run_outcome_observer(client_id=None, limit=None, dry_run=False):
     return stats
 
 
+def heal_stale_outcomes(client_id=None, limit=None, dry_run=False):
+    """Re-run outcome computation for outcomes whose notes mention missing
+    price data. Useful after yfinance throttling clears or a previously-bad
+    ticker resolves (e.g., a recently-IPO'd stock now has 30+ days of data).
+
+    INSERT OR REPLACE in the outcomes table makes this idempotent.
+    """
+    stats = {
+        "outcomes_scanned": 0,
+        "outcomes_healed": 0,
+        "outcomes_unchanged": 0,
+        "errors": 0,
+    }
+
+    stale = get_outcomes_with_gaps(client_id=client_id, limit=limit)
+    for old in stale:
+        stats["outcomes_scanned"] += 1
+        rec = get_recommendation(old["rec_id"])
+        if not rec:
+            stats["errors"] += 1
+            continue
+        try:
+            new_outcome = compute_outcomes_for_rec(rec, old["horizon_days"])
+            if new_outcome is None:
+                stats["errors"] += 1
+                continue
+            old_notes = old.get("prev_notes") or ""
+            new_notes = new_outcome.get("notes") or ""
+            if old_notes != new_notes:
+                stats["outcomes_healed"] += 1
+            else:
+                stats["outcomes_unchanged"] += 1
+            if not dry_run:
+                insert_outcome(new_outcome)
+        except Exception:
+            stats["errors"] += 1
+
+    return stats
+
+
 # ── CLI ──────────────────────────────────────────────────────────────
 
 def _main():
     parser = argparse.ArgumentParser(prog="outcome_observer")
     sub = parser.add_subparsers(dest="cmd", required=True)
+
     runp = sub.add_parser("run", help="Compute outcomes for due (rec, horizon) pairs")
     runp.add_argument("--client", default=None, help="Limit to a single client_id")
     runp.add_argument("--limit", type=int, default=None, help="Max recs to scan")
     runp.add_argument("--dry-run", action="store_true", help="Compute but don't insert")
+
+    healp = sub.add_parser("heal", help="Re-process outcomes with recorded yfinance gaps")
+    healp.add_argument("--client", default=None, help="Limit to a single client_id")
+    healp.add_argument("--limit", type=int, default=None, help="Max outcomes to retry")
+    healp.add_argument("--dry-run", action="store_true", help="Compute but don't insert")
+
     args = parser.parse_args()
 
     if args.cmd == "run":
         stats = run_outcome_observer(
             client_id=args.client, limit=args.limit, dry_run=args.dry_run,
         )
-        for k, v in stats.items():
-            print(f"  {k}: {v}")
+    elif args.cmd == "heal":
+        stats = heal_stale_outcomes(
+            client_id=args.client, limit=args.limit, dry_run=args.dry_run,
+        )
     else:
         parser.print_help()
         sys.exit(1)
+    for k, v in stats.items():
+        print(f"  {k}: {v}")
 
 
 if __name__ == "__main__":

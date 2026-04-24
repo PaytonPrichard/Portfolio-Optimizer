@@ -206,6 +206,58 @@ def get_recs_with_outcomes(client_id, limit=50):
         conn.close()
 
 
+def get_outcomes_with_gaps(client_id=None, limit=None):
+    """Return outcomes whose notes mention missing price data — candidates
+    for the heal CLI to re-process. Joined to portfolio_recommendations so we
+    can filter by client_id and have all the context needed for re-compute.
+
+    Each row dict carries the rec fields the observer needs: rec_id,
+    created_at, total_value, holdings, suggested_weights, attribution.
+    """
+    conn = _get_db()
+    try:
+        sql = """
+            SELECT
+                o.id AS outcome_id,
+                o.rec_id, o.horizon_days, o.notes AS prev_notes,
+                r.created_at, r.total_value, r.client_id,
+                r.holdings_json, r.suggested_weights_json, r.attribution_json
+            FROM recommendation_outcomes o
+            JOIN portfolio_recommendations r ON r.rec_id = o.rec_id
+            WHERE o.notes LIKE '%No price data%'
+        """
+        args = []
+        if client_id:
+            sql += " AND r.client_id = ?"
+            args.append(client_id)
+        sql += " ORDER BY o.measured_at DESC"
+        if limit:
+            sql += " LIMIT ?"
+            args.append(int(limit))
+        rows = conn.execute(sql, args).fetchall()
+
+        results = []
+        for r in rows:
+            d = dict(r)
+            for raw_key, clean_key in (
+                ("holdings_json", "holdings"),
+                ("suggested_weights_json", "suggested_weights"),
+                ("attribution_json", "attribution"),
+            ):
+                raw = d.pop(raw_key, None)
+                if raw:
+                    try:
+                        d[clean_key] = json.loads(raw)
+                    except (json.JSONDecodeError, TypeError):
+                        d[clean_key] = None
+                else:
+                    d[clean_key] = None
+            results.append(d)
+        return results
+    finally:
+        conn.close()
+
+
 def list_due_horizons(rec_id, rec_created_at_iso, now=None):
     """For a given rec, return the list of horizons that have come due (i.e.
     enough days have elapsed since the rec) AND don't yet have an outcome row.
