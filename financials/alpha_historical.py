@@ -238,32 +238,49 @@ def _sector_cycles_at(ctx, as_of_date):
 
 
 def _earnings_data_at(earnings_df, as_of_date):
-    """Reshape a yfinance earnings_history DataFrame into the dict shape
+    """Reshape a yfinance earnings DataFrame into the dict shape that
     score_earnings_surprise expects, filtered to events before as_of_date.
+
+    yfinance's `earnings_history` only returns the 4 most recent quarters
+    (all from the current year), which misses everything in the backtest
+    window. `earnings_dates` goes back ~5 years with 'Surprise(%)' in
+    percent form (matching the thresholds in score_earnings_surprise).
     """
     if earnings_df is None or earnings_df.empty:
         return None
     try:
-        # yfinance earnings_history is indexed by date. Filter to events <= as_of_date.
         df = earnings_df.copy()
         try:
             df.index = df.index.tz_localize(None)
         except (TypeError, AttributeError):
             pass
         df = df[df.index <= as_of_date]
+        # Different yfinance endpoints use different column names. earnings_dates
+        # uses 'Surprise(%)' (percent); earnings_history uses 'surprisePercent'
+        # (decimal, needs *100 scale-up). Handle both so we don't break if the
+        # caller passes in either shape.
+        if "Surprise(%)" in df.columns:
+            surp_col = "Surprise(%)"
+            scale = 1.0
+        elif "surprisePercent" in df.columns:
+            surp_col = "surprisePercent"
+            scale = 100.0
+        else:
+            return None
+        df = df.dropna(subset=[surp_col])
         if df.empty:
             return None
-        # Reverse so most recent is first (matches alpha_signals convention)
+        # Most recent first.
         df = df.sort_index(ascending=False).head(8)
         history = []
         beats = 0
         surprises = []
         for _idx, row in df.iterrows():
-            surp = row.get("surprisePercent") or row.get("epsSurprise") or 0
+            raw = row.get(surp_col)
             try:
-                surp_f = float(surp)
+                surp_f = float(raw) * scale
             except (TypeError, ValueError):
-                surp_f = 0.0
+                continue
             history.append({"surprise": surp_f})
             surprises.append(surp_f)
             if surp_f > 0:
@@ -318,15 +335,16 @@ def prefetch_backtest_context(symbols, as_of_start=None, as_of_end=None):
     # Macro.
     ctx.macro_history = _fetch_macro_history()
 
-    # Earnings history (synchronous fetch per symbol, yfinance doesn't expose
-    # historical earnings by date filter — we fetch all and filter later).
+    # Earnings history. earnings_dates goes back ~5 years with EPS surprises
+    # in percent form. earnings_history (used in production) only returns the
+    # 4 most recent quarters, all after the backtest window.
     def _fetch_one_earnings(sym):
         cache_key = f"bt_earnings:{sym}"
         cached = cache.get(cache_key)
         if cached is not None:
             return sym, cached
         try:
-            df = yf.Ticker(sym).earnings_history
+            df = yf.Ticker(sym).earnings_dates
             cache.put(cache_key, df, ttl=HIST_CACHE_TTL)
             return sym, df
         except Exception:
