@@ -8,6 +8,10 @@
         Past portfolio optimizer recommendations and their realized performance. Outcomes appear at 30, 90, 180, and 365 day horizons after each recommendation.
     </p>
 
+    {# Watchlist summary — client-rendered from localStorage, filled in by
+       the inline script below. Hidden if no actions exist. #}
+    <div id="watchlist-summary" class="mb-6" hidden></div>
+
     <div id="history-content" class="min-h-[200px]">
         <div class="flex flex-col items-center justify-center py-12">
             <div class="animate-spin rounded-full h-10 w-10 border-4 border-brand dark:border-blue-400 border-t-transparent mb-3"></div>
@@ -21,6 +25,57 @@
     var clientId = window.__clientId;
     var content = document.getElementById('history-content');
     if (!content) return;
+
+    // Render watchlist summary (from localStorage, no server call needed).
+    function renderWatchlistSummary() {
+        var panel = document.getElementById('watchlist-summary');
+        if (!panel) return;
+        var store = (window.MM_Watchlist && MM_Watchlist.get()) || {};
+        var entries = Object.keys(store).map(function(sym) {
+            return { symbol: sym, action: store[sym].action, at: store[sym].at };
+        });
+        if (!entries.length) {
+            panel.hidden = true;
+            return;
+        }
+        entries.sort(function(a, b) { return (b.at || '').localeCompare(a.at || ''); });
+        var watching = entries.filter(function(e) { return e.action === 'watching'; });
+        var declined = entries.filter(function(e) { return e.action === 'declined'; });
+
+        function chip(e, colorClass) {
+            return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ' + colorClass + '">' +
+                   '<span class="font-mono">' + e.symbol + '</span>' +
+                   '<button type="button" data-remove-watch="' + e.symbol + '" class="text-[10px] opacity-60 hover:opacity-100" title="Remove">×</button>' +
+                   '</span>';
+        }
+        var html = '<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">';
+        html += '<div class="flex items-center gap-4 mb-2 flex-wrap">';
+        html += '<h2 class="text-sm font-semibold text-brand dark:text-blue-300">Your suggestion actions</h2>';
+        html += '<span class="text-xs text-gray-500 dark:text-gray-400">' + watching.length + ' watching &middot; ' + declined.length + ' passed</span>';
+        html += '</div>';
+        if (watching.length) {
+            html += '<div class="mb-2"><div class="text-xs uppercase font-semibold text-blue-700 dark:text-blue-300 mb-1">Watching</div>';
+            html += '<div class="flex flex-wrap gap-1.5">' + watching.map(function(e){return chip(e, 'bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-700');}).join('') + '</div></div>';
+        }
+        if (declined.length) {
+            html += '<div><div class="text-xs uppercase font-semibold text-gray-600 dark:text-gray-400 mb-1">Passed</div>';
+            html += '<div class="flex flex-wrap gap-1.5">' + declined.map(function(e){return chip(e, 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600');}).join('') + '</div></div>';
+        }
+        html += '</div>';
+        panel.innerHTML = html;
+        panel.hidden = false;
+
+        // Remove-chip handlers.
+        panel.querySelectorAll('[data-remove-watch]').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var sym = btn.getAttribute('data-remove-watch');
+                if (window.MM_Watchlist) MM_Watchlist.set(sym, null);
+                renderWatchlistSummary();
+            });
+        });
+    }
+    renderWatchlistSummary();
 
     if (!clientId) {
         content.innerHTML = '<p class="text-gray-500 dark:text-gray-400 italic p-4">No client id available. <a href="/portfolio" class="text-brand dark:text-blue-300 hover:underline">Run the Portfolio Optimizer</a> at least once to start building your history.</p>';

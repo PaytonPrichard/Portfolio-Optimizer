@@ -282,6 +282,8 @@ function fetchWidget(containerId, url, body) {
                 retryDiv.innerHTML = '<button onclick="retryWidget(\'' + containerId + '\')" class="text-xs font-semibold text-brand dark:text-blue-300 hover:underline px-2 py-1 border border-brand/30 dark:border-blue-400/30 rounded">Retry</button>';
                 el.appendChild(retryDiv);
             }
+            // Apply watchlist state to any newly-injected suggestion rows.
+            MM_Watchlist.applyState(el);
         })
         .catch(function () {
             el.innerHTML =
