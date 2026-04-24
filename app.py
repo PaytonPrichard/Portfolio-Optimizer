@@ -21,6 +21,7 @@ from routes.portfolio import portfolio_bp
 from routes.portfolio_widgets import portfolio_widgets_bp
 from routes.alpha import alpha_bp
 from routes.earnings import earnings_bp
+from routes.backtest import backtest_bp
 
 
 def _sanitize_nan(obj):
@@ -76,6 +77,7 @@ def create_app():
     app.register_blueprint(portfolio_widgets_bp)
     app.register_blueprint(alpha_bp)
     app.register_blueprint(earnings_bp)
+    app.register_blueprint(backtest_bp)
 
     # ── Health check endpoint ──────────────────────────────────────
     @app.route("/health")

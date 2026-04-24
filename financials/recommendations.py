@@ -94,7 +94,10 @@ def insert_recommendation(rec):
     symbol -> {factor: contribution}), confidence_score (0-100).
     """
     rec_id = rec.get("rec_id") or str(uuid.uuid4())
-    now = datetime.now().isoformat()
+    # `created_at` override lets the backtest persist historical rec dates so
+    # the outcome observer measures realized performance over the correct
+    # historical window. Production path omits it and gets "now".
+    now = rec.get("created_at") or datetime.now().isoformat()
 
     with _db_lock:
         conn = _get_db()

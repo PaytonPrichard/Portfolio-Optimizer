@@ -28,6 +28,9 @@ DEFAULT_DELTA = 2.5
 DEFAULT_VIEW_TILT = 0.03
 DEFAULT_WINDOW = "3y"
 COV_RIDGE = 1e-6
+# One-way transaction cost applied to turnover (10 bps). Trades whose
+# expected-return edge doesn't exceed 2x TC (round-trip) are dropped.
+DEFAULT_TC_BPS = 10.0
 MKT_CAP_TTL = 3600
 SECTOR_TTL = 86400
 
@@ -150,6 +153,54 @@ def _fetch_classifications(symbols):
             except Exception:
                 out[sym] = ("Unknown", False)
     return out
+
+
+def ledoit_wolf_shrinkage(returns_matrix):
+    """Ledoit-Wolf (2004) shrinkage toward a scaled-identity target.
+
+    Returns (sigma_daily, shrinkage_intensity). `returns_matrix` is T x N.
+    Shrinkage intensity is in [0, 1] where 1 = full shrinkage to target
+    (homogeneous variance, zero correlation), 0 = sample covariance.
+
+    The scaled-identity target is the simplest Ledoit-Wolf variant and
+    works well for equity returns at typical N (10-40 holdings) and
+    T (500-750 days).
+
+    Math (Ledoit & Wolf 2003/2004):
+      S = sample cov (T-divisor, not T-1)
+      F = (trace(S) / N) * I                  [shrinkage target]
+      d^2 = ||S - F||^2_F                      [squared distance to target]
+      b^2 = (1/T^2) * sum_t ||x_t x_t' - S||^2_F   [MLE noise]
+      b^2 capped at d^2; delta = b^2 / d^2 in [0, 1]
+      S_shrunk = delta * F + (1 - delta) * S
+    """
+    T, N = returns_matrix.shape
+    if T < 2 or N < 1:
+        return np.eye(N), 1.0
+
+    X = returns_matrix - returns_matrix.mean(axis=0, keepdims=True)
+    S = (X.T @ X) / T  # MLE cov, matches Ledoit-Wolf paper
+
+    # Target: scaled identity.
+    mu = np.trace(S) / N
+    F = mu * np.eye(N)
+
+    # d^2 = ||S - F||^2_F
+    d2 = float(np.sum((S - F) ** 2))
+    if d2 <= 0:
+        return S, 0.0
+
+    # b^2 vectorized: (1/T^2) * sum_t [(x_t'x_t)^2 - 2 x_t' S x_t + ||S||^2_F]
+    norms_x = (X * X).sum(axis=1)                  # T-vector
+    qforms = np.einsum("ij,jk,ik->i", X, S, X)     # T-vector
+    frob_S_sq = float((S * S).sum())
+    b2 = float(((norms_x ** 2).sum() - 2 * qforms.sum() + T * frob_S_sq) / (T ** 2))
+    b2 = max(0.0, min(b2, d2))  # theoretical bound
+
+    delta = b2 / d2
+    delta = max(0.0, min(1.0, delta))
+    sigma = delta * F + (1 - delta) * S
+    return sigma, delta
 
 
 def _cap_max(w, max_w):
@@ -532,21 +583,45 @@ def _build_return_matrix(symbols, window=DEFAULT_WINDOW):
 
 def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
                               tilt=DEFAULT_VIEW_TILT, window=DEFAULT_WINDOW,
-                              constraints=None):
+                              constraints=None,
+                              as_of_date=None,
+                              alpha_scores_override=None,
+                              regime_override=None,
+                              historical_returns_matrix=None,
+                              historical_usable=None):
     """Run Black-Litterman optimization on a list of holdings.
 
     holdings: list of dicts with at minimum 'symbol' and 'currentValue'.
     Returns None on insufficient data. Otherwise returns a dict with
     current/optimal stats, trades, per-symbol view detail, and diagnostics.
+
+    Backtest hooks (all optional, unused in the production path):
+      as_of_date: datetime — rec date for a historical run.
+      alpha_scores_override: {symbol: {alphaScore, subScores}} — skip yfinance
+        fetch of current scores; use pre-computed historical reconstruction.
+      regime_override: {vix, yield_curve_10y_3m} — skip live regime capture.
+      historical_returns_matrix, historical_usable: pre-built return matrix and
+        usable-symbol list ending at as_of_date. Lets the backtest fetch once
+        and reuse across multiple holdings-templates for the same date.
     """
     valid = [h for h in holdings if (h.get("currentValue") or 0) > 0 and h.get("symbol")]
     if len(valid) < 2:
         return None
 
     all_symbols = [h["symbol"] for h in valid]
-    return_matrix, usable, dropped_history = _build_return_matrix(all_symbols, window)
-    if return_matrix is None:
-        return None
+    if historical_returns_matrix is not None and historical_usable is not None:
+        # Backtest path — caller supplied the pre-built matrix.
+        return_matrix = historical_returns_matrix
+        usable = historical_usable
+        dropped_history = [
+            (s, 0) for s in all_symbols if s not in usable
+        ]
+        if return_matrix is None or len(usable) < 2:
+            return None
+    else:
+        return_matrix, usable, dropped_history = _build_return_matrix(all_symbols, window)
+        if return_matrix is None:
+            return None
 
     usable_holdings = [h for h in valid if h["symbol"] in usable]
     symbols = [h["symbol"] for h in usable_holdings]
@@ -554,22 +629,40 @@ def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
     usable_total = sum(h["currentValue"] for h in usable_holdings)
     current_weights = np.array([h["currentValue"] / usable_total for h in usable_holdings])
 
-    # Covariance (annualized) with ridge for numerical stability on near-singular matrices.
-    sigma = np.cov(return_matrix, rowvar=False, ddof=1) * TRADING_DAYS
-    sigma = sigma + np.eye(n) * COV_RIDGE
+    # Covariance via Ledoit-Wolf shrinkage toward a scaled-identity target.
+    # Reduces noise in off-diagonal estimates; sample cov is notoriously noisy
+    # at typical N/T ratios. Tiny ridge kept for numerical insurance against
+    # degenerate returns (e.g., ETFs with near-identical daily closes).
+    sigma_daily, shrinkage_intensity = ledoit_wolf_shrinkage(return_matrix)
+    sigma = sigma_daily * TRADING_DAYS + np.eye(n) * COV_RIDGE
 
-    # Market-cap equilibrium prior. Fall back to equal weights if any cap missing.
+    # Market-cap equilibrium prior. If some caps are missing, substitute the
+    # median of resolved caps rather than silently falling back to equal-weight
+    # for the whole portfolio. If fewer than half resolve, the median is a bad
+    # anchor and equal-weight is the honest fallback.
     caps_map = _fetch_market_caps(symbols)
-    cap_list = [caps_map.get(s) for s in symbols]
-    if any(c is None or c <= 0 for c in cap_list):
+    resolved = [c for c in (caps_map.get(s) for s in symbols) if c and c > 0]
+    caps_resolved_ratio = len(resolved) / n if n else 0
+    if caps_resolved_ratio < 0.5 or not resolved:
         w_mkt = np.ones(n) / n
+        caps_fallback = "equal_weight"
     else:
+        median_cap = float(np.median(resolved))
+        cap_list = [
+            float(caps_map.get(s)) if (caps_map.get(s) and caps_map.get(s) > 0)
+            else median_cap
+            for s in symbols
+        ]
         caps_array = np.array(cap_list, dtype=float)
         w_mkt = caps_array / caps_array.sum()
+        caps_fallback = "median_substitution" if caps_resolved_ratio < 1.0 else "all_resolved"
 
     pi = delta * sigma @ w_mkt
 
-    alpha_data = _fetch_alpha_scores(symbols)
+    if alpha_scores_override is not None:
+        alpha_data = {s: alpha_scores_override[s] for s in symbols if s in alpha_scores_override}
+    else:
+        alpha_data = _fetch_alpha_scores(symbols)
     # ETFs get Alpha=50 (neutral) — sit at market-cap prior with no view, so
     # the optimizer doesn't actively trim broad-market index funds into single
     # stocks. classifications_map populated below; precompute is_etf set here.
@@ -626,12 +719,28 @@ def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
     cur_ret, cur_vol, cur_sharpe = _stats(current_weights)
     opt_ret, opt_vol, opt_sharpe = _stats(w_opt)
 
+    # Transaction cost gate. For each trade, expected annual benefit is
+    # approximately Δw × (mu_i - rf); round-trip cost is 2 × |Δw| × tc. We drop
+    # trades where the posterior return edge over cash is smaller than the
+    # round-trip cost (i.e., |mu_i - rf| < 2 × tc). Weak-conviction positions
+    # may still hold their current weight for diversification — we just won't
+    # recommend paying TC to add to them.
+    tc_decimal = DEFAULT_TC_BPS / 10000.0
+    tc_edge_hurdle = 2 * tc_decimal
+    tc_filtered = 0
+
     trades = []
     for i, h in enumerate(usable_holdings):
         curr_pct = float(current_weights[i]) * 100
         opt_pct = float(w_opt[i]) * 100
         diff_pct = opt_pct - curr_pct
         diff_dollar = diff_pct / 100 * usable_total
+        mu_edge = abs(float(mu[i]) - RISK_FREE_RATE)
+        passes_tc = mu_edge >= tc_edge_hurdle
+        if not passes_tc and abs(diff_pct) < 5.0:
+            # Sub-threshold view strength AND not a forced compliance move.
+            tc_filtered += 1
+            continue
         # Tighter threshold: 2% AND $100 minimum. Sub-threshold moves are
         # below the noise floor and not worth executing given fees / friction.
         if abs(diff_pct) >= 2.0 and abs(diff_dollar) >= 100:
@@ -675,7 +784,7 @@ def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
     confidence_score, confidence_label = _confidence_score(views_detail)
     current_diversification = _diversification_score(current_weights, sector_list)
     optimal_diversification = _diversification_score(w_opt, sector_list)
-    regime = _capture_regime()
+    regime = regime_override if regime_override is not None else _capture_regime()
 
     current_block = {
         "return": round(cur_ret * 100, 1),
@@ -719,6 +828,11 @@ def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
                 {"symbol": s, "daysAvailable": d} for s, d in dropped_history
             ],
             "minHistoryDays": MIN_HISTORY_DAYS,
+            "shrinkageIntensity": round(float(shrinkage_intensity), 3),
+            "mktCapResolvedRatio": round(caps_resolved_ratio, 2),
+            "mktCapFallback": caps_fallback,
+            "transactionCostBps": DEFAULT_TC_BPS,
+            "tcFilteredTrades": tc_filtered,
         },
         "totalValue": usable_total,
         "improvementPct": round((opt_sharpe - cur_sharpe) / abs(cur_sharpe) * 100, 1) if cur_sharpe != 0 else 0,

@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Backtest - MarketMosaic{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-3xl font-bold text-brand dark:text-blue-300 mb-2">Optimizer Backtest</h1>
+    <p class="text-gray-600 dark:text-gray-400 mb-2">
+        Historical validation of the Black-Litterman optimizer. Generates monthly recs over 2020-2024 using point-in-time Alpha-Lite scores (price-based factors only), then measures realized vs counterfactual and SPY at 30/90/180/365 day horizons.
+    </p>
+    <p class="text-xs text-gray-500 dark:text-gray-500 italic mb-6">
+        Alpha-Lite reconstructs 5 of 13 Alpha sub-factors: momentum, technical, industry_cycle, macro, earnings_surprise. The other 8 (value, quality, growth, analyst, insider, buyback, analyst_momentum, institutional) are held at a neutral 50. IC measurements below cover reconstructed factors only.
+    </p>
+
+    <div id="backtest-content" class="min-h-[400px]">
+        <div class="flex flex-col items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-10 w-10 border-4 border-brand dark:border-blue-400 border-t-transparent mb-3"></div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Loading backtest results...</p>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var container = document.getElementById('backtest-content');
+    if (!container) return;
+
+    function fmt(val, suffix) {
+        if (val === null || val === undefined) return 'N/A';
+        return (val >= 0 ? '+' : '') + val.toFixed(2) + (suffix || '');
+    }
+
+    function classForVal(val) {
+        if (val === null || val === undefined) return 'text-gray-400';
+        if (val > 0) return 'text-green-700 dark:text-green-400';
+        if (val < 0) return 'text-red-600 dark:text-red-400';
+        return 'text-gray-500';
+    }
+
+    function icBarColor(ic) {
+        if (ic === null || ic === undefined) return 'bg-gray-300 dark:bg-gray-600';
+        if (ic > 0.05) return 'bg-green-500';
+        if (ic > 0) return 'bg-green-300';
+        if (ic > -0.05) return 'bg-red-300';
+        return 'bg-red-500';
+    }
+
+    fetch('/api/backtest/data')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.error) throw new Error(data.error);
+            var s = data.summary;
+            if (!s.n_recs) {
+                container.innerHTML = '<div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-6"><p class="text-sm text-amber-800 dark:text-amber-300">No backtest recs yet. Run <code class="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">python -m financials.backtest run</code> followed by <code class="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">python -m financials.backtest observe</code> to populate.</p></div>';
+                return;
+            }
+
+            var html = '';
+
+            // Header stats.
+            html += '<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">';
+            html += '<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">';
+            html += '<div class="text-xs uppercase text-gray-500 dark:text-gray-400 mb-1">Total recs</div>';
+            html += '<div class="text-2xl font-bold text-brand dark:text-blue-300">' + s.n_recs + '</div>';
+            html += '</div>';
+            html += '<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">';
+            html += '<div class="text-xs uppercase text-gray-500 dark:text-gray-400 mb-1">Templates</div>';
+            html += '<div class="text-2xl font-bold text-brand dark:text-blue-300">' + data.templates.length + '</div>';
+            html += '</div>';
+            var h90 = (s.by_horizon || {})[90] || {};
+            html += '<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">';
+            html += '<div class="text-xs uppercase text-gray-500 dark:text-gray-400 mb-1">90d hit vs counterfactual</div>';
+            html += '<div class="text-2xl font-bold ' + classForVal(h90.hit_rate_vs_counterfactual ? h90.hit_rate_vs_counterfactual - 50 : null) + '">' + (h90.hit_rate_vs_counterfactual || 'N/A') + '%</div>';
+            html += '</div>';
+            html += '<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">';
+            html += '<div class="text-xs uppercase text-gray-500 dark:text-gray-400 mb-1">90d hit vs SPY</div>';
+            html += '<div class="text-2xl font-bold ' + classForVal(h90.hit_rate_vs_spy ? h90.hit_rate_vs_spy - 50 : null) + '">' + (h90.hit_rate_vs_spy || 'N/A') + '%</div>';
+            html += '</div>';
+            html += '</div>';
+
+            // Horizon table.
+            html += '<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 mb-6">';
+            html += '<h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-1">Performance by horizon</h2>';
+            html += '<p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Averages across all backtest recs. <b>Rec</b> is the optimizer\'s weighted realized return; <b>Counterfactual</b> is the do-nothing baseline (starting weights held); <b>SPY</b> is the benchmark.</p>';
+            html += '<div class="overflow-x-auto"><table class="w-full text-sm">';
+            html += '<thead class="bg-gray-50 dark:bg-gray-700/50"><tr>';
+            html += '<th class="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300">Horizon</th>';
+            html += '<th class="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-300">N</th>';
+            html += '<th class="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-300">Rec</th>';
+            html += '<th class="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-300">Counterfactual</th>';
+            html += '<th class="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-300">SPY</th>';
+            html += '<th class="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-300">Hit vs CF</th>';
+            html += '<th class="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-300">Hit vs SPY</th>';
+            html += '</tr></thead><tbody>';
+            [30, 90, 180, 365].forEach(function(h) {
+                var row = (s.by_horizon || {})[h] || {};
+                if (!row.n) return;
+                html += '<tr class="border-t border-gray-100 dark:border-gray-700">';
+                html += '<td class="px-3 py-2 font-medium">' + h + 'd</td>';
+                html += '<td class="px-3 py-2 text-right text-gray-600 dark:text-gray-400">' + row.n + '</td>';
+                html += '<td class="px-3 py-2 text-right font-semibold ' + classForVal(row.mean_realized) + '">' + fmt(row.mean_realized, '%') + '</td>';
+                html += '<td class="px-3 py-2 text-right ' + classForVal(row.mean_counterfactual) + '">' + fmt(row.mean_counterfactual, '%') + '</td>';
+                html += '<td class="px-3 py-2 text-right ' + classForVal(row.mean_spy) + '">' + fmt(row.mean_spy, '%') + '</td>';
+                html += '<td class="px-3 py-2 text-right ' + classForVal((row.hit_rate_vs_counterfactual || 0) - 50) + '">' + (row.hit_rate_vs_counterfactual || 0) + '%</td>';
+                html += '<td class="px-3 py-2 text-right ' + classForVal((row.hit_rate_vs_spy || 0) - 50) + '">' + (row.hit_rate_vs_spy || 0) + '%</td>';
+                html += '</tr>';
+            });
+            html += '</tbody></table></div></div>';
+
+            // IC chart per horizon.
+            html += '<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 mb-6">';
+            html += '<h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-1">Factor information coefficient</h2>';
+            html += '<p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Spearman correlation between each reconstructed factor\'s sub-score at rec time and the subsequent forward return. Positive = factor predicts; negative = inversely predicts; near zero = no signal.</p>';
+
+            Object.keys(data.ic).forEach(function(horizonKey) {
+                var ic = data.ic[horizonKey].ic || {};
+                html += '<div class="mb-4">';
+                html += '<div class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">' + horizonKey + ' forward return (n=' + (data.ic[horizonKey].n_observations || 0) + ')</div>';
+                html += '<div class="space-y-1">';
+                Object.keys(ic).forEach(function(factor) {
+                    var val = ic[factor].ic;
+                    var n = ic[factor].n;
+                    var bar = icBarColor(val);
+                    var pct = val === null || val === undefined ? 0 : Math.abs(val) * 100 * 5; // scale for visibility
+                    pct = Math.min(pct, 95);
+                    var label = val === null || val === undefined ? 'N/A' : (val >= 0 ? '+' : '') + val.toFixed(3);
+                    html += '<div class="flex items-center gap-3 text-xs">';
+                    html += '<div class="w-32 text-gray-600 dark:text-gray-400">' + factor.replace(/_/g, ' ') + '</div>';
+                    html += '<div class="flex-1 h-5 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden relative">';
+                    html += '<div class="h-full ' + bar + '" style="width: ' + pct + '%"></div>';
+                    html += '</div>';
+                    html += '<div class="w-16 text-right font-mono font-semibold ' + classForVal(val) + '">' + label + '</div>';
+                    html += '<div class="w-12 text-right text-gray-400 dark:text-gray-500">' + n + '</div>';
+                    html += '</div>';
+                });
+                html += '</div></div>';
+            });
+            html += '</div>';
+
+            // Recs list link.
+            html += '<div class="text-center mb-6">';
+            html += '<button id="load-recs-btn" class="px-4 py-2 bg-brand text-white rounded-lg text-sm font-semibold hover:bg-brand-dark transition">Load all ' + s.n_recs + ' backtest recs</button>';
+            html += '</div>';
+            html += '<div id="backtest-recs-list"></div>';
+
+            container.innerHTML = html;
+
+            var btn = document.getElementById('load-recs-btn');
+            if (btn) {
+                btn.addEventListener('click', function() {
+                    btn.disabled = true;
+                    btn.textContent = 'Loading...';
+                    fetch('/api/backtest/recs')
+                        .then(function(r) { return r.text(); })
+                        .then(function(h) {
+                            document.getElementById('backtest-recs-list').innerHTML = h;
+                            btn.remove();
+                        })
+                        .catch(function() {
+                            btn.disabled = false;
+                            btn.textContent = 'Retry';
+                        });
+                });
+            }
+        })
+        .catch(function(err) {
+            container.innerHTML = '<p class="text-red-500 italic p-4">Could not load backtest: ' + (err && err.message ? err.message : 'unknown error') + '</p>';
+        });
+})();
+</script>
+{% endblock %}

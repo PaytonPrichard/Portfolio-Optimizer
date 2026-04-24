@@ -21,7 +21,7 @@ from .portfolio_widgets import SECTOR_ETFS
 from .portfolio_risk import _fetch_daily_returns, RISK_FREE_RATE, TRADING_DAYS
 from .portfolio_optimizer import (
     _build_return_matrix, _fetch_classifications, _fetch_alpha_scores,
-    _fetch_market_caps, _apply_hard_constraints,
+    _fetch_market_caps, _apply_hard_constraints, ledoit_wolf_shrinkage,
     ETF_SECTOR_KEY, GICS_SECTORS, COV_RIDGE, DEFAULT_WINDOW,
     DEFAULT_TAU, DEFAULT_DELTA, DEFAULT_VIEW_TILT,
 )
@@ -252,8 +252,8 @@ def holistic_optimization(
         return []
 
     n = len(usable)
-    sigma = np.cov(return_matrix, rowvar=False, ddof=1) * TRADING_DAYS
-    sigma = sigma + np.eye(n) * COV_RIDGE
+    sigma_daily, _shrink = ledoit_wolf_shrinkage(return_matrix)
+    sigma = sigma_daily * TRADING_DAYS + np.eye(n) * COV_RIDGE
 
     # Market-cap prior over the combined universe.
     caps_map = _fetch_market_caps(usable)
@@ -369,8 +369,8 @@ def compute_suggestions(holdings, top_n_marginal=TOP_N_MARGINAL, gap_threshold=G
     current_weights = np.array([h["currentValue"] / usable_total for h in usable_holdings])
     base["currentSymbols"] = symbols
 
-    sigma = np.cov(return_matrix, rowvar=False, ddof=1) * TRADING_DAYS
-    sigma = sigma + np.eye(n) * COV_RIDGE
+    sigma_daily, _shrink = ledoit_wolf_shrinkage(return_matrix)
+    sigma = sigma_daily * TRADING_DAYS + np.eye(n) * COV_RIDGE
 
     classifications_current = _fetch_classifications(symbols)
     sector_list = [classifications_current.get(s, ("Unknown", False))[0] for s in symbols]

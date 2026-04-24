@@ -11,6 +11,8 @@ build/
 inputs/
 Inputs - Ignore/
 data/*.db
+data/*.db-*
+backtest_run.log
 .claude/
 
 .vercel
