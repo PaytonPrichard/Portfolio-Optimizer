@@ -673,11 +673,13 @@ def _compute_health_score(holdings, by_sector, concentration, analyst_overview):
     conc_penalty = len(concentration) * 8
     conc_score = max(25 - conc_penalty, 0)
 
-    # Analyst sentiment (0-25): buy ratio and upside
-    total_covered = analyst_overview.get("totalCovered", 0)
-    buys = analyst_overview.get("buys", 0)
+    # Analyst sentiment (0-25): buy ratio and upside.
+    # weightedUpside can be None when no holdings have analyst targets;
+    # coerce so the min() comparison doesn't crash on None.
+    total_covered = analyst_overview.get("totalCovered", 0) or 0
+    buys = analyst_overview.get("buys", 0) or 0
     buy_ratio = buys / total_covered if total_covered > 0 else 0.5
-    weighted_upside = analyst_overview.get("weightedUpside", 0)
+    weighted_upside = analyst_overview.get("weightedUpside") or 0
     sentiment_score = min(buy_ratio * 15 + min(weighted_upside, 20) / 20 * 10, 25)
 
     # Cost health (0-25): portfolio gain/loss ratio
