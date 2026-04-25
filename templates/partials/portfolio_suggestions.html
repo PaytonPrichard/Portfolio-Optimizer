@@ -31,6 +31,11 @@
         <p class="font-semibold mb-1">Suggestions paused: data source rate-limited.</p>
         <p>Yahoo Finance throttles requests after batch jobs (like a fresh universe seed). Reload this page in 30-60 minutes to see suggestions.</p>
     </div>
+    {% elif diagnostic %}
+    <div class="bg-gray-50 dark:bg-gray-700/30 border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-3 mb-4 text-sm text-gray-700 dark:text-gray-300">
+        <p class="font-semibold mb-1">Why suggestions are empty</p>
+        <p>{{ diagnostic }}</p>
+    </div>
     {% endif %}
 
     {# Sub-tabs #}

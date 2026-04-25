@@ -339,10 +339,12 @@ def compute_suggestions(holdings, top_n_marginal=TOP_N_MARGINAL, gap_threshold=G
         "currentSectorBreakdown": {},
         "dataFreshness": _get_data_freshness(),
         "rateLimited": False,
+        "diagnostic": None,  # filled when we return empty so the UI can explain why
     }
 
     valid = [h for h in holdings if (h.get("currentValue") or 0) > 0 and h.get("symbol")]
     if len(valid) < 2:
+        base["diagnostic"] = "Need at least 2 holdings with positive values to compute suggestions."
         return base
 
     total_value = float(sum(h["currentValue"] for h in valid))
@@ -352,14 +354,32 @@ def compute_suggestions(holdings, top_n_marginal=TOP_N_MARGINAL, gap_threshold=G
     universe = [c for c in get_candidate_universe() if c["symbol"] not in held_symbols]
     base["candidatesScreened"] = len(universe)
 
+    if not universe:
+        base["diagnostic"] = (
+            "Candidate universe is empty. Run "
+            "`python -m financials.alpha_collector full` to seed the universe."
+        )
+        return base
+
     current_symbols_input = [h["symbol"] for h in valid]
-    return_matrix, usable, _ = _build_return_matrix(current_symbols_input, DEFAULT_WINDOW)
+    return_matrix, usable, dropped = _build_return_matrix(current_symbols_input, DEFAULT_WINDOW)
     if return_matrix is None:
-        # Heuristic rate-limit detection: if a major ticker comes back empty,
-        # yfinance is almost certainly throttled.
+        # Distinguish rate-limit from short-history. Probe a major ticker:
+        # if even SPY comes back empty, yfinance is throttled. If it returns
+        # data, the user's holdings just don't have enough history (e.g.,
+        # very recent IPOs).
         probe = _fetch_daily_returns(valid[0]["symbol"], DEFAULT_WINDOW)
-        if not probe:
+        spy_probe = _fetch_daily_returns("SPY", DEFAULT_WINDOW)
+        if not probe and not spy_probe:
             base["rateLimited"] = True
+            base["diagnostic"] = "Yahoo Finance rate-limited. Retry in 30-60 minutes."
+        else:
+            short_syms = [s for s, _ in dropped]
+            base["diagnostic"] = (
+                "Not enough return history for the holdings to run the optimizer. "
+                "Symbols below the 252-day floor: " + ", ".join(short_syms[:8])
+                + (f" (+{len(short_syms) - 8} more)" if len(short_syms) > 8 else "")
+            )
         return base
 
     usable_holdings = [h for h in valid if h["symbol"] in usable]

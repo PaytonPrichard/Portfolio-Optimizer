@@ -238,12 +238,12 @@ def suggestions_widget():
         result = compute_suggestions(holdings)
         if not result:
             return '<p class="text-gray-400 text-sm italic">No additional position suggestions at this time.</p>'
-        # If every method came back empty AND rate limiting wasn't detected,
-        # there's genuinely nothing to add. If rate limiting WAS detected, the
-        # template renders a useful banner, so always fall through to it when
-        # we have a result object (even if the lists are empty).
+        # Always render the template — it shows rate-limit banners, diagnostic
+        # messages, or actual suggestions depending on what compute_suggestions
+        # returned. Only short-circuit if we genuinely have a fully-empty result
+        # with no diagnostic to show.
         has_any = (result.get("gaps") or result.get("marginal") or result.get("holistic"))
-        if not has_any and not result.get("rateLimited"):
+        if not has_any and not result.get("rateLimited") and not result.get("diagnostic"):
             return '<p class="text-gray-400 text-sm italic">No additional position suggestions at this time.</p>'
         result["holisticDefaultPct"] = int(round(HOLISTIC_MIN_WEIGHT * 100))
         return render_template("partials/portfolio_suggestions.html", **result)
