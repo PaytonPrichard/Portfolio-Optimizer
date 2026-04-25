@@ -182,33 +182,57 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!form || !fileInput || !btn || !container) return;
 
-    // ── Portfolio Snapshot Restore ────────────────────────────────────
+    // ── Portfolio Cache: auto-load last analysis ──────────────────────
+    // Renders cached HTML on page entry (no click required) so revisiting
+    // /portfolio is instant. Adds a "Analyzed N min ago — Re-run" toolbar so
+    // the user sees the freshness and can refresh on demand. Cache expires
+    // after CACHE_MAX_AGE_MS so stale data eventually clears itself.
     var SNAP_KEY = "portfolio_last_analysis";
+    var CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;  // 24 hours
+    function _renderToolbar(timestamp) {
+        var ageMs = Date.now() - timestamp;
+        var ageMin = Math.round(ageMs / 60000);
+        var ageStr;
+        if (ageMin < 1) ageStr = "just now";
+        else if (ageMin < 60) ageStr = ageMin + " min ago";
+        else if (ageMin < 60 * 24) ageStr = Math.round(ageMin / 60) + " hr ago";
+        else ageStr = Math.round(ageMin / 60 / 24) + " day(s) ago";
+        var bar = document.createElement("div");
+        bar.id = "portfolio-cache-toolbar";
+        bar.className = "bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-2 mb-4 flex items-center justify-between flex-wrap gap-2 text-sm";
+        bar.innerHTML =
+            '<span class="text-gray-600 dark:text-gray-400">Analyzed <span class="font-semibold">' + ageStr + '</span>. Showing cached results.</span>' +
+            '<div class="flex gap-2">' +
+            '<button id="cache-rerun" class="text-xs font-semibold text-white bg-brand hover:bg-brand-dark px-3 py-1.5 rounded transition">Re-run analysis</button>' +
+            '<button id="cache-clear" class="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 px-2 py-1.5 transition">Clear</button>' +
+            '</div>';
+        return bar;
+    }
     try {
         var snap = JSON.parse(localStorage.getItem(SNAP_KEY));
         if (snap && snap.html && snap.timestamp) {
-            var dateStr = new Date(snap.timestamp).toLocaleString();
-            var bar = document.createElement("div");
-            bar.className = "bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg px-4 py-3 mb-4 flex items-center justify-between flex-wrap gap-2";
-            bar.innerHTML =
-                '<span class="text-sm text-blue-700 dark:text-blue-300">Resume last analysis from ' + dateStr + '</span>' +
-                '<div class="flex gap-2">' +
-                '<button id="snap-load" class="text-xs font-semibold text-white bg-brand hover:bg-brand-dark px-3 py-1.5 rounded transition">Load</button>' +
-                '<button id="snap-dismiss" class="text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 px-2 py-1.5 transition">Dismiss</button>' +
-                '</div>';
-            container.parentNode.insertBefore(bar, container);
-            document.getElementById("snap-load").addEventListener("click", function () {
+            var ageMs = Date.now() - snap.timestamp;
+            if (ageMs > CACHE_MAX_AGE_MS) {
+                localStorage.removeItem(SNAP_KEY);
+            } else {
+                var bar = _renderToolbar(snap.timestamp);
+                container.parentNode.insertBefore(bar, container);
                 container.innerHTML = snap.html;
-                bar.remove();
                 try {
                     if (typeof initTableSorting === "function") initTableSorting();
                     if (typeof loadPortfolioWidgets === "function") loadPortfolioWidgets();
                 } catch (e) {}
-            });
-            document.getElementById("snap-dismiss").addEventListener("click", function () {
-                bar.remove();
-                localStorage.removeItem(SNAP_KEY);
-            });
+                document.getElementById("cache-rerun").addEventListener("click", function () {
+                    bar.remove();
+                    container.innerHTML = "";
+                    document.getElementById("portfolio-form").scrollIntoView({ behavior: "smooth", block: "start" });
+                });
+                document.getElementById("cache-clear").addEventListener("click", function () {
+                    bar.remove();
+                    container.innerHTML = "";
+                    localStorage.removeItem(SNAP_KEY);
+                });
+            }
         }
     } catch (e) {}
 
@@ -282,9 +306,21 @@ document.addEventListener("DOMContentLoaded", function () {
                             localStorage.setItem(SNAP_KEY, JSON.stringify({ html: html, timestamp: Date.now() }));
                         }
                     } catch (e) {}
-                    // Remove any restore bar
-                    var oldBar = document.getElementById("snap-load");
-                    if (oldBar) { var p = oldBar.closest(".bg-blue-50, .dark\\:bg-blue-900\\/20"); if (p) p.remove(); }
+                    // Remove any cache toolbar from prior visit; replace with fresh one
+                    var oldBar = document.getElementById("portfolio-cache-toolbar");
+                    if (oldBar) oldBar.remove();
+                    var bar = _renderToolbar(Date.now());
+                    container.parentNode.insertBefore(bar, container);
+                    document.getElementById("cache-rerun").addEventListener("click", function () {
+                        bar.remove();
+                        container.innerHTML = "";
+                        document.getElementById("portfolio-form").scrollIntoView({ behavior: "smooth", block: "start" });
+                    });
+                    document.getElementById("cache-clear").addEventListener("click", function () {
+                        bar.remove();
+                        container.innerHTML = "";
+                        localStorage.removeItem(SNAP_KEY);
+                    });
                     // Init sort dropdowns and load async insight widgets.
                     // Wrapped in try/catch so a widget error can't nuke the results.
                     try {

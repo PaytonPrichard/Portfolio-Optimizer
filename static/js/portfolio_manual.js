@@ -178,6 +178,16 @@
             .then(function (html) {
                 container.innerHTML = html;
                 container.scrollIntoView({ behavior: "smooth", block: "start" });
+                // Cache the result so /portfolio loads instantly on next visit.
+                // Same key the CSV-upload path uses; either entry mode benefits.
+                try {
+                    if (html.length < 500000) {
+                        localStorage.setItem(
+                            "portfolio_last_analysis",
+                            JSON.stringify({ html: html, timestamp: Date.now() })
+                        );
+                    }
+                } catch (e) {}
                 try {
                     if (typeof initTableSorting === "function") {
                         initTableSorting();
