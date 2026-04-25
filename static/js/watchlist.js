@@ -29,7 +29,16 @@ var MM_Watchlist = {
     applyState: function (container) {
         if (!container) container = document;
         var store = this.get();
-        container.querySelectorAll("[data-watchlist-symbol]").forEach(function (wrap) {
+        // querySelectorAll only matches descendants, so when handleClick passes
+        // the wrap itself we need to include it. Treat the container as both
+        // possibly-self and possibly-parent.
+        var wraps;
+        if (container.matches && container.matches("[data-watchlist-symbol]")) {
+            wraps = [container];
+        } else {
+            wraps = container.querySelectorAll("[data-watchlist-symbol]");
+        }
+        wraps.forEach(function (wrap) {
             var sym = wrap.getAttribute("data-watchlist-symbol");
             var current = (store[sym] && store[sym].action) || null;
             wrap.querySelectorAll(".wl-btn").forEach(function (btn) {
