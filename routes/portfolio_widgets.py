@@ -175,6 +175,7 @@ MODE_CONSTRAINTS = {
         "max_sector": 0.50,
         "max_turnover": 0.40,
     },
+    "index_core": {},  # uses defaults; pin_broad_etfs flag triggers ETF lock
 }
 
 
@@ -265,7 +266,11 @@ def optimizer_widget():
         client_id = (data.get("clientId") or "").strip() or "anonymous"
 
         constraints_override = MODE_CONSTRAINTS[mode]
-        result = black_litterman_optimize(holdings, constraints=constraints_override)
+        result = black_litterman_optimize(
+            holdings,
+            constraints=constraints_override,
+            pin_broad_etfs=(mode == "index_core"),
+        )
         if result is None:
             return '<p class="text-gray-400 text-sm italic">Need at least 2 holdings for portfolio optimization.</p>'
 

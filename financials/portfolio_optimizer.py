@@ -588,7 +588,8 @@ def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
                               alpha_scores_override=None,
                               regime_override=None,
                               historical_returns_matrix=None,
-                              historical_usable=None):
+                              historical_usable=None,
+                              pin_broad_etfs=False):
     """Run Black-Litterman optimization on a list of holdings.
 
     holdings: list of dicts with at minimum 'symbol' and 'currentValue'.
@@ -709,6 +710,44 @@ def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
     w_opt, constraint_report = _apply_constraints(
         w_opt, current_weights, sector_list, sigma, effective_constraints,
     )
+
+    # Index-Core mode: pin broad-market ETF weights to current, redistribute
+    # the remainder across non-ETF positions only. Lets users hold a passive
+    # core (VOO/VTI/QQQ etc.) untouched while the optimizer works on the
+    # satellite. Non-ETF positions get scaled proportionally to their
+    # post-constraint weights, then we re-cap any that exceed max_weight.
+    pinned_etfs_count = 0
+    if pin_broad_etfs and is_broad_etf_set:
+        etf_idx = [i for i, s in enumerate(symbols) if s in is_broad_etf_set]
+        non_etf_idx = [i for i in range(n) if i not in etf_idx]
+        if etf_idx and non_etf_idx:
+            pinned_total = float(sum(current_weights[i] for i in etf_idx))
+            free_budget = max(0.0, 1.0 - pinned_total)
+            non_etf_sum = float(sum(w_opt[i] for i in non_etf_idx))
+            if non_etf_sum > 0 and free_budget > 0:
+                scale = free_budget / non_etf_sum
+                for i in etf_idx:
+                    w_opt[i] = float(current_weights[i])
+                for i in non_etf_idx:
+                    w_opt[i] = float(w_opt[i]) * scale
+                # Re-cap any non-ETF that breached max_weight after scaling.
+                # Only redistribute among other non-ETF (ETFs stay pinned).
+                max_w = effective_constraints["max_weight"]
+                for _ in range(20):
+                    over = [i for i in non_etf_idx if w_opt[i] > max_w + 1e-9]
+                    if not over:
+                        break
+                    excess = sum(w_opt[i] - max_w for i in over)
+                    for i in over:
+                        w_opt[i] = max_w
+                    free_others = [i for i in non_etf_idx if i not in over]
+                    free_others_sum = sum(w_opt[i] for i in free_others)
+                    if free_others_sum <= 0:
+                        break
+                    for i in free_others:
+                        w_opt[i] *= (free_others_sum + excess) / free_others_sum
+                pinned_etfs_count = len(etf_idx)
+                constraint_report["applied"].append("pin_broad_etfs")
 
     def _stats(w):
         exp_ret = float(w @ mu)
@@ -845,6 +884,7 @@ def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
             "mktCapFallback": caps_fallback,
             "transactionCostBps": DEFAULT_TC_BPS,
             "tcFilteredTrades": tc_filtered,
+            "pinnedEtfsCount": pinned_etfs_count,
         },
         "totalValue": usable_total,
         "improvementPct": round((opt_sharpe - cur_sharpe) / abs(cur_sharpe) * 100, 1) if cur_sharpe != 0 else 0,

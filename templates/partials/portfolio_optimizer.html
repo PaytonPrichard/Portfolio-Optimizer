@@ -80,16 +80,30 @@
                     class="px-3 py-1 rounded-md transition {{ 'bg-white dark:bg-gray-800 text-brand dark:text-blue-300 shadow-sm' if mode == 'return_max' else 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200' }}">
                 Return-Max
             </button>
+            <button type="button" data-opt-mode="index_core"
+                    aria-pressed="{{ 'true' if mode == 'index_core' else 'false' }}"
+                    class="px-3 py-1 rounded-md transition {{ 'bg-white dark:bg-gray-800 text-brand dark:text-blue-300 shadow-sm' if mode == 'index_core' else 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200' }}">
+                Index-Core
+            </button>
         </div>
     </div>
 
     <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
         {% if mode == 'diversification' %}
-        Focused on diversification and rebalancing. Switch to Return-Max for a return-focused view with looser constraints.
-        {% else %}
+        Focused on diversification and rebalancing. Switch to Return-Max for looser constraints, or Index-Core to keep your broad ETFs untouched.
+        {% elif mode == 'return_max' %}
         Return-maximizing view with loosened sector and turnover caps. Higher potential return, more concentration allowed.
+        {% else %}
+        Core-satellite mode. Broad-market ETFs (VOO, VTI, QQQ, etc.) are pinned at their current weight. The optimizer only rebalances your stock and sector-ETF holdings around them.
         {% endif %}
     </p>
+
+    {% if mode == 'index_core' and diagnostics.pinnedEtfsCount %}
+    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg px-4 py-2 mb-4 text-xs text-blue-800 dark:text-blue-300">
+        <span class="font-semibold">Index-Core mode</span> &middot;
+        {{ diagnostics.pinnedEtfsCount }} broad-market ETF{{ 's' if diagnostics.pinnedEtfsCount != 1 }} pinned at current weight. Optimizer rebalances only the satellite positions.
+    </div>
+    {% endif %}
 
     {% if complianceNarrative %}
     <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg px-4 py-3 mb-4 text-sm text-amber-800 dark:text-amber-300">

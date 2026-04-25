@@ -247,7 +247,9 @@ function loadPortfolioWidgets() {
             if (!entry || entry.body.mode === mode) return;
             entry.body.mode = mode;
             // Show the same spinner/loader used on first render.
-            var modeLabel = mode === "return_max" ? "Return-Max" : "Diversification";
+            var modeLabel = mode === "return_max" ? "Return-Max"
+                : mode === "index_core" ? "Index-Core"
+                : "Diversification";
             optimizerEl.innerHTML =
                 '<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">' +
                 '<h2 class="text-lg font-semibold text-brand dark:text-blue-300 mb-4">Portfolio Optimizer</h2>' +
