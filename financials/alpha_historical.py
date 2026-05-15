@@ -17,6 +17,7 @@ Layered API:
   calls across dates.
 """
 
+import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -27,6 +28,7 @@ import yfinance as yf
 from . import cache
 from .alpha import (
     _score_momentum, _score_industry_cycle,
+    _score_value, _score_growth, _score_quality,
     _get_factor_weights,
 )
 from .alpha_signals import (
@@ -37,15 +39,21 @@ from .portfolio_widgets import SECTOR_ETFS
 
 RECONSTRUCTED_FACTORS = (
     "momentum", "technical", "industry_cycle", "macro", "earnings_surprise",
+    "value", "growth", "quality",
 )
 NEUTRAL_SCORE = 50
 HIST_CACHE_TTL = 86400  # 24h — historical values don't change
 
+# Annual 10-K filings typically post 60-90 days after fiscal year-end. We
+# apply this cushion before using an FY's data so the backtest doesn't leak
+# future info. earnings_dates uses the announcement date directly so no
+# cushion is needed for EPS-derived fields.
+FILING_LAG_DAYS = 90
+
 # Factors we don't reconstruct get held at neutral. Track which ones so the
 # backtest can filter IC computation to reconstructed signals only.
 NON_RECONSTRUCTED_FACTORS = (
-    "value", "quality", "growth", "analyst", "insider",
-    "buyback", "analyst_momentum", "institutional",
+    "analyst", "insider", "buyback", "analyst_momentum", "institutional",
 )
 
 
@@ -58,7 +66,8 @@ class BacktestContext:
     closes: dict = field(default_factory=dict)  # symbol -> list of (date, close) tuples
     macro_history: Optional[dict] = None  # {"vix": [(date, val)], "yield10y": ..., "yield3m": ...}
     sector_etf_closes: dict = field(default_factory=dict)  # etf -> list of (date, close)
-    earnings_raw: dict = field(default_factory=dict)  # symbol -> yfinance earnings_history DataFrame
+    earnings_raw: dict = field(default_factory=dict)  # symbol -> yfinance earnings_dates DataFrame
+    income_annual: dict = field(default_factory=dict)  # symbol -> list of {fy_end, revenue, gross_profit, operating_income}
 
 
 def _daily_closes_up_to(series_list, as_of_date):
@@ -237,6 +246,183 @@ def _sector_cycles_at(ctx, as_of_date):
     return results
 
 
+def _is_nan(v):
+    """Robust NaN check that handles pandas NaN, numpy NaN, and None."""
+    if v is None:
+        return True
+    try:
+        return math.isnan(float(v))
+    except (TypeError, ValueError):
+        return False
+
+
+def _eps_history_from_earnings(earnings_df):
+    """Extract (announcement_date, reported_eps) tuples from a yfinance
+    earnings_dates DataFrame, sorted ascending. Used to reconstruct TTM EPS
+    and YoY EPS growth.
+
+    `earnings_dates` returns ~5 years of history with both `Reported EPS` and
+    `EPS Estimate`. Announcement date is the index — that IS the public-
+    knowledge date, so no filing-lag cushion is needed for EPS data.
+    """
+    if earnings_df is None or earnings_df.empty:
+        return []
+    try:
+        df = earnings_df.copy()
+        try:
+            df.index = df.index.tz_localize(None)
+        except (TypeError, AttributeError):
+            pass
+        if "Reported EPS" not in df.columns:
+            return []
+        df = df.dropna(subset=["Reported EPS"])
+        df = df.sort_index(ascending=True)
+        out = []
+        for idx, row in df.iterrows():
+            try:
+                eps_val = row["Reported EPS"]
+                if _is_nan(eps_val):
+                    continue
+                eps = float(eps_val)
+                date = idx.to_pydatetime() if hasattr(idx, "to_pydatetime") else idx
+                out.append((date, eps))
+            except (TypeError, ValueError):
+                continue
+        return out
+    except Exception:
+        return []
+
+
+def _fetch_annual_income(symbol):
+    """Fetch and parse yfinance annual income_stmt for a symbol.
+
+    Returns list of dicts sorted ascending by fiscal-year end:
+      [{fy_end, revenue, gross_profit, operating_income}, ...]
+
+    yfinance typically returns 4-5 years of annual data. Most-recent year
+    usually has data; earliest may be NaN. Caller filters by FILING_LAG_DAYS
+    cushion before use so the backtest doesn't leak future info.
+    """
+    cache_key = f"bt_annual_is:{symbol}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    try:
+        df = yf.Ticker(symbol).income_stmt
+        if df is None or df.empty:
+            cache.put(cache_key, [], ttl=HIST_CACHE_TTL)
+            return []
+
+        def _row(name):
+            return df.loc[name] if name in df.index else None
+
+        rev_row = _row("Total Revenue")
+        gp_row = _row("Gross Profit")
+        op_row = _row("Operating Income")
+        if rev_row is None:
+            cache.put(cache_key, [], ttl=HIST_CACHE_TTL)
+            return []
+
+        result = []
+        for col in df.columns:
+            try:
+                fy_date = col.to_pydatetime() if hasattr(col, "to_pydatetime") else col
+                try:
+                    fy_date = fy_date.replace(tzinfo=None)
+                except (TypeError, AttributeError):
+                    pass
+
+                def _val(row):
+                    if row is None:
+                        return None
+                    v = row[col]
+                    if _is_nan(v):
+                        return None
+                    try:
+                        return float(v)
+                    except (TypeError, ValueError):
+                        return None
+
+                rev = _val(rev_row)
+                # Drop rows with no revenue — they're unusable.
+                if rev is None:
+                    continue
+                result.append({
+                    "fy_end": fy_date,
+                    "revenue": rev,
+                    "gross_profit": _val(gp_row),
+                    "operating_income": _val(op_row),
+                })
+            except Exception:
+                continue
+
+        result.sort(key=lambda r: r["fy_end"])
+        cache.put(cache_key, result, ttl=HIST_CACHE_TTL)
+        return result
+    except Exception:
+        cache.put(cache_key, [], ttl=HIST_CACHE_TTL)
+        return []
+
+
+def _fundamentals_at(symbol, as_of_date, ctx):
+    """Reconstruct point-in-time fundamentals at as_of_date for value/growth/
+    quality scoring. Returns a dict with whatever fields can be built;
+    missing fields are simply absent and the scoring functions handle that.
+
+    EPS-derived fields (trailing_pe, earnings_growth) use the earnings_dates
+    announcement date directly — no filing-lag cushion.
+
+    Income-statement-derived fields (revenue_growth, gross_margins,
+    operating_margins) apply FILING_LAG_DAYS to quarter-end so the backtest
+    only uses data that would have been publicly available at as_of_date.
+    """
+    out = {}
+
+    # EPS-based: TTM EPS for trailing P/E and YoY EPS growth.
+    eps_series = _eps_history_from_earnings(ctx.earnings_raw.get(symbol))
+    if eps_series:
+        available = [pair for pair in eps_series if pair[0] <= as_of_date]
+        if len(available) >= 4:
+            ttm_eps = sum(eps for _d, eps in available[-4:])
+            closes_series = ctx.closes.get(symbol, [])
+            closes = _daily_closes_up_to(closes_series, as_of_date)
+            price = closes[-1] if closes else None
+            if price is not None and ttm_eps != 0:
+                # When TTM EPS is negative, this produces a negative PE which
+                # _score_value treats as a loss-making low-quality signal.
+                out["trailing_pe"] = price / ttm_eps
+            if len(available) >= 5:
+                cur_eps = available[-1][1]
+                yoy_eps = available[-5][1]
+                if yoy_eps != 0:
+                    out["earnings_growth"] = (cur_eps - yoy_eps) / abs(yoy_eps)
+
+    # Income-statement-based: revenue growth + margins, from annual income_stmt.
+    # Filing lag of FILING_LAG_DAYS applied to FY-end before use.
+    income_a = ctx.income_annual.get(symbol) or []
+    if income_a:
+        cutoff = as_of_date - timedelta(days=FILING_LAG_DAYS)
+        available = [r for r in income_a if r["fy_end"] <= cutoff]
+        if available:
+            current_fy = available[-1]
+            if current_fy.get("revenue") and current_fy["revenue"] > 0:
+                rev = current_fy["revenue"]
+                if current_fy.get("gross_profit") is not None:
+                    out["gross_margins"] = current_fy["gross_profit"] / rev
+                if current_fy.get("operating_income") is not None:
+                    out["operating_margins"] = current_fy["operating_income"] / rev
+            if len(available) >= 2:
+                prior_fy = available[-2]
+                if (current_fy.get("revenue") is not None and prior_fy.get("revenue")
+                        and prior_fy["revenue"] > 0):
+                    out["revenue_growth"] = (
+                        (current_fy["revenue"] - prior_fy["revenue"]) / prior_fy["revenue"]
+                    )
+
+    return out if out else None
+
+
 def _earnings_data_at(earnings_df, as_of_date):
     """Reshape a yfinance earnings DataFrame into the dict shape that
     score_earnings_surprise expects, filtered to events before as_of_date.
@@ -361,6 +547,22 @@ def prefetch_backtest_context(symbols, as_of_start=None, as_of_end=None):
             except Exception:
                 pass
 
+    # Annual income statement for value / growth / quality reconstruction.
+    # yfinance returns 4-5 FYs of annual data here. Most-recent FY usually
+    # has data; earliest may be NaN. For early backtest dates the data won't
+    # be available and revenue_growth / margin scores stay at NEUTRAL_SCORE.
+    def _fetch_one_income(sym):
+        return sym, _fetch_annual_income(sym)
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        futures = [pool.submit(_fetch_one_income, s) for s in universe]
+        for fut in as_completed(futures, timeout=600):
+            try:
+                sym, data = fut.result(timeout=30)
+                ctx.income_annual[sym] = data or []
+            except Exception:
+                pass
+
     return ctx
 
 
@@ -400,6 +602,15 @@ def reconstruct_alpha_lite(symbol, as_of_date, ctx, sector_hint=None):
     # Earnings surprise.
     earn_data = _earnings_data_at(ctx.earnings_raw.get(symbol), as_of_date)
     sub_scores["earnings_surprise"] = score_earnings_surprise(earn_data)
+
+    # Fundamentals: value, growth, quality. Partial reconstructions — value
+    # is PE-only, quality is margins-only, growth is full (revenue + EPS).
+    # The scoring functions return NEUTRAL_SCORE when no inputs are present,
+    # so an empty `fundamentals` dict produces a neutral score automatically.
+    fundamentals = _fundamentals_at(symbol, as_of_date, ctx) or {}
+    sub_scores["value"] = _score_value(fundamentals, {})
+    sub_scores["growth"] = _score_growth(fundamentals)
+    sub_scores["quality"] = _score_quality({**fundamentals, "sector": sector_hint or "Unknown"})
 
     # Composite via the current factor weights (same formula as alpha.py:822).
     try:
