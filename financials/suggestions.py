@@ -296,7 +296,7 @@ def holistic_optimization(
     w_opt = w_opt / w_opt.sum()
 
     sector_list = [classifications_map.get(s, ("Unknown", False))[0] for s in usable]
-    w_opt = _apply_hard_constraints(w_opt, sector_list, min_w=0.02, max_w=0.25, max_sector=0.40)
+    w_opt = _apply_hard_constraints(w_opt, usable, sector_list, min_w=0.02, max_w=0.25, max_sector=0.40)
 
     # Filter to NEW positions above threshold.
     suggestions = []

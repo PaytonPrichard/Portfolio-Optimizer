@@ -113,6 +113,73 @@ def _classify_etf_sector(category):
     return None
 
 
+# Approximate GICS sector weights for common broad-market ETFs/MFs.
+# Source: fund factsheets, captured 2026-Q1. Drift is ~1-3pp/year, refresh
+# annually. The previous logic spread every broad ETF evenly across 11 GICS
+# sectors, which severely undercounts tech for S&P 500 / large-cap-growth
+# trackers (~30% / ~46% tech) and lets the optimizer pile satellite weight
+# into NVDA/MSFT/etc despite the index core already being tech-heavy.
+_SP500_LIKE = {
+    "Technology": 0.30, "Financial Services": 0.13, "Healthcare": 0.11,
+    "Consumer Cyclical": 0.10, "Communication Services": 0.09,
+    "Industrials": 0.08, "Consumer Defensive": 0.06, "Energy": 0.04,
+    "Utilities": 0.03, "Real Estate": 0.02, "Basic Materials": 0.02,
+}
+_TOTAL_US_LIKE = {
+    "Technology": 0.28, "Financial Services": 0.14, "Healthcare": 0.11,
+    "Consumer Cyclical": 0.10, "Industrials": 0.09,
+    "Communication Services": 0.08, "Consumer Defensive": 0.05,
+    "Energy": 0.04, "Real Estate": 0.03, "Utilities": 0.03,
+    "Basic Materials": 0.02,
+}
+_LARGE_GROWTH_LIKE = {
+    "Technology": 0.46, "Consumer Cyclical": 0.18,
+    "Communication Services": 0.13, "Healthcare": 0.08,
+    "Industrials": 0.06, "Financial Services": 0.05,
+    "Consumer Defensive": 0.02, "Energy": 0.005, "Utilities": 0.005,
+    "Real Estate": 0.005, "Basic Materials": 0.005,
+}
+_NASDAQ_100_LIKE = {
+    "Technology": 0.50, "Consumer Cyclical": 0.18,
+    "Communication Services": 0.16, "Healthcare": 0.06,
+    "Industrials": 0.04, "Consumer Defensive": 0.04,
+    "Financial Services": 0.005, "Utilities": 0.005,
+    "Real Estate": 0.001, "Basic Materials": 0.001, "Energy": 0.001,
+}
+
+BROAD_ETF_SECTOR_WEIGHTS = {
+    # S&P 500 trackers
+    "SPY": _SP500_LIKE, "VOO": _SP500_LIKE, "IVV": _SP500_LIKE,
+    "FXAIX": _SP500_LIKE,
+    # Total US market
+    "VTI": _TOTAL_US_LIKE, "ITOT": _TOTAL_US_LIKE,
+    "SCHB": _TOTAL_US_LIKE, "FZROX": _TOTAL_US_LIKE,
+    # Large-cap growth (heavier tech tilt)
+    "VUG": _LARGE_GROWTH_LIKE, "FSPGX": _LARGE_GROWTH_LIKE,
+    "IWF": _LARGE_GROWTH_LIKE,
+    # Fidelity Founders (all-cap growth-leaning) — closer to large-growth
+    # than to S&P 500 mix per recent factsheets.
+    "FIFNX": _LARGE_GROWTH_LIKE,
+    # Nasdaq 100
+    "QQQ": _NASDAQ_100_LIKE,
+}
+
+# Fallback for unrecognized broad ETFs (foreign, bond, niche allocators).
+# Defaulting to S&P 500 mix slightly over-counts US tech for foreign/bond
+# ETFs, which shrinks the satellite tech budget — wrong direction is safer.
+DEFAULT_BROAD_ETF_WEIGHTS = _SP500_LIKE
+
+
+def _etf_sector_weights(symbol):
+    """Return {gics_sector: fraction} for a broad ETF/MF symbol, falling back
+    to S&P 500 mix when not in the table. Used by both the sector cap and
+    diversification score so they agree on ETF look-through.
+    """
+    return BROAD_ETF_SECTOR_WEIGHTS.get(
+        (symbol or "").upper(), DEFAULT_BROAD_ETF_WEIGHTS
+    )
+
+
 def _fetch_classification(symbol):
     """Return (sector, is_etf_like). Broad-market ETFs get sector=ETF_SECTOR_KEY
     (exempt from cap, modeled as spread across all sectors). Sector-specific
@@ -225,18 +292,23 @@ def _floor_min(w, min_w):
     return np.where((w > 0) & (w < min_w), 0.0, w)
 
 
-def _cap_sector(w, sectors, max_sector):
+def _cap_sector(w, symbols, sectors, max_sector):
     # Effective sector cap: single-stock weight in a sector PLUS that sector's
-    # share of the broad-market ETF allocation must be <= max_sector. This
-    # stops the optimizer from concentrating Tech in single stocks when ETFs
-    # already provide significant Tech exposure. ETFs themselves aren't moved
-    # by this function (they're rebalanced elsewhere in the pipeline) — we
-    # cap by reducing the single-stock contribution to over-cap sectors.
+    # contribution from broad-ETF holdings must be <= max_sector. We use real
+    # per-ETF sector weights from BROAD_ETF_SECTOR_WEIGHTS so an S&P 500 ETF
+    # (~30% tech) eats more of the tech budget than a real-estate ETF would.
+    # ETFs themselves aren't moved by this function (they're rebalanced
+    # elsewhere) — we cap by reducing the single-stock contribution.
     w = np.array(w, dtype=float)
     etf_mask = np.array([s == ETF_SECTOR_KEY for s in sectors])
     etf_total = float(w[etf_mask].sum())
-    etf_per_sector = etf_total / len(GICS_SECTORS)
-    effective_max = max(0.0, max_sector - etf_per_sector)
+
+    # Per-sector ETF contribution from real per-ETF sector weights.
+    etf_sec_contrib = defaultdict(float)
+    for i in range(len(symbols)):
+        if etf_mask[i]:
+            for sec, frac in _etf_sector_weights(symbols[i]).items():
+                etf_sec_contrib[sec] += float(w[i]) * frac
 
     unique = set(s for s in sectors if s != ETF_SECTOR_KEY)
     for _ in range(30):
@@ -244,11 +316,13 @@ def _cap_sector(w, sectors, max_sector):
         for sec in unique:
             mask = np.array([s == sec for s in sectors])
             single_stock_sec_total = float(w[mask].sum())
+            effective_max = max(0.0, max_sector - etf_sec_contrib.get(sec, 0.0))
             if single_stock_sec_total > effective_max + 1e-9:
                 excess = single_stock_sec_total - effective_max
-                w[mask] = w[mask] * (effective_max / single_stock_sec_total)
+                if single_stock_sec_total > 0:
+                    w[mask] = w[mask] * (effective_max / single_stock_sec_total)
                 # Redistribute excess to OTHER non-ETF positions only, so ETF
-                # total stays fixed and effective_max doesn't shift mid-loop.
+                # total stays fixed and per-sector contribs don't shift mid-loop.
                 non_etf_other = (~mask) & (~etf_mask)
                 other_sum = float(w[non_etf_other].sum())
                 if other_sum > 0:
@@ -262,7 +336,7 @@ def _cap_sector(w, sectors, max_sector):
     return w
 
 
-def _apply_hard_constraints(w, sectors, min_w, max_w, max_sector):
+def _apply_hard_constraints(w, symbols, sectors, min_w, max_w, max_sector):
     # Iteratively apply position and sector caps until both satisfied.
     w = np.array(w, dtype=float)
     s = w.sum()
@@ -271,7 +345,7 @@ def _apply_hard_constraints(w, sectors, min_w, max_w, max_sector):
     for _ in range(20):
         w_prev = w.copy()
         w = _cap_max(w, max_w)
-        w = _cap_sector(w, sectors, max_sector)
+        w = _cap_sector(w, symbols, sectors, max_sector)
         s = w.sum()
         if s > 0:
             w = w / s
@@ -342,7 +416,7 @@ def _cap_vol(w_opt, w_current, sigma, max_vol):
     return alpha_star * w_opt + (1 - alpha_star) * w_current, alpha_star, False
 
 
-def _apply_constraints(w_opt, w_current, sectors, sigma, constraints):
+def _apply_constraints(w_opt, w_current, symbols, sectors, sigma, constraints):
     """Project w_opt into the feasible region. Returns (w_final, report).
 
     Pipeline: project both w_opt and w_current through the hard-constraint set
@@ -362,8 +436,8 @@ def _apply_constraints(w_opt, w_current, sectors, sigma, constraints):
     max_w = constraints["max_weight"]
     max_sector = constraints["max_sector"]
 
-    w_opt_feasible = _apply_hard_constraints(w_opt, sectors, min_w, max_w, max_sector)
-    w_cur_feasible = _apply_hard_constraints(w_current, sectors, min_w, max_w, max_sector)
+    w_opt_feasible = _apply_hard_constraints(w_opt, symbols, sectors, min_w, max_w, max_sector)
+    w_cur_feasible = _apply_hard_constraints(w_current, symbols, sectors, min_w, max_w, max_sector)
     report["applied"].extend(["floor_min", "cap_max", "cap_sector"])
 
     w, t_alpha, min_forced = _blend_with_turnover_cap(
@@ -455,22 +529,22 @@ def _impact_score(current, optimal, total_value, trades):
     return score, label
 
 
-def _diversification_score(weights, sectors):
+def _diversification_score(weights, symbols, sectors):
     """Effective-sector-count diversification, normalized to 100.
 
-    Models broad-market ETFs as spread evenly across the 11 GICS sectors
-    (approximation; sector-specific ETF handling is task #11). Individual
-    stocks contribute to their own sector. Score normalized against fully
-    diversified (equal weight across all 11 sectors = 100).
+    Broad-market ETFs are decomposed into their real per-sector weights via
+    BROAD_ETF_SECTOR_WEIGHTS. Individual stocks contribute to their own
+    sector. Score normalized against equal weight across 11 sectors = 100.
 
-    100% one stock -> ~9. 100% one broad ETF -> 100. 50/50 mix -> ~28.
+    100% one stock -> ~9. 100% one S&P 500 ETF -> ~55 (concentrated in tech,
+    not 100 as the old even-split approximation claimed). 50/50 stock/ETF
+    mix -> ~25-30. Diversified multi-sector single-stock book -> 60-100.
     """
     sector_totals = defaultdict(float)
-    for w, s in zip(weights, sectors):
+    for w, sym, s in zip(weights, symbols, sectors):
         if s == ETF_SECTOR_KEY:
-            etf_share = float(w) / len(GICS_SECTORS)
-            for sec in GICS_SECTORS:
-                sector_totals[sec] += etf_share
+            for sec, frac in _etf_sector_weights(sym).items():
+                sector_totals[sec] += float(w) * frac
         else:
             sector_totals[s] += float(w)
     if not sector_totals:
@@ -708,7 +782,7 @@ def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
     effective_constraints = {**DEFAULT_CONSTRAINTS, **(constraints or {})}
     sector_list = [classifications_map.get(s, ("Unknown", False))[0] for s in symbols]
     w_opt, constraint_report = _apply_constraints(
-        w_opt, current_weights, sector_list, sigma, effective_constraints,
+        w_opt, current_weights, symbols, sector_list, sigma, effective_constraints,
     )
 
     # Index-Core mode: pin broad-market ETF weights to current, redistribute
@@ -832,8 +906,8 @@ def black_litterman_optimize(holdings, tau=DEFAULT_TAU, delta=DEFAULT_DELTA,
     attribution = _compute_attribution(views_detail, factor_weights_snapshot, tilt)
 
     confidence_score, confidence_label = _confidence_score(views_detail)
-    current_diversification = _diversification_score(current_weights, sector_list)
-    optimal_diversification = _diversification_score(w_opt, sector_list)
+    current_diversification = _diversification_score(current_weights, symbols, sector_list)
+    optimal_diversification = _diversification_score(w_opt, symbols, sector_list)
     regime = regime_override if regime_override is not None else _capture_regime()
 
     current_block = {
